@@ -3,7 +3,7 @@
     "version": "0.0.1",
     "scripts": {
         "dev": "vite dev",
-        "build": "vite build",
+        "build": "vite build --output public",
         "deploy": "gh-pages -d build",
         "preview": "vite preview",
         "lint": "prettier --check . && eslint .",
