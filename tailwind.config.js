@@ -1,7 +1,8 @@
-/** @type {import('tailwindcss').Config} */
-export default {
+module.exports = {
   content: [
-    './src/**/*.{html,js,svelte,ts}'
+    './src/**/*.{js,jsx,ts,tsx,html,svelte}',
+    './app.css',
+    './styles/custom-filters.css'
   ],
   theme: {
     extend: {

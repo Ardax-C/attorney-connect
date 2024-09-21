@@ -5,6 +5,16 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
   return {
     plugins: [sveltekit()],
+    build: {
+      outDir: 'dist',
+      rollupOptions: {
+        output: {
+          entryFileNames: 'assets/[name].[hash].js',
+          chunkFileNames: 'assets/[name].[hash].js',
+          assetFileNames: 'assets/[name].[hash].[ext]'
+        }
+      }
+    },
     define: {
       'process.env.PUBLIC_FIREBASE_API_KEY': JSON.stringify(env.PUBLIC_FIREBASE_API_KEY),
       'process.env.PUBLIC_FIREBASE_AUTH_DOMAIN': JSON.stringify(env.PUBLIC_FIREBASE_AUTH_DOMAIN),
