@@ -10,6 +10,7 @@ module.exports = {
       colors: {
         'custom-color-primary': '#E5DCB7',
         'custom-color-secondary': '#11948C',
+        'custom-color-tertiary': '#10d9ef',
         'custom-btn-color': '#94B9AF',
         'custom-btn-bg': '#94B9AF',
         'custom-btn-hover-bg': '#efede1',

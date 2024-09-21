@@ -75,7 +75,7 @@
 <div class="bg-no-repeat bg-center bg-cover min-h-screen pb-8 sm:pb-0" style="background-image: url({backgroundImage})">
     <Navbar />
     <div class="max-w-5xl mx-auto my-6 p-4 sm:p-6 rounded-sm shadow-md bg-zinc-800 bg-opacity-90">
-        <h2 class="text-2xl font-bold mb-4 text-center text-custom-color-secondary font-inter">Sign Up for Access!</h2>
+        <h2 class="text-2xl font-bold mb-4 text-center text-custom-color-tertiary font-inter">Sign Up for Access!</h2>
         <p class="text-center text-emerald-400 mb-6 text-base sm:text-lg">Once registered, you will have access to view the Attorney Directory!</p>
 
         <form on:submit|preventDefault={handleSubmit} class="grid grid-cols-1 sm:grid-cols-3 gap-4">
