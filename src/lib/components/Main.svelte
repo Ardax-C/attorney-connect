@@ -3,29 +3,26 @@
     import Navbar from './Navbar.svelte';
     import backgroundImage from '../images/pexels-lastly-2086917.jpg';
     import { base } from '$app/paths';
-
     let isClicked = false;
 </script>
 
-<div class="bg-no-repeat bg-center bg-cover h-screen" style="background-image: url({backgroundImage})">
+<div class="bg-no-repeat bg-center bg-cover min-h-screen" style="background-image: url({backgroundImage})">
     <Navbar />
-    <div class="w-[400px] ml-10">
-        <p class="font-inter text-custom-color-primary text-2xl">Attorney Network</p>
-        <p class="font-inter text-custom-color-primary text-8xl"><span class="text-custom-color-secondary">Trusted</span> Attorneys</p>
-        <p class="text-custom-color-primary
-                    sm:text-[.9rem]
-                    md:text-[1rem]
-                    lg:text-[1.2rem]
-                    w-full
-                    max-w-lg
-                    mt-2">As a legal professional, your success is our top priority. We're dedicated to providing the expertise and support you need to excel.</p>
-        <button
-            class="bg-custom-btn-bg text-custom-btn-text font-inter py-2 px-4 rounded-sm border-none mt-8 text-1xl w-[225px] h-[40px] cursor-pointer transition duration-300 ease-in-out transform hover:bg-custom-btn-hover-bg hover:text-custom-btn-hover-text active:scale-95"
-            on:click={() => goto(`${base}/signup`)}
-            class:clicked={isClicked}
-        >
-            Get Started
-        </button>
+    <div class="container mx-auto px-4 py-8">
+        <div class="max-w-lg mx-auto my-24 text-center">
+            <p class="font-inter text-custom-color-primary text-3xl sm:text-4xl mb-2">Attorney Network</p>
+            <p class="font-inter text-custom-color-primary text-5xl sm:text-6xl md:text-7xl"><span class="text-custom-color-secondary">Trusted</span> Attorneys</p>
+            <p class="text-custom-color-primary text-lg sm:text-xl mt-6 mb-8">
+                As a legal professional, your success is our top priority. We're dedicated to providing the expertise and support you need to excel.
+            </p>
+            <button
+                class="bg-custom-btn-bg text-custom-btn-text font-inter py-3 px-6 rounded-sm border-none text-xl sm:text-2xl w-full sm:w-auto cursor-pointer transition duration-300 ease-in-out transform hover:bg-custom-btn-hover-bg hover:text-custom-btn-hover-text active:scale-95"
+                on:click={() => goto(`${base}/signup`)}
+                class:clicked={isClicked}
+            >
+                Get Started
+            </button>
+        </div>
     </div>
 </div>
 
