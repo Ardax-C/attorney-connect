@@ -1,8 +1,6 @@
 module.exports = {
   content: [
     './src/**/*.{js,jsx,ts,tsx,html,svelte}',
-    './app.css',
-    './styles/custom-filters.css'
   ],
   theme: {
     extend: {
