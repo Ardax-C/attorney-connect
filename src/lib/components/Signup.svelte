@@ -74,7 +74,7 @@
 
 <div class="bg-no-repeat bg-center bg-cover h-screen" style="background-image: url({backgroundImage})">
     <Navbar />
-    <div class="max-w-5xl mx-auto my-10 p-6 rounded-sm shadow-md bg-white bg-opacity-90">
+    <div class="max-w-5xl mx-auto my-10 p-6 rounded-sm shadow-md bg-custom-color-primary bg-opacity-90">
         <h2 class="text-xl font-bold mb-4 text-center text-custom-color-secondary font-inter">Sign Up for Access!</h2>
         <p class="text-center text-gray-600 mb-6 text-sm">Once registered, you will have access to view the Attorney Directory!</p>
 
@@ -156,7 +156,7 @@
                         <p class="text-red-500 mt-1 text-xs">{profilePictureError}</p>
                     {/if}
                 </div>
-
+                
                 <div class="text-center">
                     <button type="submit" class="bg-custom-btn-bg text-custom-btn-text px-4 py-2 text-sm rounded hover:bg-custom-btn-hover-bg hover:text-custom-btn-hover-text focus:outline-none focus:ring-2 focus:ring-custom-btn-active-bg font-bold">Submit Form</button>
                 </div>
