@@ -16,7 +16,7 @@
 <div class="bg-no-repeat bg-center bg-cover min-h-screen" style="background-image: url({backgroundImage})">
     <Navbar />
     <div class="flex items-center justify-center py-8 px-4">
-        <div class="bg-white bg-opacity-90 p-6 sm:p-8 rounded-md shadow-md w-full max-w-md">
+        <div class="bg-zinc-800 bg-opacity-90 p-6 sm:p-8 rounded-md shadow-md w-full max-w-md">
             <h2 class="text-2xl sm:text-3xl font-bold mb-6 text-center text-custom-color-secondary">Login to your account:</h2>
             <form on:submit|preventDefault={handleSubmit}>
                 <div class="mb-4">

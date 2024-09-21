@@ -20,7 +20,7 @@
     }
 </script>
 
-<nav class="w-full flex items-center justify-between flex-wrap bg-custom-color-primary p-6">
+<nav class="w-full flex items-center justify-between flex-wrap bg-zinc-900 p-3">
     <div class="flex items-center flex-shrink-0 text-white mr-6">
         <a href="{currentPath === '/' ? `${base}/login` : `${base}/`}">
             <img src="{brandLogo}" alt="" class="filter-brand-logo-1 h-12 w-auto">

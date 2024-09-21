@@ -74,52 +74,52 @@
 
 <div class="bg-no-repeat bg-center bg-cover min-h-screen pb-8 sm:pb-0" style="background-image: url({backgroundImage})">
     <Navbar />
-    <div class="max-w-5xl mx-auto my-6 p-4 sm:p-6 rounded-sm shadow-md bg-custom-color-primary bg-opacity-90">
+    <div class="max-w-5xl mx-auto my-6 p-4 sm:p-6 rounded-sm shadow-md bg-zinc-800 bg-opacity-90">
         <h2 class="text-2xl font-bold mb-4 text-center text-custom-color-secondary font-inter">Sign Up for Access!</h2>
-        <p class="text-center text-gray-600 mb-6 text-base sm:text-lg">Once registered, you will have access to view the Attorney Directory!</p>
+        <p class="text-center text-emerald-400 mb-6 text-base sm:text-lg">Once registered, you will have access to view the Attorney Directory!</p>
 
         <form on:submit|preventDefault={handleSubmit} class="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div class="sm:col-span-1">
                 <div class="mb-4">
-                    <label for="firstName" class="block text-gray-700 text-base mb-1">First Name *</label>
+                    <label for="firstName" class="block text-emerald-400 text-base mb-1">First Name *</label>
                     <input type="text" id="firstName" bind:value={firstName} class="w-full px-4 py-2 text-base border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-custom-color-primary" required>
                 </div>
                 <div class="mb-4">
-                    <label for="lastName" class="block text-gray-700 text-base mb-1">Last Name *</label>  
+                    <label for="lastName" class="block text-emerald-400 text-base mb-1">Last Name *</label>  
                     <input type="text" id="lastName" bind:value={lastName} class="w-full px-4 py-2 text-base border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-custom-color-primary" required>
                 </div>
                 <div class="mb-4">
-                    <label for="email" class="block text-gray-700 text-base mb-1">Email *</label>
+                    <label for="email" class="block text-emerald-400 text-base mb-1">Email *</label>
                     <input type="email" id="email" bind:value={email} class="w-full px-4 py-2 text-base border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-custom-color-primary" required>
                 </div>
             </div>
 
             <div class="sm:col-span-1">
                 <div class="mb-4">
-                    <label for="phone" class="block text-gray-700 text-base mb-1">Phone/Mobile *</label>
+                    <label for="phone" class="block text-emerald-400 text-base mb-1">Phone/Mobile *</label>
                     <input type="tel" id="phone" bind:value={phone} class="w-full px-4 py-2 text-base border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-custom-color-primary" required>
                 </div>
                 <div class="mb-4">
-                    <label for="username" class="block text-gray-700 text-base mb-1">Username *</label>
+                    <label for="username" class="block text-emerald-400 text-base mb-1">Username *</label>
                     <input type="text" id="username" bind:value={username} class="w-full px-4 py-2 text-base border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-custom-color-primary" required>
                 </div>
                 <div class="mb-4">
-                    <label for="password" class="block text-gray-700 text-base mb-1">Password *</label>
+                    <label for="password" class="block text-emerald-400 text-base mb-1">Password *</label>
                     <input type="password" id="password" bind:value={password} class="w-full px-4 py-2 text-base border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-custom-color-primary" required>
                 </div>
             </div>
 
             <div class="sm:col-span-1">
                 <div class="mb-4">
-                    <label for="website" class="block text-gray-700 text-base mb-1">Website</label>
+                    <label for="website" class="block text-emerald-400 text-base mb-1">Website</label>
                     <input type="url" id="website" bind:value={website} class="w-full px-4 py-2 text-base border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-custom-color-primary">
                 </div>
                 <div class="mb-4">
-                    <label for="city" class="block text-gray-700 text-base mb-1">City</label>
+                    <label for="city" class="block text-emerald-400 text-base mb-1">City</label>
                     <input type="text" id="city" bind:value={city} class="w-full px-4 py-2 text-base border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-custom-color-primary">
                 </div>
                 <div class="mb-4">
-                    <label for="state" class="block text-gray-700 text-base mb-1">State</label>
+                    <label for="state" class="block text-emerald-400 text-base mb-1">State</label>
                     <select id="state" bind:value={state} class="w-full px-4 py-2 text-base border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-custom-color-primary">
                         <option value="">- Select -</option>
                         {#each states as state}
@@ -131,7 +131,7 @@
 
             <div class="sm:col-span-3">
                 <div class="mb-4">
-                    <label for="practiceAreas" class="block text-gray-700 text-base mb-1">Practice Areas</label>
+                    <label for="practiceAreas" class="block text-emerald-400 text-base mb-1">Practice Areas</label>
                     {#each practiceAreas as practiceArea, index}
                         <div class="flex items-center mb-2">
                             <input type="text" id="practiceAreas" bind:value={practiceAreas[index]} class="w-full px-4 py-2 text-base border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-custom-color-primary">
@@ -147,7 +147,7 @@
                 </div>
 
                 <div class="mb-4">
-                    <label for="profilePicture" class="block text-gray-700 text-base mb-1">Profile Picture</label>
+                    <label for="profilePicture" class="block text-emerald-400 text-base mb-2">Profile Picture</label>
                     <input type="file" id="profilePicture" accept="image/*" on:change={handleProfilePictureUpload} class="hidden">
                     <label for="profilePicture" class="bg-custom-btn-bg text-custom-btn-text px-4 py-2 text-base rounded cursor-pointer hover:bg-custom-btn-hover-bg hover:text-custom-btn-hover-text focus:outline-none focus:ring-2 focus:ring-custom-btn-active-bg">
                         {profilePicture ? profilePicture.name : 'Choose File'}
