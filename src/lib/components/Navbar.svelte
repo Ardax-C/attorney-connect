@@ -23,7 +23,7 @@
 <nav class="w-full flex items-center justify-between flex-wrap bg-custom-color-primary p-6">
     <div class="flex items-center flex-shrink-0 text-white mr-6">
         <a href="{currentPath === '/' ? `${base}/login` : `${base}/`}">
-            <img src="{brandLogo}" alt="" class="filter-brand-logo-1 h-8 w-auto">
+            <img src="{brandLogo}" alt="" class="filter-brand-logo-1 h-12 w-auto">
         </a>
     </div>
     <div class="block lg:hidden">
@@ -37,7 +37,7 @@
     <div class="w-full block lg:flex lg:items-center lg:w-auto {isMenuOpen ? 'block' : 'hidden'}" id="nav-content">
         <ul class="text-sm lg:flex-grow lg:flex lg:justify-end">
             <li>
-                <a href="{currentPath === '/' ? `${base}/login` : `${base}/`}" class="block mt-4 lg:inline-block lg:mt-0 text-custom-color-secondary hover:text-white mr-4">
+                <a href="{currentPath === '/' ? `${base}/login` : `${base}/`}" class="block mt-4 lg:inline-block lg:mt-0 text-white hover:text-orange-400 mr-4 text-lg">
                     {currentPath === '/' ? 'Login' : 'Home'}
                 </a>
             </li>
