@@ -6,7 +6,9 @@ const config = {
     preprocess: sveltePreprocess(),
 
     kit: {
-        adapter: adapter(),
+        adapter: adapter({
+            fallback: 'app.html' // or any other fallback file
+        }),
         paths: {
             base: process.env.NODE_ENV === 'production' ? '/attorney-connect' : '',
         }
