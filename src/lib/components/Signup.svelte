@@ -163,7 +163,7 @@
     
                 {#if showNavigation}
                     <div class="mt-6 text-center">
-                        <p class="text-gray-600 mb-4 text-base">Registration Complete! Please check your email for verification.</p>
+                        <p class="text-emerald-400 mb-4 text-base">Registration Complete! Please check your email for verification.</p>
                         <div class="flex flex-col sm:flex-row justify-center space-y-4 sm:space-y-0 sm:space-x-4">
                             <a href="{base}/" class="text-custom-color-secondary text-base hover:underline">Home Screen</a>
                             <a href="{base}/login" class="text-custom-color-secondary text-base hover:underline">Login Screen</a>
