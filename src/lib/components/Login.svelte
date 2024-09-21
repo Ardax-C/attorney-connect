@@ -2,6 +2,7 @@
     import { goto } from '$app/navigation';
     import Navbar from './Navbar.svelte';
     import backgroundImage from '../images/pexels-lastly-2086917.jpg';
+    import { base } from '$app/paths';
 
     let username = '';
     let password = '';
@@ -10,7 +11,7 @@
         // Login logic goes here
         console.log('Login submitted');
         // Redirect to home page or other authenticated route
-        goto('/');
+        goto(`${base}/`);
     }
 </script>
 
@@ -28,7 +29,7 @@
                 </div>
                 <div class="flex items-center justify-between">
                     <button type="submit" class="bg-custom-btn-bg text-custom-btn-text px-4 py-2 rounded-md hover:bg-custom-btn-hover-bg hover:text-custom-btn-hover-text focus:outline-none focus:ring-2 focus:ring-custom-btn-active-bg">Login</button>
-                    <a href="/signup" class="text-custom-color-secondary hover:underline">Sign Up</a>
+                    <a href="{base}/signup" class="text-custom-color-secondary hover:underline">Sign Up</a>
                 </div>
             </form>
         </div>

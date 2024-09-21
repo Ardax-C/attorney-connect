@@ -2,6 +2,7 @@
     import backgroundImage from '../images/pexels-lastly-2086917.jpg';
     import { goto } from '$app/navigation';
     import Navbar from "./Navbar.svelte";
+    import { base } from '$app/paths';
 
     let firstName = '';
     let lastName = '';
@@ -164,8 +165,8 @@
                     <div class="mt-4 text-center">
                         <p class="text-gray-600 mb-2">Registration Complete! Please check your email for verification.</p>
                         <div class="flex justify-center space-x-4">
-                            <a href="/" class="text-custom-color-secondary hover:underline">Home Screen</a>
-                            <a href="/login" class="text-custom-color-secondary hover:underline">Login Screen</a>
+                            <a href="{base}/" class="text-custom-color-secondary hover:underline">Home Screen</a>
+                            <a href="{base}/login" class="text-custom-color-secondary hover:underline">Login Screen</a>
                         </div>
                     </div>
                 {/if}

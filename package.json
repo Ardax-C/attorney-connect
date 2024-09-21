@@ -29,6 +29,7 @@
     },
     "type": "module",
     "dependencies": {
-        "attorney-connect": "file:"
+        "attorney-connect": "file:",
+        "svelte-preprocess": "^6.0.2"
     }
 }
