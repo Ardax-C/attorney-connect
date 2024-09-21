@@ -1,0 +1,13 @@
+.filter-brand-logo-1 {
+    filter: brightness(0) 
+            invert(1);
+}
+
+.filter-brand-logo-1:hover {
+    filter: invert(27%) 
+            sepia(51%) 
+            saturate(2878%) 
+            hue-rotate(346deg) 
+            brightness(104%) 
+            contrast(97%);
+}
