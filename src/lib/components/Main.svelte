@@ -1,37 +1,9 @@
 <script>
-    import { onMount } from 'svelte';
-    import { auth, db } from '$lib/firebase';
-    import { onAuthStateChanged } from 'firebase/auth';
-    import { doc, getDoc } from 'firebase/firestore';
     import { goto } from '$app/navigation';
     import Navbar from './Navbar.svelte';
     import backgroundImage from '../images/pexels-lastly-2086917.jpg';
-
-    let user = null;
-    let profile = null;
-
-    onMount(() => {
-        const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-            user = firebaseUser;
-            if (user) {
-                const docRef = doc(db, "attorneyProfiles", user.uid);
-                const docSnap = await getDoc(docRef);
-                if (docSnap.exists()) {
-                    profile = docSnap.data();
-                }
-            }
-        });
-
-        return unsubscribe;
-    });
-
-    function handleGetStarted() {
-        if (user) {
-            goto('/profile');
-        } else {
-            goto('/signup');
-        }
-    }
+    import { base } from '$app/paths';
+    let isClicked = false;
 </script>
 
 <div class="bg-no-repeat bg-center bg-cover min-h-screen" style="background-image: url({backgroundImage})">
@@ -45,10 +17,18 @@
             </p>
             <button
                 class="bg-custom-btn-bg text-custom-btn-text font-inter py-3 px-6 rounded-sm border-none text-xl sm:text-2xl w-full sm:w-auto cursor-pointer transition duration-300 ease-in-out transform hover:bg-custom-btn-hover-bg hover:text-custom-btn-hover-text active:scale-95"
-                on:click={handleGetStarted}
+                on:click={() => goto(`${base}/signup`)}
+                class:clicked={isClicked}
             >
-                {user ? 'View Profile' : 'Get Started'}
+                Get Started
             </button>
         </div>
     </div>
 </div>
+
+<style>
+    .clicked {
+        background-color: #5E8C75;
+        color: #efede1;
+    }
+</style>
