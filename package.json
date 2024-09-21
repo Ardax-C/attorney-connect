@@ -9,7 +9,7 @@
         "format": "prettier --write ."
     },
     "devDependencies": {
-        "@sveltejs/kit": "^2.0.0",
+        "@sveltejs/kit": "^2.5.28",
         "@sveltejs/vite-plugin-svelte": "^3.0.0",
         "@types/eslint": "^9.6.0",
         "autoprefixer": "^10.4.20",
@@ -22,13 +22,17 @@
         "prettier-plugin-svelte": "^3.1.2",
         "svelte": "^4.2.7",
         "tailwindcss": "^3.4.12",
-        "vite": "^5.0.3"
+        "vite": "^5.4.7"
     },
     "type": "module",
     "dependencies": {
+        "@fortawesome/fontawesome-svg-core": "^6.6.0",
+        "@fortawesome/free-solid-svg-icons": "^6.6.0",
+        "@fortawesome/svelte-fontawesome": "^0.2.2",
         "@sveltejs/adapter-vercel": "^5.4.4",
         "@vercel/speed-insights": "^1.0.12",
         "attorney-connect": "file:",
+        "firebase": "^10.13.2",
         "svelte-preprocess": "^6.0.2"
     }
 }

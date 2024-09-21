@@ -3,8 +3,13 @@
     import brandLogo from '../images/logo-small.png';
     import { onMount } from 'svelte';
     import { base } from '$app/paths';
+    import { auth } from '$lib/firebase';
+    import { signOut } from 'firebase/auth';
+    import { goto } from '$app/navigation';
+
     let currentPath = '';
     let isMenuOpen = false;
+    let user = null;
 
     onMount(() => {
         if (typeof window !== 'undefined') {
@@ -13,10 +18,25 @@
                 currentPath = window.location.pathname;
             });
         }
+
+        const unsubscribe = auth.onAuthStateChanged((firebaseUser) => {
+            user = firebaseUser;
+        });
+
+        return unsubscribe;
     });
 
     function toggleMenu() {
         isMenuOpen = !isMenuOpen;
+    }
+
+    async function handleLogout() {
+        try {
+            await signOut(auth);
+            goto('/login');
+        } catch (error) {
+            console.error("Error signing out: ", error);
+        }
     }
 </script>
 
@@ -36,11 +56,21 @@
     </div>
     <div class="w-full block lg:flex lg:items-center lg:w-auto {isMenuOpen ? 'block' : 'hidden'}" id="nav-content">
         <ul class="text-sm lg:flex-grow lg:flex lg:justify-end">
-            <li>
-                <a href="{currentPath === '/' ? `${base}/login` : `${base}/`}" class="block mt-4 lg:inline-block lg:mt-0 text-white hover:text-orange-400 mr-4 text-lg">
-                    {currentPath === '/' ? 'Login' : 'Home'}
-                </a>
-            </li>
+            {#if user}
+                <li>
+                    <a href="/profile" class="block mt-4 lg:inline-block lg:mt-0 text-white hover:text-orange-400 mr-4 text-lg">Profile</a>
+                </li>
+                <li>
+                    <button on:click={handleLogout} class="block mt-4 lg:inline-block lg:mt-0 text-white hover:text-orange-400 mr-4 text-lg">Logout</button>
+                </li>
+            {:else}
+                <li>
+                    <a href="/login" class="block mt-4 lg:inline-block lg:mt-0 text-white hover:text-orange-400 mr-4 text-lg">Login</a>
+                </li>
+                <li>
+                    <a href="/signup" class="block mt-4 lg:inline-block lg:mt-0 text-white hover:text-orange-400 mr-4 text-lg">Sign Up</a>
+                </li>
+            {/if}
         </ul>
     </div>
 </nav>
