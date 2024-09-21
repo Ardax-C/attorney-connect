@@ -1,8 +1,11 @@
 <script>
     import backgroundImage from '../images/pexels-lastly-2086917.jpg';
-    import { goto } from '$app/navigation';
     import Navbar from "./Navbar.svelte";
     import { base } from '$app/paths';
+    import { auth, db } from '$lib/firebase';
+    import { createUserWithEmailAndPassword, sendEmailVerification, signOut } from 'firebase/auth';
+    import { doc, setDoc } from 'firebase/firestore';
+    import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
     let firstName = '';
     let lastName = '';
@@ -17,6 +20,7 @@
     let profilePicture = null;
     let profilePictureError = '';
     let showNavigation = false;
+    let errorMessage = '';
 
     const states = [
         'Alabama', 'Alaska', 'Arizona', 'Arkansas', 'California', 'Colorado', 'Connecticut', 'Delaware', 'Florida', 'Georgia',
@@ -58,17 +62,47 @@
         }
     }
 
-    function handleSubmit() {
+    async function handleSubmit() {
         if (!profilePicture) {
             profilePictureError = 'Please select a profile picture.';
             return;
         }
-        //TODO Form submission logic goes here
-        console.log('Form submitted');
 
-        resetForm();
+        try {
+            // Create user in Firebase Authentication
+            const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+            const user = userCredential.user;
 
-        showNavigation = true;
+            // send email verification
+            await sendEmailVerification(user);
+
+            // Upload profile picture
+            const storage = getStorage();
+            const profilePictureRef = ref(storage, `profilePictures/${user.uid}`);
+            await uploadBytes(profilePictureRef, profilePicture);
+            const profilePictureUrl = await getDownloadURL(profilePictureRef);
+
+            // Create user profile in Firestore
+            await setDoc(doc(db, "attorneyProfiles", user.uid), {
+                firstName,
+                lastName,
+                email,
+                phone,
+                username,
+                website,
+                city,
+                state,
+                practiceAreas: practiceAreas.filter(area => area.trim() !== ''),
+                profilePictureUrl,
+                createdAt: new Date()
+            });
+            await signOut(auth)
+            resetForm();
+            showNavigation = true;
+        } catch (error) {
+            console.error("Error during signup:", error);
+            errorMessage = error.message;
+        }
     }
 </script>
 
@@ -157,6 +191,11 @@
                     {/if}
                 </div>
                 
+                {#if errorMessage}
+                    console.log(errorMessage)
+                    <p class="text-red-500 mb-4">{errorMessage}</p>
+                {/if}
+
                 <div class="text-center">
                     <button type="submit" class="bg-custom-btn-bg text-custom-btn-text px-6 py-3 text-base rounded hover:bg-custom-btn-hover-bg hover:text-custom-btn-hover-text focus:outline-none focus:ring-2 focus:ring-custom-btn-active-bg font-bold">Submit Form</button>
                 </div>
