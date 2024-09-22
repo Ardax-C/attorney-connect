@@ -16,12 +16,37 @@
       isExpanded = !isExpanded;
     }
   
-    function handleSearch() {
-      dispatch('search', {
-        searchTerm,
-        selectedState,
-        selectedPracticeArea
-      });
+    async function handleSearch(event) {
+        if (event && event.detail) {
+            searchTerm = event.detail;
+        }
+
+        let searchQuery = collection(db, "attorneyProfiles");
+
+        if (selectedState) {
+            searchQuery = query(searchQuery, where("state", "==", selectedState));
+        }
+
+        if (selectedPracticeArea) {
+            searchQuery = query(searchQuery, where("practiceAreas", "array-contains", selectedPracticeArea));
+        }
+
+        if (searchTerm) {
+            searchQuery = query(searchQuery, where("name", "==", searchTerm));
+        }
+
+        const querySnapshot = await getDocs(searchQuery);
+        searchResults = querySnapshot.docs.map(doc => {
+            const data = doc.data();
+            return { id: doc.id, ...data };
+        });
+    }
+
+    function handleSearchBarSearch(event) {
+        if (typeof event.detail === 'string') {
+            searchTerm = event.detail;
+        }
+        handleSearch();
     }
   </script>
   
@@ -68,7 +93,7 @@
         </select>
         
         <button
-          on:click={handleSearch}
+          on:click={handleSearchBarSearch}
           class="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-2 px-4 rounded-md transition duration-300"
         >
           Search
