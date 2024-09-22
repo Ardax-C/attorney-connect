@@ -15,6 +15,7 @@
     let tempValue = '';
     let showNavbar = true;
     let lastScrollTop = 0;
+    let profileCard;
 
     // Define the desired order of fields
     const fieldOrder = [
@@ -39,17 +40,24 @@
     }
 
     onMount(() => {
-        const profileCard = document.getElementById('profile-card');
-        profileCard.addEventListener('scroll', () => {
-            const scrollTop = profileCard.scrollTop;
-            if (scrollTop > lastScrollTop) {
-                showNavbar = false;
-            } else {
-                showNavbar = true;
-            }
-            lastScrollTop = scrollTop <= 0 ? 0 : scrollTop;
-        }, false);
+        profileCard = document.getElementById('profile-card');
+        profileCard.addEventListener('scroll', handleScroll, { passive: true });
+        return () => {
+            profileCard.removeEventListener('scroll', handleScroll);
+        };
     });
+
+    function handleScroll() {
+        const scrollTop = profileCard.scrollTop;
+        if (scrollTop > lastScrollTop && scrollTop > 50) {
+            // Scrolling down and not at the top
+            showNavbar = false;
+        } else if (scrollTop < lastScrollTop || scrollTop === 0) {
+            // Scrolling up or at the top
+            showNavbar = true;
+        }
+        lastScrollTop = scrollTop <= 0 ? 0 : scrollTop;
+    }
 
     onAuthStateChanged(auth, async (currentUser) => {
         if (currentUser) {
@@ -102,10 +110,8 @@
 </script>
 
 <main class="bg-no-repeat bg-center bg-cover h-screen flex flex-col" style="background-image: url({backgroundImage})">
-    <div class="transition-all duration-300 ease-in-out" class:h-0={!showNavbar} class:opacity-0={!showNavbar}>
-        <Navbar bind:visible={showNavbar} />
-    </div>
-    <div id="profile-card" class="flex-grow overflow-y-auto">
+    <Navbar bind:visible={showNavbar} />
+    <div id="profile-card" class="flex-grow overflow-y-auto pt-16"> <!-- Added pt-16 for navbar space -->
         <div class="flex items-center justify-center py-8 px-4 min-h-full">
             <div class="flex flex-col md:flex-row items-start justify-center bg-zinc-800 bg-opacity-90 p-4 sm:p-6 md:p-8 rounded-md shadow-md w-full max-w-4xl">
                 {#if userDetails}
