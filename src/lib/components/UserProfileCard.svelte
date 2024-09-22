@@ -2,7 +2,7 @@
     export let user;
 </script>
 
-<div class="bg-zinc-700 p-4 rounded-md w-full h-full flex flex-col overflow-hidden">
+<div class="bg-zinc-700 p-4 rounded-sm w-full h-full flex flex-col overflow-hidden">
     <div class="flex items-center justify-center mb-3">
         <img src={user.profilePictureUrl || '/default-profile.png'} alt={`${user.firstName} ${user.lastName}`} class="w-24 h-24 rounded-full object-cover" />
     </div>
