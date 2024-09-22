@@ -36,12 +36,9 @@
 
     onMount(() => {
         signupCard = document.getElementById('signup-card');
-        signupCard.addEventListener('scroll', handleScroll, { passive: true });
-
-        return () => {
-            signupCard.removeEventListener('scroll', handleScroll);
-        };
+  
     });
+
 
     function resetForm() {
         firstName = '';
