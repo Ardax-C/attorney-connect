@@ -120,10 +120,7 @@
             searchQuery = query(searchQuery, where("name", "==", searchTerm));
         }
 
-        const searchSnapshot = await getDocs(searchQuery);
-        const results = searchSnapshot.docs.map(doc => doc.data());
-
-        const querySnapshot = await getDocs(results);
+        const querySnapshot = await getDocs(searchQuery);
         searchResults = querySnapshot.docs.map(doc => {
             const data = doc.data();
             return { id: doc.id, ...data };
