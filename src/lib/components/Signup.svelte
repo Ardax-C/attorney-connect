@@ -109,6 +109,18 @@
                 status: 'pending',
                 role: 'user'
             });
+
+            // Add state to the states collection
+            await setDoc(doc(db, "states", state), {
+                state
+            });
+
+            // Add each practice area to the practiceAreas collection
+            for (const area of practiceAreas.filter(area => area.trim() !== '')) {
+                await setDoc(doc(db, "practiceAreas", area), {
+                    practiceArea: area
+                });
+            }
             
             await signOut(auth);
             resetForm();

@@ -3,7 +3,7 @@
     import { page } from '$app/stores';
     import { goto } from '$app/navigation';
     import { auth, db } from '$lib/firebase';
-    import { collection, query, where, getDocs } from 'firebase/firestore';
+    import { collection, query, getDocs, where } from 'firebase/firestore';
     import { ChevronDown, ChevronUp } from 'lucide-svelte';
     import Navbar from './Navbar.svelte';
     import SearchBar from './SearchBar.svelte';
@@ -24,6 +24,7 @@
     let isMobile = false;
     let lastScrollTop = 0;
     let isSearchExpanded = false;
+    let innerHeight;
 
     onMount(() => {
         const unsubscribe = auth.onAuthStateChanged(async (user) => {
@@ -50,9 +51,16 @@
             isLoading = false;
         });
 
+        const updateInnerHeight = () => {
+            innerHeight = window.innerHeight;
+        };
+        updateInnerHeight();
+        window.addEventListener('resize', updateInnerHeight);
+
         return () => {
             unsubscribe();
             window.removeEventListener('resize', checkMobile);
+            window.removeEventListener('resize', updateInnerHeight);
             if (resultsContainer) {
                 resultsContainer.removeEventListener('scroll', handleScroll);
             }
@@ -78,9 +86,19 @@
     }
 
     async function fetchUniqueFields() {
-        // Implement fetching unique states and practice areas
-        states = ['Wisconsin', 'California', 'New York', 'Alabama', 'Maryland'];
-        practiceAreas = ['International Law', 'Memetic Warfare', 'Criminal', 'Family Law', 'Tax Law'];
+        // Fetch states
+        const statesQuery = query(collection(db, "states"));
+        const statesSnapshot = await getDocs(statesQuery);
+        statesSnapshot.docs.forEach(doc => {
+        });
+        states = statesSnapshot.docs.map(doc => doc.data().state);
+
+        // Fetch practice areas
+        const practiceAreasQuery = query(collection(db, "practiceAreas"));
+        const practiceAreasSnapshot = await getDocs(practiceAreasQuery);
+        practiceAreasSnapshot.docs.forEach(doc => {
+        });
+        practiceAreas = practiceAreasSnapshot.docs.map(doc => doc.data().practiceArea);
     }
 
     async function handleSearch(event) {
@@ -88,24 +106,24 @@
             searchTerm = event.detail;
         }
 
-        let q = collection(db, "attorneyProfiles");
-
-        if (searchTerm) {
-            q = query(q, 
-                where('firstName', '>=', searchTerm), 
-                where('firstName', '<=', searchTerm + '\uf8ff')
-            );
-        }
+        let searchQuery = collection(db, "attorneyProfiles");
 
         if (selectedState) {
-            q = query(q, where('state', '==', selectedState));
+            searchQuery = query(searchQuery, where("state", "==", selectedState));
         }
 
         if (selectedPracticeArea) {
-            q = query(q, where('practiceAreas', 'array-contains', selectedPracticeArea));
+            searchQuery = query(searchQuery, where("practiceAreas", "array-contains", selectedPracticeArea));
         }
 
-        const querySnapshot = await getDocs(q);
+        if (searchTerm) {
+            searchQuery = query(searchQuery, where("name", "==", searchTerm));
+        }
+
+        const searchSnapshot = await getDocs(searchQuery);
+        const results = searchSnapshot.docs.map(doc => doc.data());
+
+        const querySnapshot = await getDocs(searchQuery);
         searchResults = querySnapshot.docs.map(doc => {
             const data = doc.data();
             return { id: doc.id, ...data };
