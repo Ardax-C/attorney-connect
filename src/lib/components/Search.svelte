@@ -7,6 +7,7 @@
     import SearchBar from './SearchBar.svelte';
     import UserProfileCard from './UserProfileCard.svelte';
     import backgroundImage from '../images/pexels-lastly-2086917.jpg';
+	import { goto } from '$app/navigation';
 
     let searchTerm = '';
     let selectedState = '';
@@ -17,22 +18,35 @@
     let showNavbar = true;
     let showSearchBar = true;
     let resultsContainer;
+    let isLoading = true;
+    let isAuthenticated = false;
 
     onMount(async () => {
-        await fetchUniqueFields();
-        resultsContainer = document.getElementById('results-container');
-        resultsContainer.addEventListener('scroll', handleScroll, { passive: true });
+        try {
+            await requireAuth();
+            isAuthenticated = true;
+            await fetchUniqueFields();
+            resultsContainer = document.getElementById('results-container');
+            resultsContainer.addEventListener('scroll', handleScroll, { passive: true });
 
-        // Handle incoming search query
-        const urlSearchParams = new URLSearchParams($page.url.searchParams);
-        const incomingSearchTerm = urlSearchParams.get('q');
-        if (incomingSearchTerm) {
-            searchTerm = incomingSearchTerm;
-            await handleSearch();
+            // Handle incoming search query
+            const urlSearchParams = new URLSearchParams($page.url.searchParams);
+            const incomingSearchTerm = urlSearchParams.get('q');
+            if (incomingSearchTerm) {
+                searchTerm = incomingSearchTerm;
+                await handleSearch();
+            }
+        } catch (error) {
+            console.error("Authentication failed:", error);
+            goto('/login');
+        } finally {
+            isLoading = false;
         }
 
         return () => {
-            resultsContainer.removeEventListener('scroll', handleScroll);
+            if (resultsContainer) {
+                resultsContainer.removeEventListener('scroll', handleScroll);
+            }
         };
     });
 
@@ -87,7 +101,11 @@
     }
 </script>
 
-
+{#if isLoading}
+    <div class="flex justify-center items-center h-screen">
+        <p class="text-white">Loading...</p>
+    </div>
+{:else if isAuthenticated}
 <main class="bg-no-repeat bg-center bg-cover h-screen flex flex-col" style="background-image: url({backgroundImage})">
     <Navbar bind:visible={showNavbar} />
     <div class="flex-grow flex flex-col items-center overflow-hidden px-4 mt-20">
@@ -141,6 +159,9 @@
         </div>
     </div>
 </main>
+{/if}
+
+
 
 <style>
     :global(body) {
