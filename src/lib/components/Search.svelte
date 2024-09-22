@@ -54,7 +54,7 @@
 
     function handleScroll() {
         const scrollTop = resultsContainer.scrollTop;
-        if (scrollTop > 100) {
+        if (scrollTop > 50) {
             showSearchBar = false;
         } else {
             showSearchBar = true;

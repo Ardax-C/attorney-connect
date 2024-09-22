@@ -92,7 +92,7 @@
 
 <main class="bg-no-repeat bg-center bg-cover h-screen flex flex-col" style="background-image: url({backgroundImage})">
     <Navbar bind:visible={showNavbar} />
-    <div id="login-content" class="flex-grow overflow-y-auto pt-16"> <!-- Added pt-16 for navbar space -->
+    <div id="login-content" class="flex-grow overflow-y-auto pt-16"> 
         <div class="flex items-center justify-center py-8 px-4 min-h-full">
             <div class="bg-zinc-800 bg-opacity-90 p-6 sm:p-8 rounded-md shadow-md w-full max-w-md">
                 <h2 class="text-2xl sm:text-3xl font-bold mb-6 text-center text-custom-color-secondary">Login to your account:</h2>
