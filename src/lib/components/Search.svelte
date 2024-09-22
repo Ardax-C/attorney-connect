@@ -61,7 +61,6 @@
     function handleScroll(event) {
         scrollCount++;
         const scrollTop = event.target.scrollTop;
-        console.log(`Scroll event #${scrollCount} - scrollTop: ${scrollTop}`);
 
         if (scrollTop > lastScrollTop && scrollTop > 50) {
             showNavbar = false;
