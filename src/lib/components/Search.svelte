@@ -20,16 +20,22 @@
     let resultsContainer;
     let isAuthenticated = false;
     let isLoading = true;
+    let lastScrollTop = 0;
+    let scrollCount = 0;
 
     onMount(() => {
         const unsubscribe = auth.onAuthStateChanged(async (user) => {
             if (user) {
                 isAuthenticated = true;
                 await fetchUniqueFields();
-                resultsContainer = document.getElementById('results-container');
-                if (resultsContainer) {
-                    resultsContainer.addEventListener('scroll', handleScroll, { passive: true });
-                }
+                
+                // Wait for the next tick to ensure the DOM has updated
+                setTimeout(() => {
+                    resultsContainer = document.getElementById('results-container');
+                    if (resultsContainer) {
+                        resultsContainer.addEventListener('scroll', handleScroll, { passive: true });
+                    } 
+                }, 0);
 
                 // Handle incoming search query
                 const urlSearchParams = new URLSearchParams($page.url.searchParams);
@@ -52,12 +58,17 @@
         };
     });
 
-    function handleScroll() {
-        const scrollTop = resultsContainer.scrollTop;
+    function handleScroll(event) {
+        scrollCount++;
+        const scrollTop = event.target.scrollTop;
+        console.log(`Scroll event #${scrollCount} - scrollTop: ${scrollTop}`);
+
         if (scrollTop > lastScrollTop && scrollTop > 50) {
             showNavbar = false;
+            showSearchBar = false;
         } else if (scrollTop < lastScrollTop || scrollTop === 0) {
             showNavbar = true;
+            showSearchBar = true;
         }
         lastScrollTop = scrollTop <= 0 ? 0 : scrollTop;
     }
@@ -109,62 +120,60 @@
         <p class="text-white">Loading...</p>
     </div>
 {:else if isAuthenticated}
-<main class="bg-no-repeat bg-center bg-cover h-screen flex flex-col" style="background-image: url({backgroundImage})">
-    <Navbar bind:visible={showNavbar} />
-    <div class="flex-grow flex flex-col items-center overflow-hidden px-4 mt-20">
-        <div class="w-full max-w-4xl transition-all duration-300 ease-in-out {showSearchBar ? 'max-h-[1000px] opacity-100 mb-4' : 'max-h-0 opacity-0 overflow-hidden'}">
-            <div class="bg-zinc-800 bg-opacity-90 rounded-md shadow-md p-4 sm:p-6">
-                <h2 class="text-2xl font-bold mb-4 text-center text-custom-color-tertiary font-inter">Search Attorneys</h2>
-                
-                <div class="mb-4">
-                    <SearchBar 
-                        placeholder="Search by name or username"
-                        bind:value={searchTerm}
-                        on:input={handleSearchInput}
-                        on:submit={handleSearchSubmit}
-                    />
-                </div>
-                
-                <div class="mb-4">
-                    <label for="state" class="block text-emerald-400 text-base mb-1">State</label>
-                    <select id="state" bind:value={selectedState} class="w-full px-4 py-2 text-base border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-custom-color-primary bg-zinc-700 text-white">
-                        <option value="">All States</option>
-                        {#each states as state}
-                            <option value={state}>{state}</option>
-                        {/each}
-                    </select>
-                </div>
-                
-                <div class="mb-4">
-                    <label for="practiceArea" class="block text-emerald-400 text-base mb-1">Practice Area</label>
-                    <select id="practiceArea" bind:value={selectedPracticeArea} class="w-full px-4 py-2 text-base border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-custom-color-primary bg-zinc-700 text-white">
-                        <option value="">All Practice Areas</option>
-                        {#each practiceAreas as area}
-                            <option value={area}>{area}</option>
-                        {/each}
-                    </select>
+    <main class="bg-no-repeat bg-center bg-cover h-screen flex flex-col" style="background-image: url({backgroundImage})">
+        <Navbar bind:visible={showNavbar} />
+        <div class="flex-grow flex flex-col items-center overflow-hidden px-4 mt-20">
+            <div class="w-full max-w-4xl transition-all duration-300 ease-in-out {showSearchBar ? 'max-h-[1000px] opacity-100 mb-4' : 'max-h-0 opacity-0 overflow-hidden'}">
+                <div class="bg-zinc-800 bg-opacity-90 rounded-md shadow-md p-4 sm:p-6">
+                    <h2 class="text-2xl font-bold mb-4 text-center text-custom-color-tertiary font-inter">Search Attorneys</h2>
+                    
+                    <div class="mb-4">
+                        <SearchBar 
+                            placeholder="Search by name or username"
+                            bind:value={searchTerm}
+                            on:input={handleSearchInput}
+                            on:submit={handleSearchSubmit}
+                        />
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label for="state" class="block text-emerald-400 text-base mb-1">State</label>
+                        <select id="state" bind:value={selectedState} class="w-full px-4 py-2 text-base border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-custom-color-primary bg-zinc-700 text-white">
+                            <option value="">All States</option>
+                            {#each states as state}
+                                <option value={state}>{state}</option>
+                            {/each}
+                        </select>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label for="practiceArea" class="block text-emerald-400 text-base mb-1">Practice Area</label>
+                        <select id="practiceArea" bind:value={selectedPracticeArea} class="w-full px-4 py-2 text-base border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-custom-color-primary bg-zinc-700 text-white">
+                            <option value="">All Practice Areas</option>
+                            {#each practiceAreas as area}
+                                <option value={area}>{area}</option>
+                            {/each}
+                        </select>
+                    </div>
                 </div>
             </div>
-        </div>
 
-        <div id="results-container" class="w-full max-w-4xl flex-grow overflow-y-auto">
-            {#if searchResults.length > 0}
-                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 p-4">
-                    {#each searchResults as result}
-                        <div class="w-full">
-                            <UserProfileCard user={result} />
-                        </div>
-                    {/each}
-                </div>
-            {:else if searchResults.length === 0 && searchTerm}
-                <p class="text-emerald-400 text-center mt-4">No results found.</p>
-            {/if}
+            <div id="results-container" class="w-full max-w-4xl flex-grow overflow-y-auto" style="max-height: calc(100vh - 200px);">
+                {#if searchResults.length > 0}
+                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 p-4">
+                        {#each searchResults as result}
+                            <div class="w-full">
+                                <UserProfileCard user={result} />
+                            </div>
+                        {/each}
+                    </div>
+                {:else if searchResults.length === 0 && searchTerm}
+                    <p class="text-emerald-400 text-center mt-4">No results found.</p>
+                {/if}
+            </div>
         </div>
-    </div>
-</main>
+    </main>
 {/if}
-
-
 
 <style>
     :global(body) {
