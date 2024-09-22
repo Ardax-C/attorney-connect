@@ -1,4 +1,5 @@
 <script>
+    import { onMount } from 'svelte';
     import Navbar from './Navbar.svelte';
     import { auth, db } from '$lib/firebase';
     import { onAuthStateChanged } from 'firebase/auth';
@@ -12,6 +13,8 @@
     let errorMessage = '';
     let editField = null;
     let tempValue = '';
+    let showNavbar = true;
+    let lastScrollTop = 0;
 
     // Define the desired order of fields
     const fieldOrder = [
@@ -34,6 +37,19 @@
             year: 'numeric'
         });
     }
+
+    onMount(() => {
+        const profileCard = document.getElementById('profile-card');
+        profileCard.addEventListener('scroll', () => {
+            const scrollTop = profileCard.scrollTop;
+            if (scrollTop > lastScrollTop) {
+                showNavbar = false;
+            } else {
+                showNavbar = true;
+            }
+            lastScrollTop = scrollTop <= 0 ? 0 : scrollTop;
+        }, false);
+    });
 
     onAuthStateChanged(auth, async (currentUser) => {
         if (currentUser) {
@@ -85,81 +101,81 @@
     }
 </script>
 
-<main class="bg-no-repeat bg-center bg-cover min-h-screen" style="background-image: url({backgroundImage})">
-    <Navbar />
-    <div class="flex items-center justify-center py-8 px-4">
-        <div class="flex flex-col md:flex-row items-start justify-center bg-zinc-800 bg-opacity-90 p-4 sm:p-6 md:p-8 rounded-md shadow-md w-full max-w-4xl">
-            {#if userDetails}
-                <div class="flex flex-col items-center md:items-start md:w-1/3 mb-6 md:mb-0">
-                    <img src={userDetails.profilePictureUrl || 'default-profile.png'} alt={userDetails.firstName + ' ' + userDetails.lastName} class="w-40 h-40 md:h-60 object-cover mb-4 rounded-md" onerror="this.src='default-profile.png';" />
-                </div>
-                <div class="md:w-2/3 text-white w-full">
-                    <h2 class="text-xl sm:text-2xl md:text-3xl font-bold mb-4 text-custom-color-tertiary">{userDetails.firstName} {userDetails.lastName}</h2>
-                    <div class="space-y-2">
-                        {#each fieldOrder as field}
-                            {#if userDetails[field] !== undefined}
+<main class="bg-no-repeat bg-center bg-cover h-screen flex flex-col" style="background-image: url({backgroundImage})">
+    <div class="transition-all duration-300 ease-in-out" class:h-0={!showNavbar} class:opacity-0={!showNavbar}>
+        <Navbar />
+    </div>
+    <div id="profile-card" class="flex-grow overflow-y-auto">
+        <div class="flex items-center justify-center py-8 px-4 min-h-full">
+            <div class="flex flex-col md:flex-row items-start justify-center bg-zinc-800 bg-opacity-90 p-4 sm:p-6 md:p-8 rounded-md shadow-md w-full max-w-4xl">
+                {#if userDetails}
+                    <div class="flex flex-col items-center md:items-start md:w-1/3 mb-6 md:mb-0">
+                        <img src={userDetails.profilePictureUrl || 'default-profile.png'} alt={userDetails.firstName + ' ' + userDetails.lastName} class="w-40 h-40 md:h-60 object-cover mb-4 rounded-md" onerror="this.src='default-profile.png';" />
+                    </div>
+                    <div class="md:w-2/3 text-white w-full">
+                        <h2 class="text-xl sm:text-2xl md:text-3xl font-bold mb-4 text-custom-color-tertiary">{userDetails.firstName} {userDetails.lastName}</h2>
+                        <div class="space-y-2">
+                            {#each fieldOrder as field}
+                                {#if userDetails[field] !== undefined}
+                                    <div class="grid grid-cols-1 sm:grid-cols-[1fr,2fr,auto] gap-x-2 sm:gap-x-4 gap-y-1 pb-2 border-b border-gray-700">
+                                        <div class="font-bold capitalize text-sm sm:text-base text-custom-color-tertiary">{field.replace(/([A-Z])/g, ' $1')}:</div>
+                                        <div class="text-left sm:text-right text-sm sm:text-base">
+                                            {#if editField === field}
+                                                <input type="text" bind:value={tempValue} class="w-full p-1 sm:p-2 rounded-md text-black text-sm" placeholder={field === 'practiceAreas' ? 'Separate areas with commas' : ''} />
+                                            {:else}
+                                                {#if field === 'practiceAreas'}
+                                                    {userDetails[field].join(', ')}
+                                                {:else if field === 'createdAt'}
+                                                    {formatDate(userDetails[field])}
+                                                {:else}
+                                                    {userDetails[field]}
+                                                {/if}
+                                            {/if}
+                                        </div>
+                                        <div class="flex items-center justify-end">
+                                            {#if editField === field}
+                                                <button on:click={() => saveEdit(field)} class="ml-1 sm:ml-2 text-green-500"><FontAwesomeIcon icon={faCheck} /></button>
+                                                <button on:click={cancelEdit} class="ml-1 sm:ml-2 text-red-500"><FontAwesomeIcon icon={faTimes} /></button>
+                                            {:else if field !== 'createdAt'}
+                                                <button on:click={() => startEdit(field)} class="ml-1 sm:ml-2 text-gray-500 hover:text-orange-400 transition-colors duration-200">
+                                                    <FontAwesomeIcon icon={faPencilAlt} />
+                                                </button>
+                                            {/if}
+                                        </div>
+                                    </div>
+                                {/if}
+                            {/each}
+                            
+                            {#each Object.keys(userDetails).filter(field => !fieldOrder.includes(field) && !['profilePictureUrl', 'firstName', 'lastName'].includes(field)) as field}
                                 <div class="grid grid-cols-1 sm:grid-cols-[1fr,2fr,auto] gap-x-2 sm:gap-x-4 gap-y-1 pb-2 border-b border-gray-700">
                                     <div class="font-bold capitalize text-sm sm:text-base text-custom-color-tertiary">{field.replace(/([A-Z])/g, ' $1')}:</div>
                                     <div class="text-left sm:text-right text-sm sm:text-base">
                                         {#if editField === field}
-                                            <input type="text" bind:value={tempValue} class="w-full p-1 sm:p-2 rounded-md text-black text-sm" placeholder={field === 'practiceAreas' ? 'Separate areas with commas' : ''} />
+                                            <input type="text" bind:value={tempValue} class="w-full p-1 sm:p-2 rounded-md text-black text-sm" />
                                         {:else}
-                                            {#if field === 'practiceAreas'}
-                                                {userDetails[field].join(', ')}
-                                            {:else if field === 'createdAt'}
-                                                {formatDate(userDetails[field])}
-                                            {:else}
-                                                {userDetails[field]}
-                                            {/if}
+                                            {userDetails[field]}
                                         {/if}
                                     </div>
                                     <div class="flex items-center justify-end">
                                         {#if editField === field}
                                             <button on:click={() => saveEdit(field)} class="ml-1 sm:ml-2 text-green-500"><FontAwesomeIcon icon={faCheck} /></button>
                                             <button on:click={cancelEdit} class="ml-1 sm:ml-2 text-red-500"><FontAwesomeIcon icon={faTimes} /></button>
-                                        {:else if field !== 'createdAt'}
+                                        {:else}
                                             <button on:click={() => startEdit(field)} class="ml-1 sm:ml-2 text-gray-500 hover:text-orange-400 transition-colors duration-200">
                                                 <FontAwesomeIcon icon={faPencilAlt} />
                                             </button>
                                         {/if}
                                     </div>
                                 </div>
-                            {/if}
-                        {/each}
-                        
-                        {#each Object.keys(userDetails).filter(field => !fieldOrder.includes(field) && !['profilePictureUrl', 'firstName', 'lastName'].includes(field)) as field}
-                            <div class="grid grid-cols-1 sm:grid-cols-[1fr,2fr,auto] gap-x-2 sm:gap-x-4 gap-y-1 pb-2 border-b border-gray-700">
-                                <div class="font-bold capitalize text-sm sm:text-base text-custom-color-tertiary">{field.replace(/([A-Z])/g, ' $1')}:</div>
-                                <div class="text-left sm:text-right text-sm sm:text-base">
-                                    {#if editField === field}
-                                        <input type="text" bind:value={tempValue} class="w-full p-1 sm:p-2 rounded-md text-black text-sm" />
-                                    {:else}
-                                        {userDetails[field]}
-                                    {/if}
-                                </div>
-                                <div class="flex items-center justify-end">
-                                    {#if editField === field}
-                                        <button on:click={() => saveEdit(field)} class="ml-1 sm:ml-2 text-green-500"><FontAwesomeIcon icon={faCheck} /></button>
-                                        <button on:click={cancelEdit} class="ml-1 sm:ml-2 text-red-500"><FontAwesomeIcon icon={faTimes} /></button>
-                                    {:else}
-                                        <button on:click={() => startEdit(field)} class="ml-1 sm:ml-2 text-gray-500 hover:text-orange-400 transition-colors duration-200">
-                                            <FontAwesomeIcon icon={faPencilAlt} />
-                                        </button>
-                                    {/if}
-                                </div>
-                            </div>
-                        {/each}
+                            {/each}
+                        </div>
                     </div>
-                </div>
-            {:else if errorMessage}
-                <p class="text-red-500">{errorMessage}</p>
-            {:else}
-                <p class="text-white">Loading...</p>
-            {/if}
+                {:else if errorMessage}
+                    <p class="text-red-500">{errorMessage}</p>
+                {:else}
+                    <p class="text-white">Loading...</p>
+                {/if}
+            </div>
         </div>
     </div>
 </main>
-
-<style>
-    /* You can remove this style block if you're using Tailwind's utility classes exclusively */
-</style>
