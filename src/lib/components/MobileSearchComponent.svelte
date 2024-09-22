@@ -26,14 +26,14 @@
   </script>
   
   <div class="bg-zinc-800 text-white p-4 rounded-lg shadow-md">
-    <div class="flex items-center justify-between cursor-pointer" on:click={toggleExpand}>
+    <button type="button" class="flex items-center justify-between cursor-pointer w-full text-left" on:click={toggleExpand} aria-expanded={isExpanded}>
       <h2 class="text-lg font-semibold">Search Attorneys</h2>
       {#if isExpanded}
         <ChevronUp size={20} />
       {:else}
         <ChevronDown size={20} />
       {/if}
-    </div>
+    </button>
     
     {#if isExpanded}
       <div class="mt-4 space-y-3">
