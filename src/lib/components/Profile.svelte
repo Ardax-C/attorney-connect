@@ -1,8 +1,10 @@
 <script>
     import { onMount } from 'svelte';
     import Navbar from './Navbar.svelte';
+    import SearchBar from './SearchBar.svelte';
     import { auth, db } from '$lib/firebase';
     import { onAuthStateChanged } from 'firebase/auth';
+    import { goto } from '$app/navigation'
     import { doc, getDoc, updateDoc } from 'firebase/firestore';
     import backgroundImage from '../images/pexels-lastly-2086917.jpg';
     import { faPencilAlt, faCheck, faTimes } from '@fortawesome/free-solid-svg-icons';
@@ -17,7 +19,6 @@
     let lastScrollTop = 0;
     let profileCard;
 
-    // Define the desired order of fields
     const fieldOrder = [
         'email',
         'phone',
@@ -37,6 +38,11 @@
             day: '2-digit',
             year: 'numeric'
         });
+    }
+
+    function handleSearch(event) {
+        const searchTerm = event.detail;
+        goto(`/search?q=${encodeURIComponent(searchTerm)}`);
     }
 
     onMount(() => {
@@ -111,7 +117,13 @@
 
 <main class="bg-no-repeat bg-center bg-cover h-screen flex flex-col" style="background-image: url({backgroundImage})">
     <Navbar bind:visible={showNavbar} />
-    <div id="profile-card" class="flex-grow overflow-y-auto pt-16"> <!-- Added pt-16 for navbar space -->
+    <div class="flex-grow flex flex-col items-center justify-center w-full">
+        <div class="w-full max-w-4xl mb-4 mt-20">
+            <SearchBar on:submit={handleSearch} placeholder="Search for attorneys..." />
+        </div>
+    </div>
+
+    <div id="profile-card" class="flex-grow overflow-y-auto">
         <div class="flex items-center justify-center py-8 px-4 min-h-full">
             <div class="flex flex-col md:flex-row items-start justify-center bg-zinc-800 bg-opacity-90 p-4 sm:p-6 md:p-8 rounded-md shadow-md w-full max-w-4xl">
                 {#if userDetails}

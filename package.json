@@ -32,6 +32,7 @@
         "@fortawesome/free-solid-svg-icons": "^6.6.0",
         "@fortawesome/svelte-fontawesome": "^0.2.2",
         "@sveltejs/adapter-vercel": "^5.4.4",
+        "@tailwindcss/line-clamp": "^0.4.4",
         "@vercel/analytics": "^1.3.1",
         "@vercel/speed-insights": "^1.0.12",
         "attorney-connect": "file:",

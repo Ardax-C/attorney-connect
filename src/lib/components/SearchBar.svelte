@@ -1,0 +1,47 @@
+<script>
+    import { createEventDispatcher } from 'svelte';
+
+    export let placeholder = "Search...";
+    export let value = "";
+    export let searchFields = [];
+
+    const dispatch = createEventDispatcher();
+
+    function handleInput() {
+        dispatch('input', value);
+    }
+
+    function handleSubmit() {
+        dispatch('submit', value);
+    }
+</script>
+
+<div class="flex flex-col sm:flex-row items-center space-y-2 sm:space-y-0 sm:space-x-2">
+    <div class="relative w-full">
+        <input 
+            type="text" 
+            bind:value
+            on:input={handleInput}
+            {placeholder}
+            class="w-full px-4 py-2 text-base border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-custom-color-primary bg-zinc-700 text-white"
+        />
+        {#if searchFields.length > 0}
+            <div class="absolute right-2 top-2">
+                <select 
+                    class="bg-zinc-700 text-white border-none focus:outline-none focus:ring-2 focus:ring-custom-color-primary"
+                    on:change
+                >
+                    {#each searchFields as field}
+                        <option value={field.value}>{field.label}</option>
+                    {/each}
+                </select>
+            </div>
+        {/if}
+    </div>
+    <button 
+        on:click={handleSubmit}
+        class="bg-custom-btn-bg text-custom-btn-text px-6 py-2 text-base rounded hover:bg-custom-btn-hover-bg hover:text-custom-btn-hover-text focus:outline-none focus:ring-2 focus:ring-custom-btn-active-bg font-bold"
+    >
+        Search
+    </button>
+</div>
