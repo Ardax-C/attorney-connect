@@ -54,11 +54,12 @@
 
     function handleScroll() {
         const scrollTop = resultsContainer.scrollTop;
-        if (scrollTop > 50) {
-            showSearchBar = false;
-        } else {
-            showSearchBar = true;
+        if (scrollTop > lastScrollTop && scrollTop > 50) {
+            showNavbar = false;
+        } else if (scrollTop < lastScrollTop || scrollTop === 0) {
+            showNavbar = true;
         }
+        lastScrollTop = scrollTop <= 0 ? 0 : scrollTop;
     }
 
     async function fetchUniqueFields() {
