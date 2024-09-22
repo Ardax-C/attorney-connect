@@ -50,7 +50,6 @@
                     throw new Error('No user found with this username.');
                 }
 
-                // Assuming usernames are unique, get the email of the first matching user
                 email = querySnapshot.docs[0].data().email;
             }
 
@@ -64,8 +63,8 @@
                 throw new Error('Please verify your email before logging in.');
             }
 
-            // Redirect to the dashboard or home page
-            goto('/profile');
+            // Redirect to the search page
+            goto('/search');
         } catch (error) {
             console.error("Error during login:", error);
             errorMessage = error.message;

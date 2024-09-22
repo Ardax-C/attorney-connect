@@ -1,13 +1,13 @@
 <script>
     import { onMount } from 'svelte';
     import { page } from '$app/stores';
-    import { db } from '$lib/firebase';
+    import { goto } from '$app/navigation';
+    import { auth, db } from '$lib/firebase';
     import { collection, query, where, getDocs } from 'firebase/firestore';
     import Navbar from './Navbar.svelte';
     import SearchBar from './SearchBar.svelte';
     import UserProfileCard from './UserProfileCard.svelte';
     import backgroundImage from '../images/pexels-lastly-2086917.jpg';
-	import { goto } from '$app/navigation';
 
     let searchTerm = '';
     let selectedState = '';
@@ -18,32 +18,34 @@
     let showNavbar = true;
     let showSearchBar = true;
     let resultsContainer;
-    let isLoading = true;
     let isAuthenticated = false;
+    let isLoading = true;
 
-    onMount(async () => {
-        try {
-            await requireAuth();
-            isAuthenticated = true;
-            await fetchUniqueFields();
-            resultsContainer = document.getElementById('results-container');
-            resultsContainer.addEventListener('scroll', handleScroll, { passive: true });
+    onMount(() => {
+        const unsubscribe = auth.onAuthStateChanged(async (user) => {
+            if (user) {
+                isAuthenticated = true;
+                await fetchUniqueFields();
+                resultsContainer = document.getElementById('results-container');
+                if (resultsContainer) {
+                    resultsContainer.addEventListener('scroll', handleScroll, { passive: true });
+                }
 
-            // Handle incoming search query
-            const urlSearchParams = new URLSearchParams($page.url.searchParams);
-            const incomingSearchTerm = urlSearchParams.get('q');
-            if (incomingSearchTerm) {
-                searchTerm = incomingSearchTerm;
-                await handleSearch();
+                // Handle incoming search query
+                const urlSearchParams = new URLSearchParams($page.url.searchParams);
+                const incomingSearchTerm = urlSearchParams.get('q');
+                if (incomingSearchTerm) {
+                    searchTerm = incomingSearchTerm;
+                    await handleSearch();
+                }
+            } else {
+                goto('/login');
             }
-        } catch (error) {
-            console.error("Authentication failed:", error);
-            goto('/login');
-        } finally {
             isLoading = false;
-        }
+        });
 
         return () => {
+            unsubscribe();
             if (resultsContainer) {
                 resultsContainer.removeEventListener('scroll', handleScroll);
             }
@@ -144,11 +146,11 @@
             </div>
         </div>
 
-        <div id="results-container" class="w-full max-w-4xl flex-grow overflow-y-auto no-scrollbar">
+        <div id="results-container" class="w-full max-w-4xl flex-grow overflow-y-auto">
             {#if searchResults.length > 0}
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
-                    {#each searchResults as result (result.id)}
-                        <div class="w-full min-h-[250px]">
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 p-4">
+                    {#each searchResults as result}
+                        <div class="w-full">
                             <UserProfileCard user={result} />
                         </div>
                     {/each}
