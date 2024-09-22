@@ -88,20 +88,20 @@
 <main class="bg-no-repeat bg-center bg-cover min-h-screen" style="background-image: url({backgroundImage})">
     <Navbar />
     <div class="flex items-center justify-center py-8 px-4">
-        <div class="flex flex-col md:flex-row items-start justify-center bg-zinc-800 bg-opacity-90 p-6 sm:p-8 rounded-md shadow-md w-full max-w-4xl">
+        <div class="flex flex-col md:flex-row items-start justify-center bg-zinc-800 bg-opacity-90 p-4 sm:p-6 md:p-8 rounded-md shadow-md w-full max-w-4xl">
             {#if userDetails}
                 <div class="flex flex-col items-center md:items-start md:w-1/3 mb-6 md:mb-0">
-                    <img src={userDetails.profilePictureUrl || 'default-profile.png'} alt={userDetails.firstName + ' ' + userDetails.lastName} class="w-40 h-80 object-cover mb-4 rounded-md" onerror="this.src='default-profile.png';" />
+                    <img src={userDetails.profilePictureUrl || 'default-profile.png'} alt={userDetails.firstName + ' ' + userDetails.lastName} class="w-40 h-40 md:h-60 object-cover mb-4 rounded-md" onerror="this.src='default-profile.png';" />
                 </div>
-                <div class="md:w-2/3 text-white">
-                    <h2 class="text-2xl sm:text-3xl font-bold mb-4">{userDetails.firstName} {userDetails.lastName}</h2>
-                    <div class="grid grid-cols-[auto,1fr,auto] gap-x-4 gap-y-2">
+                <div class="md:w-2/3 text-white w-full">
+                    <h2 class="text-xl sm:text-2xl md:text-3xl font-bold mb-4">{userDetails.firstName} {userDetails.lastName}</h2>
+                    <div class="grid grid-cols-1 sm:grid-cols-[auto,1fr,auto] gap-x-2 sm:gap-x-4 gap-y-2">
                         {#each fieldOrder as field}
                             {#if userDetails[field] !== undefined}
-                                <div class="font-bold capitalize">{field.replace(/([A-Z])/g, ' $1')}:</div>
-                                <div class="text-right">
+                                <div class="font-bold capitalize text-sm sm:text-base">{field.replace(/([A-Z])/g, ' $1')}:</div>
+                                <div class="text-right text-sm sm:text-base">
                                     {#if editField === field}
-                                        <input type="text" bind:value={tempValue} class="w-full p-2 rounded-md text-black" placeholder={field === 'practiceAreas' ? 'Separate areas with commas' : ''} />
+                                        <input type="text" bind:value={tempValue} class="w-full p-1 sm:p-2 rounded-md text-black text-sm" placeholder={field === 'practiceAreas' ? 'Separate areas with commas' : ''} />
                                     {:else}
                                         {#if field === 'practiceAreas'}
                                             {userDetails[field].join(', ')}
@@ -114,10 +114,10 @@
                                 </div>
                                 <div class="flex items-center justify-end">
                                     {#if editField === field}
-                                        <button on:click={() => saveEdit(field)} class="ml-2 text-green-500"><FontAwesomeIcon icon={faCheck} /></button>
-                                        <button on:click={cancelEdit} class="ml-2 text-red-500"><FontAwesomeIcon icon={faTimes} /></button>
+                                        <button on:click={() => saveEdit(field)} class="ml-1 sm:ml-2 text-green-500"><FontAwesomeIcon icon={faCheck} /></button>
+                                        <button on:click={cancelEdit} class="ml-1 sm:ml-2 text-red-500"><FontAwesomeIcon icon={faTimes} /></button>
                                     {:else if field !== 'createdAt'}
-                                        <button on:click={() => startEdit(field)} class="ml-2 text-gray-500 hover:text-orange-400 transition-colors duration-200">
+                                        <button on:click={() => startEdit(field)} class="ml-1 sm:ml-2 text-gray-500 hover:text-orange-400 transition-colors duration-200">
                                             <FontAwesomeIcon icon={faPencilAlt} />
                                         </button>
                                     {/if}
@@ -126,20 +126,20 @@
                         {/each}
                         
                         {#each Object.keys(userDetails).filter(field => !fieldOrder.includes(field) && !['profilePictureUrl', 'firstName', 'lastName'].includes(field)) as field}
-                            <div class="font-bold capitalize">{field.replace(/([A-Z])/g, ' $1')}:</div>
-                            <div class="text-right">
+                            <div class="font-bold capitalize text-sm sm:text-base">{field.replace(/([A-Z])/g, ' $1')}:</div>
+                            <div class="text-right text-sm sm:text-base">
                                 {#if editField === field}
-                                    <input type="text" bind:value={tempValue} class="w-full p-2 rounded-md text-black" />
+                                    <input type="text" bind:value={tempValue} class="w-full p-1 sm:p-2 rounded-md text-black text-sm" />
                                 {:else}
                                     {userDetails[field]}
                                 {/if}
                             </div>
                             <div class="flex items-center justify-end">
                                 {#if editField === field}
-                                    <button on:click={() => saveEdit(field)} class="ml-2 text-green-500"><FontAwesomeIcon icon={faCheck} /></button>
-                                    <button on:click={cancelEdit} class="ml-2 text-red-500"><FontAwesomeIcon icon={faTimes} /></button>
+                                    <button on:click={() => saveEdit(field)} class="ml-1 sm:ml-2 text-green-500"><FontAwesomeIcon icon={faCheck} /></button>
+                                    <button on:click={cancelEdit} class="ml-1 sm:ml-2 text-red-500"><FontAwesomeIcon icon={faTimes} /></button>
                                 {:else}
-                                    <button on:click={() => startEdit(field)} class="ml-2 text-gray-500 hover:text-orange-400 transition-colors duration-200">
+                                    <button on:click={() => startEdit(field)} class="ml-1 sm:ml-2 text-gray-500 hover:text-orange-400 transition-colors duration-200">
                                         <FontAwesomeIcon icon={faPencilAlt} />
                                     </button>
                                 {/if}
@@ -155,7 +155,3 @@
         </div>
     </div>
 </main>
-
-<style>
-    /* You can remove this style block if you're using Tailwind's utility classes exclusively */
-</style>
