@@ -103,7 +103,7 @@
 
 <main class="bg-no-repeat bg-center bg-cover h-screen flex flex-col" style="background-image: url({backgroundImage})">
     <div class="transition-all duration-300 ease-in-out" class:h-0={!showNavbar} class:opacity-0={!showNavbar}>
-        <Navbar />
+        <Navbar bind:visible={showNavbar} />
     </div>
     <div id="profile-card" class="flex-grow overflow-y-auto">
         <div class="flex items-center justify-center py-8 px-4 min-h-full">
