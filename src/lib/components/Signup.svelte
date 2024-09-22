@@ -129,10 +129,10 @@
     }
 </script>
 
-<main class="bg-no-repeat bg-center bg-cover h-screen flex flex-col" style="background-image: url({backgroundImage})">
+<main class="bg-no-repeat bg-center bg-cover min-h-screen flex flex-col" style="background-image: url({backgroundImage})">
     <Navbar bind:visible={showNavbar} />
-    <div class="flex-grow flex items-start justify-center p-4 overflow-hidden">
-        <div id="signup-card" class="bg-zinc-800 bg-opacity-90 rounded-md shadow-md w-full max-w-4xl h-[calc(100vh-5rem)] overflow-y-auto">
+    <div class="flex-grow flex items-start justify-center p-4 pt-20 overflow-hidden">
+        <div id="signup-card" class="bg-zinc-800 bg-opacity-90 rounded-md shadow-md w-full max-w-4xl max-h-[calc(100vh-6rem)] overflow-y-auto">
             <div class="p-4 sm:p-6 md:p-8">
                 <h2 class="text-2xl font-bold mb-4 text-center text-custom-color-tertiary font-inter">Sign Up for Access!</h2>
                 <p class="text-center text-emerald-400 mb-6 text-base sm:text-lg">Once registered, you will have access to view the Attorney Directory!</p>
