@@ -38,7 +38,11 @@
 
     function handleScroll() {
         const scrollTop = resultsContainer.scrollTop;
-        showSearchBar = scrollTop === 0;
+        if (scrollTop > 100) {
+            showSearchBar = false;
+        } else {
+            showSearchBar = true;
+        }
     }
 
     async function fetchUniqueFields() {
@@ -70,7 +74,6 @@
         const querySnapshot = await getDocs(q);
         searchResults = querySnapshot.docs.map(doc => {
             const data = doc.data();
-            console.log('Document data:', data);
             return { id: doc.id, ...data };
         });
     }
@@ -123,7 +126,7 @@
             </div>
         </div>
 
-        <div id="results-container" class="w-full max-w-4xl flex-grow overflow-y-auto">
+        <div id="results-container" class="w-full max-w-4xl flex-grow overflow-y-auto no-scrollbar">
             {#if searchResults.length > 0}
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
                     {#each searchResults as result (result.id)}

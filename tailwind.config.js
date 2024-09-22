@@ -17,7 +17,16 @@ module.exports = {
         'custom-btn-hover-text': '#94B9AF',
         'custom-btn-active-bg': '#5E8C75',
         'custom-btn-text': '#efede1',
-      }
+      }, 
+    },
+    utilities: {
+      '.no-scrollbar': {
+          '-ms-overflow-style': 'none',  /* Internet Explorer 10+ */
+          'scrollbar-width': 'none',  /* Firefox */
+      },
+      '.no-scrollbar::-webkit-scrollbar': {
+          'display': 'none',  /* Safari and Chrome */
+      },
     },
   },
   plugins: [

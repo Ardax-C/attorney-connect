@@ -43,16 +43,6 @@
         };
     });
 
-    function handleScroll() {
-        const scrollTop = signupCard.scrollTop;
-        if (scrollTop > lastScrollTop && scrollTop > 50) {
-            showNavbar = false;
-        } else if (scrollTop < lastScrollTop || scrollTop === 0) {
-            showNavbar = true;
-        }
-        lastScrollTop = scrollTop <= 0 ? 0 : scrollTop;
-    }
-
     function resetForm() {
         firstName = '';
         lastName = '';
@@ -123,7 +113,6 @@
             resetForm();
             showNavigation = true;
         } catch (error) {
-            console.error("Error during signup:", error);
             errorMessage = error.message;
         }
     }

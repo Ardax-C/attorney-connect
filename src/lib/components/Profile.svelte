@@ -46,24 +46,8 @@
     }
 
     onMount(() => {
-        profileCard = document.getElementById('profile-card');
-        profileCard.addEventListener('scroll', handleScroll, { passive: true });
-        return () => {
-            profileCard.removeEventListener('scroll', handleScroll);
-        };
+        profileCard = document.getElementById('profile-card');  
     });
-
-    function handleScroll() {
-        const scrollTop = profileCard.scrollTop;
-        if (scrollTop > lastScrollTop && scrollTop > 50) {
-            // Scrolling down and not at the top
-            showNavbar = false;
-        } else if (scrollTop < lastScrollTop || scrollTop === 0) {
-            // Scrolling up or at the top
-            showNavbar = true;
-        }
-        lastScrollTop = scrollTop <= 0 ? 0 : scrollTop;
-    }
 
     onAuthStateChanged(auth, async (currentUser) => {
         if (currentUser) {

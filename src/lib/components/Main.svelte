@@ -55,7 +55,7 @@
 
 <main class="bg-no-repeat bg-center bg-cover h-screen flex flex-col" style="background-image: url({backgroundImage})">
     <Navbar bind:visible={showNavbar} />
-    <div id="main-content" class="flex-grow overflow-y-auto pt-16"> <!-- Added pt-16 for navbar space -->
+    <div id="main-content" class="flex-grow overflow-y-auto pt-16">
         <div class="container mx-auto px-4 py-8">
             <div class="max-w-lg mx-auto my-16 text-center">
                 <p class="font-inter text-custom-color-primary text-3xl sm:text-4xl mb-2">ATTORNEY NETWORK</p>
