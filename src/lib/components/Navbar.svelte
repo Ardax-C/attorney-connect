@@ -3,15 +3,17 @@
     import brandLogo from '../images/logo-small.png';
     import { onMount } from 'svelte';
     import { base } from '$app/paths';
-    import { auth } from '$lib/firebase';
+    import { auth, db } from '$lib/firebase';
     import { signOut } from 'firebase/auth';
     import { goto } from '$app/navigation';
+    import { doc, getDoc } from 'firebase/firestore';
 
     let currentPath = '';
     let isMenuOpen = false;
     let user = null;
-
-    export let visible = true; // New prop to control visibility
+    let userRole = null;
+    let userStatus = null;
+    export let visible = true; // Prop to control visibility
 
     onMount(() => {
         if (typeof window !== 'undefined') {
@@ -20,8 +22,19 @@
                 currentPath = window.location.pathname;
             });
         }
-        const unsubscribe = auth.onAuthStateChanged((firebaseUser) => {
+        const unsubscribe = auth.onAuthStateChanged(async (firebaseUser) => {
             user = firebaseUser;
+            if (user) {
+                const userDoc = await getDoc(doc(db, 'attorneyProfiles', user.uid));
+                if (userDoc.exists()) {
+                    const userData = userDoc.data();
+                    userRole = userData.role;
+                    userStatus = userData.status;
+                }
+            } else {
+                userRole = null;
+                userStatus = null;
+            }
         });
         return unsubscribe;
     });
@@ -57,20 +70,29 @@
         </div>
         <div class="w-full block lg:flex lg:items-center lg:w-auto {isMenuOpen ? 'block' : 'hidden'}" id="nav-content">
             <ul class="text-sm lg:flex-grow lg:flex lg:justify-end">
-                {#if user}
+                {#if user && userStatus === 'approved'}
                     <li>
                         <a href="/search" class="block mt-4 lg:inline-block lg:mt-0 text-white hover:text-orange-400 mr-4 text-lg">Search</a>
                     </li>
                     <li>
                         <a href="/profile" class="block mt-4 lg:inline-block lg:mt-0 text-white hover:text-orange-400 mr-4 text-lg">Profile</a>
                     </li>
+                    {#if userRole === 'admin'}
+                        <li>
+                            <a href="/admin" class="block mt-4 lg:inline-block lg:mt-0 text-white hover:text-orange-400 mr-4 text-lg">Admin Dashboard</a>
+                        </li>
+                    {/if}
+                    <li>
+                        <button on:click={handleLogout} class="block mt-4 lg:inline-block lg:mt-0 text-white hover:text-orange-400 mr-4 text-lg">Logout</button>
+                    </li>
+                {:else if user && userStatus === 'pending'}
+                    <li>
+                        <a href="/registration-pending" class="block mt-4 lg:inline-block lg:mt-0 text-white hover:text-orange-400 mr-4 text-lg">Registration Pending</a>
+                    </li>
                     <li>
                         <button on:click={handleLogout} class="block mt-4 lg:inline-block lg:mt-0 text-white hover:text-orange-400 mr-4 text-lg">Logout</button>
                     </li>
                 {:else}
-                    <li>
-                        <a href="/search" class="block mt-4 lg:inline-block lg:mt-0 text-white hover:text-orange-400 mr-4 text-lg">Search</a>
-                    </li>
                     <li>
                         <a href="/login" class="block mt-4 lg:inline-block lg:mt-0 text-white hover:text-orange-400 mr-4 text-lg">Login</a>
                     </li>

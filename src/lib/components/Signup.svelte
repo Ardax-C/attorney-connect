@@ -7,6 +7,7 @@
     import { createUserWithEmailAndPassword, sendEmailVerification, signOut } from 'firebase/auth';
     import { doc, setDoc } from 'firebase/firestore';
     import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+    import { goto } from '$app/navigation';
 
     let firstName = '';
     let lastName = '';
@@ -83,7 +84,7 @@
             const userCredential = await createUserWithEmailAndPassword(auth, email, password);
             const user = userCredential.user;
 
-            // send email verification
+            // Send email verification
             await sendEmailVerification(user);
 
             // Upload profile picture
@@ -104,12 +105,18 @@
                 state,
                 practiceAreas: practiceAreas.filter(area => area.trim() !== ''),
                 profilePictureUrl,
-                createdAt: new Date()
+                createdAt: new Date(),
+                status: 'pending',
+                role: 'user'
             });
-            await signOut(auth)
+            
+            await signOut(auth);
             resetForm();
             showNavigation = true;
+            // Redirect to a "Registration Pending" page
+            goto('/registration-pending');
         } catch (error) {
+            console.error("Error during signup:", error);
             errorMessage = error.message;
         }
     }

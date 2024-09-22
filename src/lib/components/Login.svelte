@@ -3,7 +3,7 @@
     import { auth, db } from '$lib/firebase';
     import { signInWithEmailAndPassword, sendPasswordResetEmail, signOut } from 'firebase/auth';
     import { goto } from '$app/navigation';
-    import { collection, query, where, getDocs } from 'firebase/firestore';
+    import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
     import Navbar from './Navbar.svelte';
     import backgroundImage from '../images/pexels-lastly-2086917.jpg';
 
@@ -38,11 +38,11 @@
 
     async function handleLogin() {
         try {
-            let email = emailOrUsername;
+            let loginEmail = emailOrUsername;
 
             // Check if the input is a username
             if (!emailOrUsername.includes('@')) {
-                const usersRef = collection(db, 'users');
+                const usersRef = collection(db, 'attorneyProfiles');
                 const q = query(usersRef, where('username', '==', emailOrUsername));
                 const querySnapshot = await getDocs(q);
 
@@ -50,21 +50,29 @@
                     throw new Error('No user found with this username.');
                 }
 
-                email = querySnapshot.docs[0].data().email;
+                // Assuming usernames are unique, get the email of the first matching user
+                loginEmail = querySnapshot.docs[0].data().email;
             }
 
-            // Sign in with email and password
-            const userCredential = await signInWithEmailAndPassword(auth, email, password);
+            const userCredential = await signInWithEmailAndPassword(auth, loginEmail, password);
             const user = userCredential.user;
 
-            // Check if the email is verified
-            if (!user.emailVerified) {
+            const userDoc = await getDoc(doc(db, 'attorneyProfiles', user.uid));
+            if (userDoc.exists()) {
+                const userData = userDoc.data();
+                if (userData.status === 'approved') {
+                    goto('/search');
+                } else if (userData.status === 'pending') {
+                    goto('/registration-pending');
+                } else {
+                    // status is 'denied'
+                    errorMessage = 'Your account has been denied access.';
+                    await signOut(auth);
+                }
+            } else {
+                errorMessage = 'User profile not found.';
                 await signOut(auth);
-                throw new Error('Please verify your email before logging in.');
             }
-
-            // Redirect to the search page
-            goto('/search');
         } catch (error) {
             console.error("Error during login:", error);
             errorMessage = error.message;

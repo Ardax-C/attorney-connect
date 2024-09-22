@@ -148,7 +148,7 @@
                                 {/if}
                             {/each}
                             
-                            {#each Object.keys(userDetails).filter(field => !fieldOrder.includes(field) && !['profilePictureUrl', 'firstName', 'lastName'].includes(field)) as field}
+                            {#each Object.keys(userDetails).filter(field => !fieldOrder.includes(field) && !['profilePictureUrl', 'firstName', 'lastName', 'status', 'role'].includes(field)) as field}
                                 <div class="grid grid-cols-1 sm:grid-cols-[1fr,2fr,auto] gap-x-2 sm:gap-x-4 gap-y-1 pb-2 border-b border-gray-700">
                                     <div class="font-bold capitalize text-sm sm:text-base text-custom-color-tertiary">{field.replace(/([A-Z])/g, ' $1')}:</div>
                                     <div class="text-left sm:text-right text-sm sm:text-base">
