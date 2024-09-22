@@ -3,7 +3,7 @@
     "version": "0.0.1",
     "scripts": {
         "dev": "vite dev",
-        "build": "npm run build && npm run copy",
+        "build": "vite build && npm run copy",
         "copy": "copyfiles --up 1 \"build/**/*\" functions/",
         "preview": "vite preview",
         "lint": "prettier --check . && eslint .",
