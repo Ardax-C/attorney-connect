@@ -172,6 +172,7 @@
                                     placeholder="Search by name or username"
                                     bind:value={searchTerm}
                                     on:search={handleSearchBarSearch}
+                                    showSearchButton={true}
                                 />
                             </div>
                             

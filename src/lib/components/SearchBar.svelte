@@ -3,6 +3,8 @@
     export let placeholder = "Search...";
     export let value = "";
     export let searchFields = [];
+    export let showSearchButton = true;
+
     const dispatch = createEventDispatcher();
     
     function handleInput(event) {
@@ -44,10 +46,12 @@
             </div>
         {/if}
     </div>
-    <button
+    {#if showSearchButton == true}
+        <button
         on:click={handleSubmit}
         class="bg-cyan-600 text-orange-300 px-6 py-2 text-base rounded hover:bg-cyan-700 hover:text-orange-300 focus:outline-none focus:ring-2 focus:ring-custom-btn-active-bg font-bold"
-    >
-        Search
-    </button>
+        >
+            Search
+        </button>
+    {/if}
 </div>

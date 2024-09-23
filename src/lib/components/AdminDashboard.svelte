@@ -223,6 +223,7 @@
                                     placeholder="Search by name or email"
                                     bind:value={searchTerm}
                                     on:search={handleSearchBarSearch}
+                                    showSearchButton={false}
                                 />
                             </div>
                             
