@@ -120,7 +120,7 @@
                             id="emailOrUsername"
                             name="username"
                             autocomplete="username"
-                            placeholder="Email or Username" 
+                            placeholder="Email" 
                             class="w-full px-4 py-3 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-custom-color-primary" 
                             required
                         >
