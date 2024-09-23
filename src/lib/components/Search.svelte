@@ -132,10 +132,9 @@
     function handleSearchBarSearch(event) {
         if (event.detail) {
             searchTerm = event.detail.searchTerm;
-            selectedState = event.detail.selectedState;
-            selectedPracticeArea = event.detail.selectedPracticeArea;
+            selectedState = event.detail.state;
+            selectedPracticeArea = event.detail.practiceArea;
         }
-
         handleSearch();
     }
 
@@ -154,9 +153,19 @@
         <div class="w-full transition-all duration-300 ease-in-out {showNavbar ? '' : 'fixed top-0 left-0 right-0 z-40 bg-zinc-800 bg-opacity-90'}">
             {#if isMobile}
                 <MobileSearchComponent
-                    {states}
-                    {practiceAreas}
                     headerText="Search Attorneys"
+                    filters={[
+                        {
+                            key: 'state',
+                            placeholder: 'All States',
+                            options: states.map(state => ({ value: state, label: state }))
+                        },
+                        {
+                            key: 'practiceArea',
+                            placeholder: 'All Practice Areas',
+                            options: practiceAreas.map(area => ({ value: area, label: area }))
+                        }
+                    ]}
                     on:search={handleSearchBarSearch}
                 />
             {:else}

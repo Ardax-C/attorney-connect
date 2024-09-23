@@ -116,11 +116,9 @@
         if (selectedRole && selectedRole !== 'all') {
             usersQuery = query(usersQuery, where("role", "==", selectedRole));
         }
-        if (selectedState && selectedState !== 'all') {
-            usersQuery = query(usersQuery, where("state", "==", selectedState));
-        }
-        if (selectedPracticeArea) {
-            usersQuery = query(usersQuery, where("practiceAreas", "array-contains", selectedPracticeArea));
+
+        if (searchTerm) {
+            usersQuery = query(usersQuery, where("email", ">=", searchTerm), where("email", "<=", searchTerm + '\uf8ff'));
         }
 
         const querySnapshot = await getDocs(usersQuery);
@@ -170,10 +168,8 @@
     function handleSearchBarSearch(event) {
         if (event.detail) {
             searchTerm = event.detail.searchTerm;
-            selectedState = event.detail.selectedState;
-            selectedPracticeArea = event.detail.selectedPracticeArea;
-            selectedStatus = event.detail.selectedStatus || selectedStatus;
-            selectedRole = event.detail.selectedRole || selectedRole;
+            selectedStatus = event.detail.status;
+            selectedRole = event.detail.role;
         }
         fetchUsers();
     }
@@ -198,11 +194,19 @@
         <div class="w-full transition-all duration-300 ease-in-out {showNavbar ? '' : 'fixed top-0 left-0 right-0 z-40 bg-zinc-800 bg-opacity-90'}">
             {#if isMobile}
                 <MobileSearchComponent
-                    {states}
-                    {practiceAreas}
-                    {statusOptions}
-                    {roleOptions}
                     headerText="Admin Dashboard"
+                    filters={[
+                        {
+                            key: 'status',
+                            placeholder: 'All Statuses',
+                            options: statusOptions
+                        },
+                        {
+                            key: 'role',
+                            placeholder: 'All Roles',
+                            options: roleOptions
+                        }
+                    ]}
                     on:search={handleSearchBarSearch}
                 />
             {:else}

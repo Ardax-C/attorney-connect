@@ -1,14 +1,11 @@
 <script>
     import { createEventDispatcher } from 'svelte';
     import { ChevronDown, ChevronUp, Search } from 'lucide-svelte';
-    export let states = [];
-    export let practiceAreas = [];
     export let headerText = "Search";
+    export let filters = []; // Array of filter objects
     let isExpanded = false;
     let searchTerm = '';
-    let selectedState = '';
-    let selectedPracticeArea = '';
-    let selectedStatus = '';
+    let filterValues = {};
     const dispatch = createEventDispatcher();
   
     function toggleExpand() {
@@ -18,21 +15,17 @@
     function handleSearch() {
         dispatch('search', {
             searchTerm,
-            selectedState: selectedState || '',
-            selectedPracticeArea: selectedPracticeArea || '',
-            selectedStatus: selectedStatus || 'all'
+            ...filterValues
         });
     }
   
     $: {
         searchTerm;
-        selectedStatus;
-        selectedState;
-        selectedPracticeArea;
+        filterValues;
     }
-  </script>
-  
-  <div class="bg-zinc-800 text-white p-4 rounded-lg shadow-md">
+</script>
+
+<div class="bg-zinc-800 text-white p-4 rounded-lg shadow-md">
     <button type="button" class="flex items-center justify-between cursor-pointer w-full text-left" on:click={toggleExpand} aria-expanded={isExpanded}>
         <h2 class="text-lg font-semibold text-custom-color-tertiary">{headerText}</h2>
         {#if isExpanded}
@@ -53,27 +46,19 @@
                 />
                 <Search class="absolute right-3 top-2.5 text-gray-400" size={20} />
             </div>
-     
-            <select
-                bind:value={selectedState}
-                class="w-full bg-zinc-700 px-4 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-cyan-500 text-emerald-400"
-            >
-                <option value="">All States</option>
-                {#each states as state}
-                    <option value={state}>{state}</option>
-                {/each}
-            </select>
-  
-            <select
-                bind:value={selectedPracticeArea}
-                class="w-full bg-zinc-700 px-4 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-cyan-500 text-emerald-400"
-            >
-                <option value="">All Practice Areas</option>
-                {#each practiceAreas as area}
-                    <option value={area}>{area}</option>
-                {/each}
-            </select>
-     
+    
+            {#each filters as filter}
+                <select
+                    bind:value={filterValues[filter.key]}
+                    class="w-full bg-zinc-700 px-4 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-cyan-500 text-emerald-400"
+                >
+                    <option value="">{filter.placeholder}</option>
+                    {#each filter.options as option}
+                        <option value={option.value}>{option.label}</option>
+                    {/each}
+                </select>
+            {/each}
+    
             <button
                 on:click={handleSearch}
                 class="w-full bg-cyan-600 hover:bg-cyan-700 text-orange-300 font-bold py-2 px-4 rounded-md transition duration-300"
@@ -82,4 +67,4 @@
             </button>
         </div>
     {/if}
-  </div>
+</div>
