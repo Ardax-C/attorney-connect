@@ -4,6 +4,7 @@
     import { db } from '$lib/firebase';
     import { doc, getDoc, collection, query, where, limit, getDocs } from 'firebase/firestore';
     import { goto } from '$app/navigation';
+    import {Link, Mail, Phone } from 'lucide-svelte';
     import Navbar from './Navbar.svelte';
     import backgroundImage from '../images/pexels-lastly-2086917.jpg';
 
@@ -64,6 +65,16 @@
         goto(`/attorney/${attorneyId}`, { replaceState: true });
     }
 
+    function formatPhoneNumber(phoneNumber) {
+        if (!phoneNumber) return 'Not provided';
+        const cleaned = ('' + phoneNumber).replace(/\D/g, '');
+        const match = cleaned.match(/^(\d{3})(\d{3})(\d{4})$/);
+        if (match) {
+            return `(${match[1]}) ${match[2]}-${match[3]}`;
+        }
+        return phoneNumber;
+    }
+
     onMount(() => {
         if (attorneyId) {
             loadAttorneyProfile(attorneyId);
@@ -102,8 +113,27 @@
                 <p class="text-emerald-400 text-sm mb-2">{attorney.about || 'No information provided.'}</p>
                 
                 <h3 class="text-2xl font-semibold text-cyan-400 mb-1">Contact:</h3>
-                <p class="text-emerald-400 text-sm">Email: {attorney.email}</p>
-                <p class="text-emerald-400 text-sm">Phone: {attorney.phone || 'Not provided'}</p>
+                <div class="text-emerald-400 text-sm space-y-2">
+                    <div class="flex items-center">
+                        <span>Website:</span>
+                        <a href={attorney.website} target="_blank" rel="noopener noreferrer" class="ml-2 text-emerald-400 hover:underline">
+                            {attorney.website}
+                            <Link class="inline-block ml-1" size={16} />
+                        </a>
+                    </div>
+                    <div class="flex items-center">
+                        <span>Email:</span>
+                        <a href={`mailto:${attorney.email}`} class="ml-2 text-emerald-400 hover:underline">
+                            {attorney.email}
+                            <Mail class="inline-block ml-1" size={16} />
+                        </a>
+                    </div>
+                    <div class="flex items-center">
+                        <span>Phone:</span>
+                        <span class="ml-2">{formatPhoneNumber(attorney.phone)}</span>
+                        <Phone class="inline-block ml-1" size={16} />
+                    </div>
+                </div>
             {/if}
         </div>
 
