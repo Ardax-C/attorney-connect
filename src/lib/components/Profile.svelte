@@ -21,11 +21,11 @@
     const fieldOrder = [
         'email',
         'phone',
-        'username',
-        'practiceAreas',
-        'website',
         'city',
         'state',
+        'practiceAreas',
+        'website',
+        'username',
         'createdAt'
     ];
 
@@ -150,9 +150,13 @@
                                         </div>
                                         <div class="flex items-center justify-end">
                                             {#if editField === field}
-                                                <button on:click={() => saveEdit(field)} class="ml-1 sm:ml-2 text-green-500"><FontAwesomeIcon icon={faCheck} /></button>
-                                                <button on:click={cancelEdit} class="ml-1 sm:ml-2 text-red-500"><FontAwesomeIcon icon={faTimes} /></button>
-                                            {:else if field !== 'createdAt'}
+                                                <button on:click={() => saveEdit(field)} class="ml-1 sm:ml-2 text-green-500">
+                                                    <FontAwesomeIcon icon={faCheck} />
+                                                </button>
+                                                <button on:click={cancelEdit} class="ml-1 sm:ml-2 text-red-500">
+                                                    <FontAwesomeIcon icon={faTimes} />
+                                                </button>
+                                            {:else if field !== 'createdAt' && field !== 'username'}
                                                 <button on:click={() => startEdit(field)} class="ml-1 sm:ml-2 text-gray-500 hover:text-orange-400 transition-colors duration-200">
                                                     <FontAwesomeIcon icon={faPencilAlt} />
                                                 </button>
