@@ -103,9 +103,10 @@
 
     async function handleSearch(event) {
         if (event && event.detail) {
-            searchTerm = event.detail;
+            searchTerm = event.detail.searchTerm;
+            selectedState = event.detail.selectedState;
+            selectedPracticeArea = event.detail.selectedPracticeArea;
         }
-
 
         let searchQuery = collection(db, "attorneyProfiles");
 
@@ -153,11 +154,11 @@
         <div class="w-full transition-all duration-300 ease-in-out {showNavbar ? '' : 'fixed top-0 left-0 right-0 z-40 bg-zinc-800 bg-opacity-90'}">
             {#if isMobile}
                 <MobileSearchComponent
-                    {states}
-                    {practiceAreas}
-                    headerText="Search Attorneys"
-                    on:search={handleSearchBarSearch}
-                />
+                {states}
+                {practiceAreas}
+                headerText="Search Attorneys"
+                on:search={handleSearchBarSearch}
+            />
             {:else}
                 <div class="max-w-4xl mx-auto bg-zinc-800 bg-opacity-90 rounded-md shadow-md p-4">
                     <button class="flex justify-between items-center cursor-pointer w-full text-left" on:click={toggleSearchExpansion} aria-expanded={isSearchExpanded} type="button">
