@@ -129,7 +129,11 @@
             goto('/registration-pending');
         } catch (error) {
             console.error("Error during signup:", error);
-            errorMessage = error.message;
+            if (error.code ==='auth/email-already-in-use') {
+                errorMessage = 'This email is already in use. Please try another email.';
+            } else {
+                errorMessage = 'An error occurred during registration. Please try again.';
+            }
         }
     }
 </script>

@@ -53,7 +53,7 @@
     }
 </script>
 
-<nav class="fixed top-0 left-0 right-0 z-50 transition-transform duration-300 ease-in-out {visible ? 'translate-y-0' : '-translate-y-full'}">
+<nav class="fixed top-0 left-0 right-0 z-50 transition-transform duration-300 ease-in-out {visible ? 'translate-y-0' : '-translate-y-full'} shadow-xl">
     <div class="w-full flex items-center justify-between flex-wrap bg-zinc-900 p-3">
         <div class="flex items-center flex-shrink-0 text-white mr-6">
             <a href="{currentPath === '/' ? `${base}/login` : `${base}/`}">
