@@ -101,12 +101,6 @@
 
 <main class="bg-no-repeat bg-center bg-cover h-screen flex flex-col" style="background-image: url({backgroundImage})">
     <Navbar bind:visible={showNavbar} />
-    <div class="flex-grow flex flex-col items-center justify-center w-full">
-        <div class="w-full max-w-4xl mb-4 mt-20">
-            <SearchBar on:submit={handleSearch} placeholder="Search for attorneys..." />
-        </div>
-    </div>
-
     <div id="profile-card" class="flex-grow overflow-y-auto">
         <div class="flex items-center justify-center py-8 px-4 min-h-full">
             <div class="flex flex-col md:flex-row items-start justify-center bg-zinc-800 bg-opacity-90 p-4 sm:p-6 md:p-8 rounded-md shadow-md w-full max-w-4xl">
