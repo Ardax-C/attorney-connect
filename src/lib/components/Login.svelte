@@ -3,7 +3,7 @@
     import { auth, db } from '$lib/firebase';
     import { signInWithEmailAndPassword, sendPasswordResetEmail, signOut } from 'firebase/auth';
     import { goto } from '$app/navigation';
-    import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
+    import { collection, query, where, getDocs, doc, getDoc, limit } from 'firebase/firestore';
     import Navbar from './Navbar.svelte';
     import backgroundImage from '../images/pexels-lastly-2086917.jpg';
 
@@ -36,25 +36,34 @@
         lastScrollTop = scrollTop <= 0 ? 0 : scrollTop;
     }
 
-    async function handleLogin() {
+    async function handleLogin(event) {
+        event.preventDefault();
+        const formData = new FormData(event.target);
+        const loginEmail = formData.get('username');
+        const loginPassword = formData.get('password');
+
         try {
-            let loginEmail = emailOrUsername;
+            let userEmail = loginEmail;
 
             // Check if the input is a username
-            if (!emailOrUsername.includes('@')) {
+            if (!loginEmail.includes('@')) {
                 const usersRef = collection(db, 'attorneyProfiles');
-                const q = query(usersRef, where('username', '==', emailOrUsername));
+                const q = query(
+                    usersRef,
+                    where('username', '==', loginEmail),
+                    limit(1)
+                );
                 const querySnapshot = await getDocs(q);
 
                 if (querySnapshot.empty) {
                     throw new Error('No user found with this username.');
                 }
 
-                // Assuming usernames are unique, get the email of the first matching user
-                loginEmail = querySnapshot.docs[0].data().email;
+                userEmail = querySnapshot.docs[0].data().email;
             }
 
-            const userCredential = await signInWithEmailAndPassword(auth, loginEmail, password);
+            console.log("Attempting sign in with email:", userEmail);
+            const userCredential = await signInWithEmailAndPassword(auth, userEmail, loginPassword);
             const user = userCredential.user;
 
             const userDoc = await getDoc(doc(db, 'attorneyProfiles', user.uid));
@@ -74,14 +83,22 @@
                 await signOut(auth);
             }
         } catch (error) {
-            console.error("Error during login:", error);
-            errorMessage = error.message;
+            console.error("Login error:", error);
+            if (error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found') {
+                errorMessage = "Invalid email/username or password. Please try again.";
+            } else {
+                errorMessage = "An error occurred during login. Please try again.";
+            }
         }
     }
 
-    async function handlePasswordReset() {
+    async function handlePasswordReset(event) {
+        event.preventDefault();
+        const formData = new FormData(event.target);
+        const resetEmailValue = formData.get('email');
+
         try {
-            await sendPasswordResetEmail(auth, resetEmail);
+            await sendPasswordResetEmail(auth, resetEmailValue);
             resetMessage = 'Password reset email sent. Please check your email.';
         } catch (error) {
             console.error("Error during password reset:", error);
@@ -96,12 +113,28 @@
         <div class="flex items-center justify-center py-8 px-4 min-h-full">
             <div class="bg-zinc-800 bg-opacity-90 p-6 sm:p-8 rounded-md shadow-md w-full max-w-md">
                 <h2 class="text-2xl sm:text-3xl font-bold mb-6 text-center text-custom-color-secondary">Login to your account:</h2>
-                <form on:submit|preventDefault={handleLogin}>
+                <form on:submit={handleLogin} autocomplete="on">
                     <div class="mb-4">
-                        <input type="text" bind:value={emailOrUsername} placeholder="Email or Username" class="w-full px-4 py-3 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-custom-color-primary" required>
+                        <input 
+                            type="text" 
+                            id="emailOrUsername"
+                            name="username"
+                            autocomplete="username"
+                            placeholder="Email or Username" 
+                            class="w-full px-4 py-3 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-custom-color-primary" 
+                            required
+                        >
                     </div>
                     <div class="mb-6">
-                        <input type="password" bind:value={password} placeholder="Password" class="w-full px-4 py-3 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-custom-color-primary" required>
+                        <input 
+                            type="password" 
+                            id="password"
+                            name="password"
+                            autocomplete="current-password"
+                            placeholder="Password" 
+                            class="w-full px-4 py-3 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-custom-color-primary" 
+                            required
+                        >
                     </div>
                     {#if errorMessage}
                         <p class="text-red-500 mb-4">{errorMessage}</p>
@@ -120,9 +153,17 @@
     <div class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
         <div class="bg-white p-6 rounded-md shadow-md w-full max-w-md">
             <h2 class="text-2xl font-bold mb-4">Reset Password</h2>
-            <form on:submit|preventDefault={handlePasswordReset}>
+            <form on:submit={handlePasswordReset}>
                 <div class="mb-4">
-                    <input type="email" bind:value={resetEmail} placeholder="Enter your email" class="w-full px-4 py-3 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-custom-color-primary" required>
+                    <input 
+                        type="email" 
+                        id="resetEmail"
+                        name="email"
+                        autocomplete="email"
+                        placeholder="Enter your email" 
+                        class="w-full px-4 py-3 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-custom-color-primary" 
+                        required
+                    >
                 </div>
                 {#if resetMessage}
                     <p class="text-green-500 mb-4">{resetMessage}</p>
