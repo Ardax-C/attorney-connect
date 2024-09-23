@@ -27,7 +27,7 @@
 
 <div class="bg-zinc-800 text-white p-4 rounded-lg shadow-md">
   <button type="button" class="flex items-center justify-between cursor-pointer w-full text-left" on:click={toggleExpand} aria-expanded={isExpanded}>
-    <h2 class="text-lg font-semibold">Search Attorneys</h2>
+    <h2 class="text-lg font-semibold text-custom-color-tertiary">Search Attorneys</h2>
     {#if isExpanded}
       <ChevronUp size={20} />
     {:else}
