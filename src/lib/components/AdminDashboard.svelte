@@ -110,13 +110,13 @@
     async function fetchUsers() {
         let usersQuery = query(collection(db, "attorneyProfiles"));
 
-        if (selectedStatus !== 'all') {
+        if (selectedStatus && selectedStatus !== 'all') {
             usersQuery = query(usersQuery, where("status", "==", selectedStatus));
         }
-        if (selectedRole !== 'all') {
+        if (selectedRole && selectedRole !== 'all') {
             usersQuery = query(usersQuery, where("role", "==", selectedRole));
         }
-        if (selectedState) {
+        if (selectedState && selectedState !== 'all') {
             usersQuery = query(usersQuery, where("state", "==", selectedState));
         }
         if (selectedPracticeArea) {
@@ -169,9 +169,9 @@
 
     function handleSearchBarSearch(event) {
         if (event.detail) {
-            searchTerm = event.detail.searchTerm || searchTerm;
-            selectedState = event.detail.selectedState || selectedState;
-            selectedPracticeArea = event.detail.selectedPracticeArea || selectedPracticeArea;
+            searchTerm = event.detail.searchTerm;
+            selectedState = event.detail.selectedState;
+            selectedPracticeArea = event.detail.selectedPracticeArea;
             selectedStatus = event.detail.selectedStatus || selectedStatus;
             selectedRole = event.detail.selectedRole || selectedRole;
         }
