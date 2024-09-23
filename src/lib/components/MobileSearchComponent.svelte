@@ -42,7 +42,7 @@
           type="text"
           placeholder="Search by name or username"
           bind:value={searchTerm}
-          class="w-full bg-zinc-700 px-4 py-2 pr-10 rounded-md focus:outline-none focus:ring-2 focus:ring-cyan-500"
+          class="w-full text-emerald-400 bg-zinc-700 px-4 py-2 pr-10 rounded-md focus:outline-none focus:ring-2 focus:ring-cyan-500"
         />
         <Search class="absolute right-3 top-2.5 text-gray-400" size={20} />
       </div>
@@ -51,9 +51,9 @@
         bind:value={selectedState}
         class="w-full bg-zinc-700 px-4 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-cyan-500"
       >
-        <option value="">All States</option>
+        <option value="" class="text-emerald-400">All States</option>
         {#each states as state}
-          <option value={state}>{state}</option>
+          <option class="text-emerald-400" value={state}>{state}</option>
         {/each}
       </select>
       
@@ -61,9 +61,9 @@
         bind:value={selectedPracticeArea}
         class="w-full bg-zinc-700 px-4 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-cyan-500"
       >
-        <option value="">All Practice Areas</option>
+        <option class="text-emerald-400" value="">All Practice Areas</option>
         {#each practiceAreas as area}
-          <option value={area}>{area}</option>
+          <option class="text-emerald-400" value={area}>{area}</option>
         {/each}
       </select>
       
