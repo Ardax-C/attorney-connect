@@ -46,7 +46,7 @@
     </div>
     <button
         on:click={handleSubmit}
-        class="bg-custom-btn-bg text-custom-btn-text px-6 py-2 text-base rounded hover:bg-custom-btn-hover-bg hover:text-custom-btn-hover-text focus:outline-none focus:ring-2 focus:ring-custom-btn-active-bg font-bold"
+        class="bg-cyan-600 text-orange-300 px-6 py-2 text-base rounded hover:bg-cyan-700 hover:text-orange-300 focus:outline-none focus:ring-2 focus:ring-custom-btn-active-bg font-bold"
     >
         Search
     </button>

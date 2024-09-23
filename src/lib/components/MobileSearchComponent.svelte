@@ -36,24 +36,24 @@
   </button>
   
   {#if isExpanded}
-    <div class="mt-4 space-y-3">
+    <div class="mt-4 space-y-3 text-emerald-400">
       <div class="relative">
         <input
           type="text"
           placeholder="Search by name or username"
           bind:value={searchTerm}
-          class="w-full text-emerald-400 bg-zinc-700 px-4 py-2 pr-10 rounded-md focus:outline-none focus:ring-2 focus:ring-cyan-500"
+          class="w-full bg-zinc-700 px-4 py-2 pr-10 rounded-md focus:outline-none focus:ring-2 focus:ring-cyan-500"
         />
         <Search class="absolute right-3 top-2.5 text-gray-400" size={20} />
       </div>
       
       <select
         bind:value={selectedState}
-        class="w-full bg-zinc-700 px-4 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-cyan-500"
+        class="w-full bg-zinc-700 px-4 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-cyan-500 text-emerald-400"
       >
-        <option value="" class="text-emerald-400">All States</option>
+        <option value="">All States</option>
         {#each states as state}
-          <option class="text-emerald-400" value={state}>{state}</option>
+          <option value={state}>{state}</option>
         {/each}
       </select>
       
@@ -61,15 +61,15 @@
         bind:value={selectedPracticeArea}
         class="w-full bg-zinc-700 px-4 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-cyan-500"
       >
-        <option class="text-emerald-400" value="">All Practice Areas</option>
+        <option value="">All Practice Areas</option>
         {#each practiceAreas as area}
-          <option class="text-emerald-400" value={area}>{area}</option>
+          <option value={area}>{area}</option>
         {/each}
       </select>
       
       <button
         on:click={handleSearch}
-        class="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-2 px-4 rounded-md transition duration-300"
+        class="w-full bg-cyan-600 hover:bg-cyan-700 text-orange-300 font-bold py-2 px-4 rounded-md transition duration-300"
       >
         Search
       </button>

@@ -177,7 +177,7 @@
                             <div class="grid grid-cols-2 gap-4">
                                 <div>
                                     <label for="state" class="block text-emerald-400 text-sm mb-1">State</label>
-                                    <select id="state" bind:value={selectedState} class="w-full px-3 py-2 text-sm border border-gray-600 rounded focus:outline-none focus:ring-2 focus:ring-cyan-500 bg-zinc-700 text-white">
+                                    <select id="state" bind:value={selectedState} class="w-full px-3 py-2 text-sm border border-gray-600 rounded focus:outline-none focus:ring-2 focus:ring-cyan-500 bg-zinc-700 text-emerald-400">
                                         <option value="">All States</option>
                                         {#each states as state}
                                             <option value={state}>{state}</option>
@@ -187,7 +187,7 @@
                                 
                                 <div>
                                     <label for="practiceArea" class="block text-emerald-400 text-sm mb-1">Practice Area</label>
-                                    <select id="practiceArea" bind:value={selectedPracticeArea} class="w-full px-3 py-2 text-sm border border-gray-600 rounded focus:outline-none focus:ring-2 focus:ring-cyan-500 bg-zinc-700 text-white">
+                                    <select id="practiceArea" bind:value={selectedPracticeArea} class="w-full px-3 py-2 text-sm border border-gray-600 rounded focus:outline-none focus:ring-2 focus:ring-cyan-500 bg-zinc-700 text-emerald-400">
                                         <option value="">All Practice Areas</option>
                                         {#each practiceAreas as area}
                                             <option value={area}>{area}</option>
