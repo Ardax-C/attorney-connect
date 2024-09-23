@@ -106,6 +106,7 @@
             searchTerm = event.detail;
         }
 
+
         let searchQuery = collection(db, "attorneyProfiles");
 
         if (selectedState) {
@@ -128,9 +129,12 @@
     }
 
     function handleSearchBarSearch(event) {
-        if (typeof event.detail === 'string') {
-            searchTerm = event.detail;
+        if (event.detail) {
+            searchTerm = event.detail.searchTerm;
+            selectedState = event.detail.selectedState;
+            selectedPracticeArea = event.detail.selectedPracticeArea;
         }
+
         handleSearch();
     }
 
