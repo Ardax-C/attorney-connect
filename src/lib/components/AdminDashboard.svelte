@@ -1,6 +1,5 @@
 <script>
     import { onMount } from 'svelte';
-    import { page } from '$app/stores';
     import { goto } from '$app/navigation';
     import { db, auth } from '$lib/firebase';
     import { collection, query, getDocs, doc, updateDoc, deleteDoc, where } from 'firebase/firestore';
@@ -10,7 +9,6 @@
     import Button from '$lib/components/ui/Button.svelte';
     import Card from '$lib/components/ui/Card.svelte';
     import Select from '$lib/components/ui/Select.svelte';
-    import Input from '$lib/components/ui/Input.svelte';
     import SearchBar from './SearchBar.svelte';
     import MobileSearchComponent from './MobileSearchComponent.svelte';
     import backgroundImage from '../images/pexels-lastly-2086917.jpg';
@@ -174,6 +172,8 @@
             searchTerm = event.detail.searchTerm;
             selectedState = event.detail.selectedState;
             selectedPracticeArea = event.detail.selectedPracticeArea;
+            selectedStatus = event.detail.selectedStatus || selectedStatus;
+            selectedRole = event.detail.selectedRole || selectedRole;
         }
         fetchUsers();
     }
