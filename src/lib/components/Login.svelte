@@ -62,7 +62,6 @@
                 userEmail = querySnapshot.docs[0].data().email;
             }
 
-            console.log("Attempting sign in with email:", userEmail);
             const userCredential = await signInWithEmailAndPassword(auth, userEmail, loginPassword);
             const user = userCredential.user;
 
