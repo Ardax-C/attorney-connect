@@ -169,9 +169,9 @@
 
     function handleSearchBarSearch(event) {
         if (event.detail) {
-            searchTerm = event.detail.searchTerm;
-            selectedState = event.detail.selectedState;
-            selectedPracticeArea = event.detail.selectedPracticeArea;
+            searchTerm = event.detail.searchTerm || searchTerm;
+            selectedState = event.detail.selectedState || selectedState;
+            selectedPracticeArea = event.detail.selectedPracticeArea || selectedPracticeArea;
             selectedStatus = event.detail.selectedStatus || selectedStatus;
             selectedRole = event.detail.selectedRole || selectedRole;
         }
