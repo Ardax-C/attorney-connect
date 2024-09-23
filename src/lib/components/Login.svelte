@@ -85,7 +85,7 @@
             console.error("Login error:", error);
             if (error.code === 'auth/wrong-password' || 
                 error.code === 'auth/user-not-found' || 
-                error.code === 'Missing or insufficient permissions') {
+                error.code === 'auth/invalid-credential') {
                 errorMessage = "Invalid email/username or password. Please try again.";
             } else {
                 errorMessage = "An error occurred during login. Please try again.";
