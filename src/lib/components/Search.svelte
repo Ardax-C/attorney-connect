@@ -138,6 +138,10 @@
         handleSearch();
     }
 
+    function handleProfileClick(attorneyId) {
+        goto(`/attorney/${attorneyId}`);
+    }
+
     $: if (isMobile) {
         isSearchExpanded = true;
     }
@@ -208,9 +212,9 @@
                 <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                     {#each searchResults as result}
                         <div class="w-full flex justify-center">
-                            <div class="w-full sm:w-full">
+                            <button class="w-full sm:w-full cursor-pointer" on:click={() => handleProfileClick(result.id)} type="button">
                                 <UserProfileCard user={result} />
-                            </div>
+                            </button>
                         </div>
                     {/each}
                 </div>
