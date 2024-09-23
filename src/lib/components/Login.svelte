@@ -82,7 +82,6 @@
                 await signOut(auth);
             }
         } catch (error) {
-            console.error("Login error:", error);
             if (error.code === 'auth/wrong-password' || 
                 error.code === 'auth/user-not-found' || 
                 error.code === 'auth/invalid-credential') {
