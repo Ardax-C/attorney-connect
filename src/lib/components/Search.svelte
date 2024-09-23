@@ -151,6 +151,7 @@
                 <MobileSearchComponent
                     {states}
                     {practiceAreas}
+                    headerText="Search Attorneys"
                     on:search={handleSearchBarSearch}
                 />
             {:else}

@@ -4,6 +4,7 @@
 
   export let states = [];
   export let practiceAreas = [];
+  export let headerText = "Search";
 
   let isExpanded = false;
   let searchTerm = '';
@@ -27,7 +28,7 @@
 
 <div class="bg-zinc-800 text-white p-4 rounded-lg shadow-md">
   <button type="button" class="flex items-center justify-between cursor-pointer w-full text-left" on:click={toggleExpand} aria-expanded={isExpanded}>
-    <h2 class="text-lg font-semibold text-custom-color-tertiary">Search Attorneys</h2>
+    <h2 class="text-lg font-semibold text-custom-color-tertiary">{headerText}</h2>
     {#if isExpanded}
       <ChevronUp size={20} />
     {:else}

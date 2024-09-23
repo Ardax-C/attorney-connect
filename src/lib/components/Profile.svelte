@@ -1,11 +1,10 @@
 <script>
     import { onMount } from 'svelte';
     import Navbar from './Navbar.svelte';
-    import SearchBar from './SearchBar.svelte';
     import { auth, db } from '$lib/firebase';
     import { onAuthStateChanged } from 'firebase/auth';
     import { goto } from '$app/navigation'
-    import { doc, getDoc, updateDoc } from 'firebase/firestore';
+    import { doc, getDoc, updateDoc, setDoc } from 'firebase/firestore';
     import backgroundImage from '../images/pexels-lastly-2086917.jpg';
     import { faPencilAlt, faCheck, faTimes } from '@fortawesome/free-solid-svg-icons';
     import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
@@ -88,6 +87,9 @@
             let valueToSave = tempValue;
             if (field === 'practiceAreas') {
                 valueToSave = tempValue.split(',').map(area => area.trim()).filter(area => area !== '');
+                await updatePracticeAreas(valueToSave);
+            } else if (field === 'state') {
+                await updateState(valueToSave);
             }
             await updateDoc(doc(db, 'attorneyProfiles', user.uid), { [field]: valueToSave });
             userDetails[field] = valueToSave;
@@ -95,6 +97,24 @@
             tempValue = '';
         } catch (error) {
             errorMessage = error.message;
+        }
+    }
+
+    async function updatePracticeAreas(areas) {
+        for (const area of areas) {
+            const areaDoc = doc(db, 'practiceAreas', area);
+            const areaSnapshot = await getDoc(areaDoc);
+            if (!areaSnapshot.exists()) {
+                await setDoc(areaDoc, { practiceArea: area });
+            }
+        }
+    }
+
+    async function updateState(state) {
+        const stateDoc = doc(db, 'states', state);
+        const stateSnapshot = await getDoc(stateDoc);
+        if (!stateSnapshot.exists()) {
+            await setDoc(stateDoc, { state: state });
         }
     }
 </script>
