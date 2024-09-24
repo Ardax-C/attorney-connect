@@ -16,22 +16,26 @@ export async function generateAttorneyKeywords(city, state, practiceAreas) {
   try {
     const practiceAreasString = practiceAreas.join(', ');
     const prompt = `
-      Generate an extensive list of specific keywords and related terms for an attorney specializing in ${practiceAreasString} located in ${city}, ${state}. Terms should be generated from the perspective of an attorney searching for other attorneys.
-      Include general terms, related areas of law, and location-specific terms. 'attorney', 'attorneys', 'lawyers' and 'lawyer' should be included by default.
+      Generate a focused list of relevant keywords for an attorney specializing in ${practiceAreasString} located in ${city}, ${state}. The list should include:
+
+      1. The terms "attorney", "attorneys", "lawyer", and "lawyers" by default.
+      2. The provided city and state names.
+      3. Specific practice area terms.
+      4. A few general legal terms relevant to the specified practice areas.
+      5. 1-2 location-specific legal terms if applicable.
+
+      Limit the total number of keywords to 25 or fewer.
       Return the result as a JSON object with the following format:
       {
-        "keywords": [extensive list of relevant keywords and terms, in lowercase],
+        "keywords": [list of relevant keywords and terms, in lowercase],
         "practiceAreas": [list of practice areas mentioned or implied, in title case]
       }
-      Ensure the keywords are specific, comprehensive, and relevant to the legal field and location mentioned.
+      Ensure all keywords are specific, relevant, and useful for linking related attorneys based on practice area and location.
     `;
 
-    console.log("Sending keyword generation query to Vertex AI:", prompt);
     const result = await model.generateContent(prompt);
-    console.log("Received raw response from Vertex AI:", result);
     const response = result.response;
     let textResponse = response.text();
-    console.log("Extracted text response:", textResponse);
 
     // Try to parse as JSON
     try {
@@ -50,9 +54,8 @@ export async function generateAttorneyKeywords(city, state, practiceAreas) {
       // If JSON parsing fails, extract relevant information from the text
       const keywords = textResponse.toLowerCase().split(/\s+/)
         .filter(word => word.length > 2)
-        .slice(0, 100); // Limit to 100 keywords
+        .slice(0, 25); // Limit to 25 keywords
 
-      console.log("Extracted keywords from text response:", keywords);
 
       return {
         keywords,
@@ -60,7 +63,6 @@ export async function generateAttorneyKeywords(city, state, practiceAreas) {
       };
     }
   } catch (error) {
-    console.error('Error calling Vertex AI for keyword generation:', error);
     if (error.message.includes('Permission') || error.message.includes('IAM_PERMISSION_DENIED')) {
       console.error('This appears to be a permissions issue. Please check that the correct IAM roles have been assigned to your service account.');
     }
@@ -74,7 +76,6 @@ const model = getGenerativeModel(vertexAI, { model: "gemini-1.5-flash" });
 
 export async function searchAttorneys(query) {
   try {
-    console.log("Sending query to Vertex AI:", query);
     const prompt = `
       Parse the following search query for attorney information:
       "${query}"
@@ -88,10 +89,8 @@ export async function searchAttorneys(query) {
       If a field is not mentioned in the query, set it to null.
     `;
     const result = await model.generateContent(prompt);
-    console.log("Received raw response from Vertex AI:", result);
     const response = result.response;
     let textResponse = response.text();
-    console.log("Extracted text response:", textResponse);
    
     // Try to parse as JSON
     try {
@@ -118,9 +117,6 @@ export async function searchAttorneys(query) {
         .map(word => word.toLowerCase())
         .slice(0, 20); // Limit to 20 keywords
      
-      console.log("Extracted information from text response:",
-        { practiceAreas, state, city, keywords });
-     
       return {
         practiceAreas,
         state,
@@ -129,7 +125,6 @@ export async function searchAttorneys(query) {
       };
     }
   } catch (error) {
-    console.error('Error calling Vertex AI:', error);
     if (error.message.includes('Permission') || error.message.includes('IAM_PERMISSION_DENIED')) {
       console.error('This appears to be a permissions issue. Please check that the correct IAM roles have been assigned to your service account.');
     }

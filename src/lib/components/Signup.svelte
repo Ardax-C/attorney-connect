@@ -149,9 +149,24 @@
                 searchTerms: keywords
             });
 
-            // ... (rest of the function remains the same)
+            // Add state to the states collection
+            await setDoc(doc(db, "states", state), {
+                state
+            });
+
+            // Add each practice area to the practiceAreas collection
+            for (const area of practiceAreas.filter(area => area.trim() !== '')) {
+                await setDoc(doc(db, "practiceAreas", area), {
+                    practiceArea: area
+                });
+            }
+            
+            await signOut(auth);
+            resetForm();
+            showNavigation = true;
+            // Redirect to a "Registration Pending" page
+            goto('/registration-pending');
         } catch (error) {
-            console.error("Error during signup:", error);
             if (error.code === 'auth/email-already-in-use') {
                 errorMessage = 'This email is already in use. Please try another email.';
             } else {

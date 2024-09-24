@@ -153,13 +153,10 @@
                 return { id: doc.id, ...data };
             });
 
-            console.log("Final search results:", searchResults);
-
             if (searchResults.length === 0) {
                 errorMessage = "No attorneys found matching your search criteria. Please try a different search.";
             }
         } catch (error) {
-            console.error("Error during search:", error);
             errorMessage = "An error occurred while searching. Please try again or refine your search terms.";
             searchResults = [];
         } finally {

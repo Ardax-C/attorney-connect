@@ -52,7 +52,6 @@
 
             return relatedAttorneys;
         } catch (error) {
-            console.error("Error fetching related attorneys:", error);
             throw error;
         }
     }
@@ -69,7 +68,6 @@
                 error = 'Attorney not found';
             }
         } catch (err) {
-            console.error("Error loading attorney profile:", err);
             error = 'Error loading attorney profile';
         } finally {
             loading = false;
