@@ -8,6 +8,7 @@
     import { doc, setDoc } from 'firebase/firestore';
     import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
     import { goto } from '$app/navigation';
+    import { generateAttorneyKeywords } from '../vertexAI';
 
     let firstName = '';
     let lastName = '';
@@ -73,6 +74,39 @@
         }
     }
 
+    async function generateKeywords(city, state, practiceAreas) {
+        try {
+            const result = await generateAttorneyKeywords(city, state, practiceAreas);
+            
+            // Combine AI-generated keywords with basic terms
+            const baseKeywords = [
+                city.toLowerCase(),
+                state.toLowerCase(),
+                ...city.toLowerCase().split(' '),
+                ...state.toLowerCase().split(' '),
+                ...practiceAreas.flatMap(area => area.toLowerCase().split(' '))
+            ];
+
+            // Ensure all keywords are lowercase and unique
+            const allKeywords = [...new Set([
+                ...baseKeywords,
+                ...result.keywords
+            ])].map(keyword => keyword.toLowerCase());
+
+            return allKeywords;
+        } catch (error) {
+            console.error('Error generating keywords:', error);
+            // Fallback to basic keyword generation if AI fails
+            return [...new Set([
+                city.toLowerCase(),
+                state.toLowerCase(),
+                ...city.toLowerCase().split(' '),
+                ...state.toLowerCase().split(' '),
+                ...practiceAreas.flatMap(area => area.toLowerCase().split(' '))
+            ])];
+        }
+    }
+
     async function handleSubmit() {
         if (!profilePicture) {
             profilePictureError = 'Please select a profile picture.';
@@ -93,6 +127,9 @@
             await uploadBytes(profilePictureRef, profilePicture);
             const profilePictureUrl = await getDownloadURL(profilePictureRef);
 
+            // Generate keywords
+            const keywords = await generateKeywords(city, state, practiceAreas.filter(area => area.trim() !== ''));
+
             // Create user profile in Firestore
             await setDoc(doc(db, "attorneyProfiles", user.uid), {
                 firstName,
@@ -107,7 +144,9 @@
                 profilePictureUrl,
                 createdAt: new Date(),
                 status: 'pending',
-                role: 'user'
+                role: 'user',
+                keywords,
+                searchTerms: keywords
             });
 
             // Add state to the states collection
@@ -128,14 +167,14 @@
             // Redirect to a "Registration Pending" page
             goto('/registration-pending');
         } catch (error) {
-            console.error("Error during signup:", error);
-            if (error.code ==='auth/email-already-in-use') {
+            if (error.code === 'auth/email-already-in-use') {
                 errorMessage = 'This email is already in use. Please try another email.';
             } else {
                 errorMessage = 'An error occurred during registration. Please try again.';
             }
         }
     }
+
 </script>
 
 <main class="bg-no-repeat bg-center bg-cover min-h-screen flex flex-col" style="background-image: url({backgroundImage})">

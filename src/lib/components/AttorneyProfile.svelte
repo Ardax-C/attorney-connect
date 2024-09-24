@@ -5,6 +5,7 @@
     import { doc, getDoc, collection, query, where, limit, getDocs } from 'firebase/firestore';
     import { goto } from '$app/navigation';
     import {Link, Mail, Phone } from 'lucide-svelte';
+    import { searchAttorneys } from '$lib/vertexAI';
     import Navbar from './Navbar.svelte';
     import backgroundImage from '../images/pexels-lastly-2086917.jpg';
 
@@ -21,10 +22,25 @@
 
     async function fetchRelatedAttorneys(currentAttorney) {
         try {
+            // Generate a search query based on the current attorney's information
+            const searchQuery = `${currentAttorney.practiceAreas.join(' ')} attorney in ${currentAttorney.state}`;
+            
+            // Use the Vertex AI to parse the search query
+            const parsedQuery = await searchAttorneys(searchQuery);
+
+            // Combine all relevant terms for the Firestore query
+            const searchTerms = [
+                ...parsedQuery.keywords,
+                ...parsedQuery.practiceAreas,
+                currentAttorney.state.toLowerCase(),
+                ...currentAttorney.practiceAreas.map(area => area.toLowerCase())
+            ];
+
+            // Create a Firestore query
             const q = query(
                 collection(db, 'attorneyProfiles'),
                 where('state', '==', currentAttorney.state),
-                where('practiceAreas', 'array-contains-any', currentAttorney.practiceAreas),
+                where('searchTerms', 'array-contains-any', searchTerms),
                 limit(5)
             );
 
@@ -34,10 +50,8 @@
                 .map(doc => ({ id: doc.id, ...doc.data() }))
                 .filter(attorney => attorney.id !== currentAttorney.id);
 
-
             return relatedAttorneys;
         } catch (error) {
-            console.error("Error fetching related attorneys:", error);
             throw error;
         }
     }
@@ -54,7 +68,6 @@
                 error = 'Attorney not found';
             }
         } catch (err) {
-            console.error("Error loading attorney profile:", err);
             error = 'Error loading attorney profile';
         } finally {
             loading = false;

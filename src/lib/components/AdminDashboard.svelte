@@ -122,14 +122,20 @@
         }
 
         const querySnapshot = await getDocs(usersQuery);
-        users = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        filterUsers();
+        users = querySnapshot.docs.map(doc => {
+            const data = doc.data();
+            return {
+                id: doc.id,
+                ...data,
+                practiceAreas: data.practiceAreas || [] // Ensure practiceAreas always exists
+            };
+        });
+        filterUsers()
     }
 
     async function updateUserStatus(userId, newStatus) {
-        await updateDoc(doc(db, "attorneyProfiles", userId), {
-            status: newStatus
-        });
+        const userRef = doc(db, "attorneyProfiles", userId);
+        await updateDoc(userRef, { status: newStatus });
         await fetchUsers();
     }
 
@@ -150,7 +156,6 @@
                 }
                 await fetchUsers();
             } catch (error) {
-                console.error("Error deleting user:", error);
                 alert("An error occurred while deleting the user. Please try again.");
             }
         }
@@ -199,12 +204,12 @@
                         {
                             key: 'status',
                             placeholder: 'All Statuses',
-                            options: statusOptions
+                            options: statusOptions.filter(option => option.value !== 'all')
                         },
                         {
                             key: 'role',
                             placeholder: 'All Roles',
-                            options: roleOptions
+                            options: roleOptions.filter(option => option.value !== 'all')
                         }
                     ]}
                     on:search={handleSearchBarSearch}
@@ -255,7 +260,7 @@
                                 <p class="text-sm text-orange-400 mb-4">{user.email}</p>
                                 <div class="space-y-2 mb-4">
                                     <p><span class="font-semibold">State:</span> {user.state}</p>
-                                    <p><span class="font-semibold">Practice Areas:</span> {user.practiceAreas.join(', ')}</p>
+                                    <p><span class="font-semibold">Practice Areas:</span> {user.practiceAreas ? user.practiceAreas.join(', ') : 'None'}</p>
                                     <p><span class="font-semibold">Status:</span> <span class={`font-semibold ${user.status === 'approved' ? 'text-green-500' : user.status === 'denied' ? 'text-red-500' : 'text-yellow-500'}`}>{user.status}</span></p>
                                     <p><span class="font-semibold">Role:</span> {user.role}</p>
                                 </div>

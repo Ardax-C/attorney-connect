@@ -166,27 +166,39 @@
                                 {/if}
                             {/each}
                             
-                            {#each Object.keys(userDetails).filter(field => !fieldOrder.includes(field) && !['profilePictureUrl', 'firstName', 'lastName', 'status', 'role'].includes(field)) as field}
-                                <div class="grid grid-cols-1 sm:grid-cols-[1fr,2fr,auto] gap-x-2 sm:gap-x-4 gap-y-1 pb-2 border-b border-gray-700">
-                                    <div class="font-bold capitalize text-sm sm:text-base text-custom-color-tertiary">{field.replace(/([A-Z])/g, ' $1')}:</div>
-                                    <div class="text-left sm:text-right text-sm sm:text-base">
-                                        {#if editField === field}
-                                            <input type="text" bind:value={tempValue} class="w-full p-1 sm:p-2 rounded-md text-black text-sm" />
-                                        {:else}
-                                            {userDetails[field]}
-                                        {/if}
+                            {#each Object.keys(userDetails).filter(field => !fieldOrder.includes(field) && !['profilePictureUrl', 'firstName', 'lastName', 'status', 'role', 'keywords', 'searchTerms'].includes(field)) as field}
+                                {#if userDetails[field] !== undefined}
+                                    <div class="grid grid-cols-1 sm:grid-cols-[1fr,2fr,auto] gap-x-2 sm:gap-x-4 gap-y-1 pb-2 border-b border-gray-700">
+                                        <div class="font-bold capitalize text-sm sm:text-base text-custom-color-tertiary">{field.replace(/([A-Z])/g, ' $1')}:</div>
+                                        <div class="text-left sm:text-right text-sm sm:text-base">
+                                            {#if editField === field}
+                                                <input type="text" bind:value={tempValue} class="w-full p-1 sm:p-2 rounded-md text-black text-sm" placeholder={field === 'practiceAreas' ? 'Separate areas with commas' : ''} />
+                                            {:else}
+                                                {#if field === 'practiceAreas'}
+                                                    {userDetails[field].join(', ')}
+                                                {:else if field === 'createdAt'}
+                                                    {formatDate(userDetails[field])}
+                                                {:else}
+                                                    {userDetails[field]}
+                                                {/if}
+                                            {/if}
+                                        </div>
+                                        <div class="flex items-center justify-end">
+                                            {#if editField === field}
+                                                <button on:click={() => saveEdit(field)} class="ml-1 sm:ml-2 text-green-500">
+                                                    <FontAwesomeIcon icon={faCheck} />
+                                                </button>
+                                                <button on:click={cancelEdit} class="ml-1 sm:ml-2 text-red-500">
+                                                    <FontAwesomeIcon icon={faTimes} />
+                                                </button>
+                                            {:else if field !== 'createdAt' && field !== 'username'}
+                                                <button on:click={() => startEdit(field)} class="ml-1 sm:ml-2 text-gray-500 hover:text-orange-400 transition-colors duration-200">
+                                                    <FontAwesomeIcon icon={faPencilAlt} />
+                                                </button>
+                                            {/if}
+                                        </div>
                                     </div>
-                                    <div class="flex items-center justify-end">
-                                        {#if editField === field}
-                                            <button on:click={() => saveEdit(field)} class="ml-1 sm:ml-2 text-green-500"><FontAwesomeIcon icon={faCheck} /></button>
-                                            <button on:click={cancelEdit} class="ml-1 sm:ml-2 text-red-500"><FontAwesomeIcon icon={faTimes} /></button>
-                                        {:else}
-                                            <button on:click={() => startEdit(field)} class="ml-1 sm:ml-2 text-gray-500 hover:text-orange-400 transition-colors duration-200">
-                                                <FontAwesomeIcon icon={faPencilAlt} />
-                                            </button>
-                                        {/if}
-                                    </div>
-                                </div>
+                                {/if}
                             {/each}
                         </div>
                     </div>
