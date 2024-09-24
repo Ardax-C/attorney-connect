@@ -40,7 +40,7 @@
             <div class="relative">
                 <input
                     type="text"
-                    placeholder="Search by name or username"
+                    placeholder="Describe the attorney you're looking for..."
                     bind:value={searchTerm}
                     class="w-full bg-zinc-700 px-4 py-2 pr-10 rounded-md focus:outline-none focus:ring-2 focus:ring-cyan-500"
                 />
@@ -54,7 +54,9 @@
                 >
                     <option value="">{filter.placeholder}</option>
                     {#each filter.options as option}
-                        <option value={option.value}>{option.label}</option>
+                        {#if option.value !== 'all'}
+                            <option value={option.value}>{option.label}</option>
+                        {/if}
                     {/each}
                 </select>
             {/each}

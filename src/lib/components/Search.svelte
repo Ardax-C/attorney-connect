@@ -1,16 +1,18 @@
 <script>
-    import { onMount } from 'svelte';
+    import { onMount, afterUpdate } from 'svelte';
     import { page } from '$app/stores';
     import { goto } from '$app/navigation';
     import { auth, db } from '$lib/firebase';
-    import { collection, query, getDocs, where } from 'firebase/firestore';
+    import { collection, query, getDocs, where, orderBy, limit } from 'firebase/firestore';
     import { ChevronDown, ChevronUp } from 'lucide-svelte';
     import Navbar from './Navbar.svelte';
     import SearchBar from './SearchBar.svelte';
     import UserProfileCard from './UserProfileCard.svelte';
     import MobileSearchComponent from './MobileSearchComponent.svelte';
     import backgroundImage from '../images/pexels-lastly-2086917.jpg';
+    import { searchAttorneys } from '$lib/vertexAI';
 
+    let errorMessage = '';
     let searchTerm = '';
     let selectedState = '';
     let selectedPracticeArea = '';
@@ -33,12 +35,11 @@
                 await fetchUniqueFields();
                 checkMobile();
                 window.addEventListener('resize', checkMobile);
-                
+               
                 resultsContainer = document.getElementById('results-container');
                 if (resultsContainer) {
                     resultsContainer.addEventListener('scroll', handleScroll, { passive: true });
                 }
-
                 const urlSearchParams = new URLSearchParams($page.url.searchParams);
                 const incomingSearchTerm = urlSearchParams.get('q');
                 if (incomingSearchTerm) {
@@ -50,13 +51,11 @@
             }
             isLoading = false;
         });
-
         const updateInnerHeight = () => {
             innerHeight = window.innerHeight;
         };
         updateInnerHeight();
         window.addEventListener('resize', updateInnerHeight);
-
         return () => {
             unsubscribe();
             window.removeEventListener('resize', checkMobile);
@@ -103,37 +102,88 @@
 
     async function handleSearch(event) {
         if (event && event.detail) {
-            searchTerm = event.detail.searchTerm;
-            selectedState = event.detail.selectedState;
-            selectedPracticeArea = event.detail.selectedPracticeArea;
+            searchTerm = event.detail.searchTerm || '';
         }
 
-        let searchQuery = collection(db, "attorneyProfiles");
+        errorMessage = '';
+        searchResults = [];
+        isLoading = true;
 
-        if (selectedState) {
-            searchQuery = query(searchQuery, where("state", "==", selectedState));
+        try {
+            const aiResponse = await searchAttorneys(searchTerm);
+            console.log("AI parsed response:", aiResponse);
+
+            let firestoreQuery = collection(db, "attorneyProfiles");
+            let conditions = [];
+            
+            if (aiResponse.state) {
+                conditions.push(where("state", "in", [
+                    aiResponse.state, 
+                    aiResponse.state.toUpperCase(), 
+                    aiResponse.state.toLowerCase(),
+                    toTitleCase(aiResponse.state)
+                ]));
+            }
+            if (aiResponse.city) {
+                conditions.push(where("city", "in", [
+                    aiResponse.city, 
+                    aiResponse.city.toUpperCase(), 
+                    aiResponse.city.toLowerCase(),
+                    toTitleCase(aiResponse.city)
+                ]));
+            }
+
+            // Combine practice areas and keywords for partial matching
+            const searchTerms = [...new Set([...aiResponse.practiceAreas, ...aiResponse.keywords])];
+
+            if (searchTerms.length > 0) {
+                conditions.push(where("searchTerms", "array-contains-any", searchTerms));
+            }
+            
+            if (conditions.length > 0) {
+                firestoreQuery = query(firestoreQuery, ...conditions);
+            }
+
+            // Add ordering and limit to the query
+            firestoreQuery = query(firestoreQuery, orderBy("lastName"), limit(20));
+
+            const querySnapshot = await getDocs(firestoreQuery);
+            searchResults = querySnapshot.docs.map(doc => {
+                const data = doc.data();
+                return { id: doc.id, ...data };
+            });
+
+            console.log("Final search results:", searchResults);
+
+            if (searchResults.length === 0) {
+                errorMessage = "No attorneys found matching your search criteria. Please try a different search.";
+            }
+        } catch (error) {
+            console.error("Error during search:", error);
+            errorMessage = "An error occurred while searching. Please try again or refine your search terms.";
+            searchResults = [];
+        } finally {
+            isLoading = false;
         }
+    }
 
-        if (selectedPracticeArea) {
-            searchQuery = query(searchQuery, where("practiceAreas", "array-contains", selectedPracticeArea));
+    // Helper function to convert strings to Title Case
+    function toTitleCase(str) {
+    return str.replace(
+        /\w\S*/g,
+        function(txt) {
+        return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();
         }
-
-        if (searchTerm) {
-            searchQuery = query(searchQuery, where("name", "==", searchTerm));
-        }
-
-        const querySnapshot = await getDocs(searchQuery);
-        searchResults = querySnapshot.docs.map(doc => {
-            const data = doc.data();
-            return { id: doc.id, ...data };
-        });
+    );
     }
 
     function handleSearchBarSearch(event) {
-        if (event.detail) {
+        if (event.detail && isMobile) {
             searchTerm = event.detail.searchTerm;
             selectedState = event.detail.state;
             selectedPracticeArea = event.detail.practiceArea;
+        } else {
+            searchTerm = event.detail;
         }
         handleSearch();
     }
@@ -145,6 +195,9 @@
     $: if (isMobile) {
         isSearchExpanded = true;
     }
+
+    $: selectedPracticeArea
+    $: selectedState
 </script>
 
 <main class="bg-no-repeat bg-center bg-cover flex flex-col min-h-screen" style="background-image: url({backgroundImage})">
@@ -154,18 +207,6 @@
             {#if isMobile}
                 <MobileSearchComponent
                     headerText="Search Attorneys"
-                    filters={[
-                        {
-                            key: 'state',
-                            placeholder: 'All States',
-                            options: states.map(state => ({ value: state, label: state }))
-                        },
-                        {
-                            key: 'practiceArea',
-                            placeholder: 'All Practice Areas',
-                            options: practiceAreas.map(area => ({ value: area, label: area }))
-                        }
-                    ]}
                     on:search={handleSearchBarSearch}
                 />
             {:else}
@@ -178,47 +219,28 @@
                             <ChevronDown class="text-cyan-400" size={24} />
                         {/if}
                     </button>
-                    
+                   
                     {#if isSearchExpanded}
                         <div class="mt-4 space-y-4">
                             <div class="w-full">
                                 <SearchBar
-                                    placeholder="Search by name or username"
+                                    placeholder="Describe the attorney you're looking for..."
                                     bind:value={searchTerm}
                                     on:search={handleSearchBarSearch}
                                     showSearchButton={true}
                                 />
-                            </div>
-                            
-                            <div class="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label for="state" class="block text-emerald-400 text-sm mb-1">State</label>
-                                    <select id="state" bind:value={selectedState} class="w-full px-3 py-2 text-sm border border-gray-600 rounded focus:outline-none focus:ring-2 focus:ring-cyan-500 bg-zinc-700 text-emerald-400">
-                                        <option value="">All States</option>
-                                        {#each states as state}
-                                            <option value={state}>{state}</option>
-                                        {/each}
-                                    </select>
-                                </div>
-                                
-                                <div>
-                                    <label for="practiceArea" class="block text-emerald-400 text-sm mb-1">Practice Area</label>
-                                    <select id="practiceArea" bind:value={selectedPracticeArea} class="w-full px-3 py-2 text-sm border border-gray-600 rounded focus:outline-none focus:ring-2 focus:ring-cyan-500 bg-zinc-700 text-emerald-400">
-                                        <option value="">All Practice Areas</option>
-                                        {#each practiceAreas as area}
-                                            <option value={area}>{area}</option>
-                                        {/each}
-                                    </select>
-                                </div>
                             </div>
                         </div>
                     {/if}
                 </div>
             {/if}
         </div>
-
         <div id="results-container" class="flex-grow overflow-y-auto px-4 pb-16 mt-4" style="max-height: calc(100% - {isMobile ? '120px' : '0px'});">
-            {#if searchResults.length > 0}
+            {#if isLoading}
+                <p class="text-emerald-400 text-center mt-4">Searching for attorneys...</p>
+            {:else if errorMessage}
+                <p class="text-red-500 text-center mt-4">{errorMessage}</p>
+            {:else if searchResults.length > 0}
                 <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                     {#each searchResults as result}
                         <div class="w-full flex justify-center">
@@ -229,7 +251,9 @@
                     {/each}
                 </div>
             {:else if searchResults.length === 0 && searchTerm}
-                <p class="text-emerald-400 text-center mt-4">No results found.</p>
+                <p class="text-emerald-400 text-center mt-4">No results found. Please try a different search.</p>
+            {:else}
+                <p class="text-emerald-400 text-center mt-4">Enter a search query to find attorneys.</p>
             {/if}
         </div>
     </div>

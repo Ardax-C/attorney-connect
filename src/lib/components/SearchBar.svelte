@@ -1,6 +1,6 @@
 <script>
     import { createEventDispatcher } from 'svelte';
-    export let placeholder = "Search...";
+    export let placeholder = "Describe the attorney you're looking for...";
     export let value = "";
     export let searchFields = [];
     export let showSearchButton = true;
@@ -46,7 +46,7 @@
             </div>
         {/if}
     </div>
-    {#if showSearchButton == true}
+    {#if showSearchButton}
         <button
         on:click={handleSubmit}
         class="bg-cyan-600 text-orange-300 px-6 py-2 text-base rounded hover:bg-cyan-700 hover:text-orange-300 focus:outline-none focus:ring-2 focus:ring-custom-btn-active-bg font-bold"

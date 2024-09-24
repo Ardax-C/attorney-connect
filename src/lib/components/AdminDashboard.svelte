@@ -199,12 +199,12 @@
                         {
                             key: 'status',
                             placeholder: 'All Statuses',
-                            options: statusOptions
+                            options: statusOptions.filter(option => option.value !== 'all')
                         },
                         {
                             key: 'role',
                             placeholder: 'All Roles',
-                            options: roleOptions
+                            options: roleOptions.filter(option => option.value !== 'all')
                         }
                     ]}
                     on:search={handleSearchBarSearch}
