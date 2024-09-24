@@ -59,7 +59,7 @@
                 const userData = userDoc.docs[0].data();
                 switch (userData.status) {
                     case 'approved':
-                        goto('/search');
+                        goto('/');
                         break;
                     case 'pending':
                         goto('/registration-pending');
