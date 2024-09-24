@@ -2,10 +2,18 @@ import { auth, db } from '$lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
 import { goto } from '$app/navigation';
 
+
+
 export async function requireAuth(requiredRole = 'user') {
     return new Promise((resolve, reject) => {
-        const unsubscribe = auth.onAuthStateChanged(async user => {
+
+        const timeoutId = setTimeout(() => {
             unsubscribe();
+            reject('Authentication timed out');
+          }, 10000);
+          
+        const unsubscribe = auth.onAuthStateChanged(async user => {
+            clearTimeout(timeoutId);
             if (user) {
                 const userDoc = await getDoc(doc(db, 'attorneyProfiles', user.uid));
                 if (userDoc.exists()) {

@@ -1,13 +1,13 @@
 <script>
-    import { onMount } from 'svelte';
-    import { auth, db } from '$lib/firebase';
-    import { signInWithEmailAndPassword, sendPasswordResetEmail, signOut } from 'firebase/auth';
-    import { goto } from '$app/navigation';
-    import { collection, query, where, getDocs, doc, getDoc, limit } from 'firebase/firestore';
     import Navbar from './Navbar.svelte';
     import backgroundImage from '../images/pexels-lastly-2086917.jpg';
+    import { onMount } from 'svelte';
+    import { auth, db } from '$lib/firebase';
+    import { goto } from '$app/navigation';
+    import { signInWithEmailAndPassword, sendPasswordResetEmail, signOut } from 'firebase/auth';
+    import { collection, query, where, getDocs, doc, getDoc, limit, orderBy } from 'firebase/firestore';
 
-    let emailOrUsername = '';
+    let email = '';
     let password = '';
     let errorMessage = '';
     let resetEmail = '';
@@ -28,67 +28,68 @@
 
     function handleScroll() {
         const scrollTop = loginContent.scrollTop;
-        if (scrollTop > lastScrollTop && scrollTop > 50) {
-            showNavbar = false;
-        } else if (scrollTop < lastScrollTop || scrollTop === 0) {
-            showNavbar = true;
+            if (scrollTop > lastScrollTop && scrollTop > 50) {
+                showNavbar = false;
+            } else if (scrollTop < lastScrollTop || scrollTop === 0) {
+                showNavbar = true;
+            }
+            lastScrollTop = scrollTop <= 0 ? 0 : scrollTop;
         }
-        lastScrollTop = scrollTop <= 0 ? 0 : scrollTop;
-    }
 
-    async function handleLogin(event) {
+        async function handleLogin(event) {
         event.preventDefault();
         const formData = new FormData(event.target);
-        const loginEmail = formData.get('username');
-        const loginPassword = formData.get('password');
+        const email = formData.get('email');
+        const password = formData.get('password');
 
         try {
-            let userEmail = loginEmail;
-
-            // Check if the input is a username
-            if (!loginEmail.includes('@')) {
-                const usersRef = collection(db, 'attorneyProfiles');
-                const q = query(
-                    usersRef,
-                    where('username', '==', loginEmail),
-                    limit(1)
-                );
-                const querySnapshot = await getDocs(q);
-
-                if (querySnapshot.empty) {
-                    throw new Error('No user found with this username.');
-                }
-
-                userEmail = querySnapshot.docs[0].data().email;
-            }
-
-            const userCredential = await signInWithEmailAndPassword(auth, userEmail, loginPassword);
+            const userCredential = await signInWithEmailAndPassword(auth, email, password);
             const user = userCredential.user;
 
-            const userDoc = await getDoc(doc(db, 'attorneyProfiles', user.uid));
-            if (userDoc.exists()) {
-                const userData = userDoc.data();
-                if (userData.status === 'approved') {
-                    goto('/search');
-                } else if (userData.status === 'pending') {
-                    goto('/registration-pending');
-                } else {
-                    // status is 'denied'
-                    errorMessage = 'Your account has been denied access.';
-                    await signOut(auth);
+            const userDoc = await getDocs(query(collection(db, 'attorneyProfiles'), where('email', '==', email), limit(1)));
+            if (!userDoc.empty) {
+                const userData = userDoc.docs[0].data();
+
+                switch (userData.status) {
+                    case 'approved':
+                        goto('/search');
+                        break;
+                    case 'pending':
+                        goto('/registration-pending');
+                        break;
+                    default:
+                        errorMessage = 'Your account has been denied access.';
+                        await auth.signOut();
                 }
             } else {
                 errorMessage = 'User profile not found.';
-                await signOut(auth);
+                await auth.signOut();
             }
         } catch (error) {
-            if (error.code === 'auth/wrong-password' || 
-                error.code === 'auth/user-not-found' || 
-                error.code === 'auth/invalid-credential') {
-                errorMessage = "Invalid email/username or password. Please try again.";
-            } else {
-                errorMessage = "An error occurred during login. Please try again.";
-            }
+            handleLoginError(error);
+        }
+    }
+
+    function handleLoginError(error) {
+        switch (error.code) {
+            case 'auth/invalid-email':
+                errorMessage = "Invalid email address. Please check and try again.";
+                break;
+            case 'auth/user-disabled':
+                errorMessage = "This account has been disabled. Please contact support.";
+                break;
+            case 'auth/user-not-found':
+            case 'auth/wrong-password':
+                errorMessage = "Invalid email or password. Please try again.";
+                break;
+            case 'auth/too-many-requests':
+                errorMessage = "Too many failed login attempts. Please try again later.";
+                break;
+            case 'auth/network-request-failed':
+                errorMessage = "Network error. Please check your internet connection and try again.";
+                break;
+            default:
+                errorMessage = "An unexpected error occurred. Please try again later.";
         }
     }
 
@@ -116,10 +117,10 @@
                 <form on:submit={handleLogin} autocomplete="on">
                     <div class="mb-4">
                         <input 
-                            type="text" 
-                            id="emailOrUsername"
-                            name="username"
-                            autocomplete="username"
+                            type="email" 
+                            id="email"
+                            name="email"
+                            autocomplete="email"
                             placeholder="Email" 
                             class="w-full px-4 py-3 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-custom-color-primary" 
                             required
