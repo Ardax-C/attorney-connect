@@ -16,6 +16,15 @@
     let showNavbar = true;
     let lastScrollTop = 0;
     let loginContent;
+    let errorTimeout;
+
+    function setTimedErrorMessage(message, duration = 3000) {
+        errorMessage = message;
+        clearTimeout(errorTimeout);
+        errorTimeout = setTimeout(() => {
+            errorMessage = '';
+        }, duration);
+    }
 
     onMount(() => {
         loginContent = document.getElementById('login-content');
@@ -36,7 +45,7 @@
             lastScrollTop = scrollTop <= 0 ? 0 : scrollTop;
         }
 
-        async function handleLogin(event) {
+    async function handleLogin(event) {
         event.preventDefault();
         const formData = new FormData(event.target);
         const email = formData.get('email');
@@ -45,11 +54,9 @@
         try {
             const userCredential = await signInWithEmailAndPassword(auth, email, password);
             const user = userCredential.user;
-
             const userDoc = await getDocs(query(collection(db, 'attorneyProfiles'), where('email', '==', email), limit(1)));
             if (!userDoc.empty) {
                 const userData = userDoc.docs[0].data();
-
                 switch (userData.status) {
                     case 'approved':
                         goto('/search');
@@ -58,11 +65,11 @@
                         goto('/registration-pending');
                         break;
                     default:
-                        errorMessage = 'Your account has been denied access.';
+                        setTimedErrorMessage('Your account has been denied access.');
                         await auth.signOut();
                 }
             } else {
-                errorMessage = 'User profile not found.';
+                setTimedErrorMessage('User profile not found.');
                 await auth.signOut();
             }
         } catch (error) {
@@ -71,26 +78,30 @@
     }
 
     function handleLoginError(error) {
+        let message;
         switch (error.code) {
             case 'auth/invalid-email':
-                errorMessage = "Invalid email address. Please check and try again.";
+                message = "Invalid email address. Please check and try again.";
                 break;
             case 'auth/user-disabled':
-                errorMessage = "This account has been disabled. Please contact support.";
+                message = "This account has been disabled. Please contact support.";
                 break;
-            case 'auth/user-not-found':
             case 'auth/wrong-password':
-                errorMessage = "Invalid email or password. Please try again.";
+                message = "Invalid email or password. Please try again.";
+                break;
+            case 'auth/invalid-credential':
+                message = "Invalid credentials. Please try again.";
                 break;
             case 'auth/too-many-requests':
-                errorMessage = "Too many failed login attempts. Please try again later.";
+                message = "Too many failed login attempts. Please try again later.";
                 break;
             case 'auth/network-request-failed':
-                errorMessage = "Network error. Please check your internet connection and try again.";
+                message = "Network error. Please check your internet connection and try again.";
                 break;
             default:
-                errorMessage = "An unexpected error occurred. Please try again later.";
+                message = "An unexpected error occurred. Please try again later.";
         }
+        setTimedErrorMessage(message);
     }
 
     async function handlePasswordReset(event) {
