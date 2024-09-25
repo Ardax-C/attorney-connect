@@ -239,8 +239,6 @@
                             <div class="grid grid-cols-2 gap-4">
                                 <Select bind:value={selectedStatus} options={statusOptions} on:change={fetchUsers} />
                                 <Select bind:value={selectedRole} options={roleOptions} on:change={fetchUsers} />
-                                <Select bind:value={selectedState} options={[{value: '', label: 'All States'}, ...states.map(state => ({value: state, label: state}))]} on:change={fetchUsers} />
-                                <Select bind:value={selectedPracticeArea} options={[{value: '', label: 'All Practice Areas'}, ...practiceAreas.map(area => ({value: area, label: area}))]} on:change={fetchUsers} />
                             </div>
                         </div>
                     {/if}
