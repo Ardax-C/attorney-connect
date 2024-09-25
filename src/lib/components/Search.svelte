@@ -111,7 +111,6 @@
 
         try {
             const aiResponse = await searchAttorneys(searchTerm);
-            console.log("AI parsed response:", aiResponse);
 
             let firestoreQuery = collection(db, "attorneyProfiles");
             let conditions = [];
