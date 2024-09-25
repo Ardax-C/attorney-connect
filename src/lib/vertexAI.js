@@ -25,7 +25,7 @@ export async function generateAttorneyKeywords(city, state, practiceAreas) {
       5. A few general legal terms relevant to the specified practice areas.
       6. 1-2 location-specific legal terms if applicable.
 
-      Limit the total number of keywords to 25 or fewer.
+      Limit the total number of keywords to 30 or fewer.
       Return the result as a JSON object with the following format:
       {
         "keywords": [list of relevant keywords and terms, in lowercase],
