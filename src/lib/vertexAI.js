@@ -19,10 +19,11 @@ export async function generateAttorneyKeywords(city, state, practiceAreas) {
       Generate a focused list of relevant keywords for an attorney specializing in ${practiceAreasString} located in ${city}, ${state}. The list should include:
 
       1. The terms "attorney", "attorneys", "lawyer", and "lawyers" by default.
-      2. The provided city and state names.
-      3. Specific practice area terms.
-      4. A few general legal terms relevant to the specified practice areas.
-      5. 1-2 location-specific legal terms if applicable.
+      2. First and last names of the attorney.
+      3. The provided city and state names.
+      4. Specific practice area terms.
+      5. A few general legal terms relevant to the specified practice areas.
+      6. 1-2 location-specific legal terms if applicable.
 
       Limit the total number of keywords to 25 or fewer.
       Return the result as a JSON object with the following format:
