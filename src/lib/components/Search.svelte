@@ -14,11 +14,7 @@
 
     let errorMessage = '';
     let searchTerm = '';
-    let selectedState = '';
-    let selectedPracticeArea = '';
     let searchResults = [];
-    let states = [];
-    let practiceAreas = [];
     let showNavbar = true;
     let resultsContainer;
     let isAuthenticated = false;
@@ -32,7 +28,6 @@
         const unsubscribe = auth.onAuthStateChanged(async (user) => {
             if (user) {
                 isAuthenticated = true;
-                await fetchUniqueFields();
                 checkMobile();
                 window.addEventListener('resize', checkMobile);
                
@@ -84,22 +79,6 @@
         isSearchExpanded = !isSearchExpanded;
     }
 
-    async function fetchUniqueFields() {
-        // Fetch states
-        const statesQuery = query(collection(db, "states"));
-        const statesSnapshot = await getDocs(statesQuery);
-        statesSnapshot.docs.forEach(doc => {
-        });
-        states = statesSnapshot.docs.map(doc => doc.data().state);
-
-        // Fetch practice areas
-        const practiceAreasQuery = query(collection(db, "practiceAreas"));
-        const practiceAreasSnapshot = await getDocs(practiceAreasQuery);
-        practiceAreasSnapshot.docs.forEach(doc => {
-        });
-        practiceAreas = practiceAreasSnapshot.docs.map(doc => doc.data().practiceArea);
-    }
-
     async function handleSearch(event) {
         if (event && event.detail) {
             searchTerm = event.detail.searchTerm || '';
@@ -115,27 +94,22 @@
             let firestoreQuery = collection(db, "attorneyProfiles");
             let conditions = [];
             
-            if (aiResponse.state) {
-                conditions.push(where("state", "in", [
-                    aiResponse.state, 
-                    aiResponse.state.toUpperCase(), 
-                    aiResponse.state.toLowerCase(),
-                    toTitleCase(aiResponse.state)
-                ]));
+            if (aiResponse.states.length > 0) {
+                conditions.push(where("state", "in", aiResponse.states));
             }
-            if (aiResponse.city) {
-                conditions.push(where("city", "in", [
-                    aiResponse.city, 
-                    aiResponse.city.toUpperCase(), 
-                    aiResponse.city.toLowerCase(),
-                    toTitleCase(aiResponse.city)
-                ]));
+            if (aiResponse.cities.length > 0) {
+                conditions.push(where("city", "in", aiResponse.cities));
             }
 
-            // Combine practice areas and keywords for partial matching
-            const searchTerms = [...new Set([...aiResponse.practiceAreas, ...aiResponse.keywords])];
+            const searchTerms = [
+                ...new Set([
+                    ...aiResponse.practiceAreas,
+                    ...aiResponse.keywords,
+                    ...aiResponse.specializations
+                ])
+            ];
 
-            if (searchTerms.length > 0) {
+            if (searchTerms.length > 0 && !aiResponse.isAllAttorneys) {
                 conditions.push(where("searchTerms", "array-contains-any", searchTerms));
             }
             
@@ -143,8 +117,7 @@
                 firestoreQuery = query(firestoreQuery, ...conditions);
             }
 
-            // Add ordering and limit to the query
-            firestoreQuery = query(firestoreQuery, orderBy("lastName"), limit(20));
+            firestoreQuery = query(firestoreQuery, orderBy("lastName"), limit(50));
 
             const querySnapshot = await getDocs(firestoreQuery);
             searchResults = querySnapshot.docs.map(doc => {
@@ -156,6 +129,7 @@
                 errorMessage = "No attorneys found matching your search criteria. Please try a different search.";
             }
         } catch (error) {
+            console.error("Search error:", error);
             errorMessage = "An error occurred while searching. Please try again or refine your search terms.";
             searchResults = [];
         } finally {
@@ -163,21 +137,9 @@
         }
     }
 
-    // Helper function to convert strings to Title Case
-    function toTitleCase(str) {
-    return str.replace(
-        /\w\S*/g,
-        function(txt) {
-        return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();
-        }
-    );
-    }
-
     function handleSearchBarSearch(event) {
         if (event.detail && isMobile) {
             searchTerm = event.detail.searchTerm;
-            selectedState = event.detail.state;
-            selectedPracticeArea = event.detail.practiceArea;
         } else {
             searchTerm = event.detail;
         }
@@ -191,9 +153,6 @@
     $: if (isMobile) {
         isSearchExpanded = true;
     }
-
-    $: selectedPracticeArea
-    $: selectedState
 </script>
 
 <main class="bg-no-repeat bg-center bg-cover flex flex-col min-h-screen" style="background-image: url({backgroundImage})">
@@ -220,7 +179,7 @@
                         <div class="mt-4 space-y-4">
                             <div class="w-full">
                                 <SearchBar
-                                    placeholder="Describe the attorney you're looking for..."
+                                    placeholder="Search for attorneys (e.g., 'divorce lawyer in New York')"
                                     bind:value={searchTerm}
                                     on:search={handleSearchBarSearch}
                                     showSearchButton={true}
