@@ -16,22 +16,27 @@ export async function generateAttorneyKeywords(firstName, lastName, city, state,
   try {
     const practiceAreasString = practiceAreas.join(', ');
     const prompt = `
-      Generate a focused list of relevant keywords for an attorney named ${firstName} ${lastName} specializing in ${practiceAreasString} located in ${city}, ${state}. The list should include:
+      Generate a focused list of relevant keywords for an attorney with the following details:
+        Name: ${firstName} ${lastName}
+        City: ${city}
+        State: ${state}
+        Practice Areas: ${practiceAreasString}
 
-      1. The terms "attorney", "attorneys", "lawyer", and "lawyers" by default.
-      2. First and last names of the attorney.
-      3. The provided city and state names.
-      4. Specific practice area terms.
-      5. A few general legal terms relevant to the specified practice areas.
-      6. 1-2 location-specific legal terms if applicable.
+        The list should include:
+        1. The terms "attorney", "attorneys", "lawyer", and "lawyers" by default.
+        2. The provided first and last names.
+        3. The provided city and state names.
+        4. Specific practice area terms.
+        5. General legal terms relevant to the specified practice areas.
+        6. 1-2 location-specific legal terms if applicable.
 
-      Limit the total number of keywords to 30 or fewer.
-      Return the result as a JSON object with the following format:
-      {
-        "keywords": [list of relevant keywords and terms, in lowercase],
-        "practiceAreas": [list of practice areas mentioned or implied, in title case]
-      }
-      Ensure all keywords are specific, relevant, and useful for linking related attorneys based on practice area and location.
+        Limit the total number of keywords to 30 or fewer.
+        Return the result as a JSON object with the following format:
+        {{
+          "keywords": [list of relevant keywords and terms, in lowercase],
+          "practiceAreas": [list of practice areas mentioned or implied, in title case]
+        }}
+        Ensure all keywords are specific, relevant, and useful for linking related attorneys based on practice area and location.
     `;
 
     const result = await model.generateContent(prompt);
@@ -78,18 +83,33 @@ const model = getGenerativeModel(vertexAI, { model: "gemini-1.5-flash" });
 export async function searchAttorneys(query) {
   try {
     const prompt = `
-      Parse the following search query for attorney information:
+      Parse the following natural language search query for attorneys:
       "${query}"
+
+      The query may include attorney names, practice areas, locations (states, cities), specializations, or other relevant keywords.
+
       Do not provide legal advice or referrals. Instead, extract and return the following information in JSON format:
       {
+        "names": [list of full or partial attorney names mentioned],
+        "firstNames": [list of first names mentioned], 
+        "lastNames": [list of last names mentioned],
         "practiceAreas": [list of practice areas mentioned, in title case],
-        "states": [list of states mentioned, in title case],
+        "states": [list of states mentioned, in title case], 
         "cities": [list of cities mentioned, in title case],
-        "keywords": [relevant keywords from the query, in lowercase],
+        "keywords": [other relevant keywords from the query, in lowercase],
         "isAllAttorneys": boolean indicating if the query is asking for all attorneys,
         "specializations": [list of specializations mentioned, in title case]
       }
-      If a field is not mentioned in the query, set it to an empty array or false for boolean. Handle potential spelling mistakes and vague queries.
+
+      Guidelines:
+      - If a field is not mentioned in the query, set it to an empty array or false for booleans.
+      - Handle potential spelling mistakes and vague queries. Use best judgment to interpret intent.
+      - For names, extract full names if provided. If only first or last names are mentioned, populate the respective fields.
+      - Practice areas and specializations should be standardized to title case (e.g., "Personal Injury", "Estate Planning").  
+      - States and cities should be title cased (e.g., "New York", "Los Angeles").
+      - The "keywords" field should contain any other terms relevant to the search that don't fit in the other categories. 
+      - Set "isAllAttorneys" to true if the query seems to be searching for all attorneys, attorneys in general, or is very broad.
+      - Aim to extract as much relevant information as possible to enable a comprehensive search.
     `;
     const result = await model.generateContent(prompt);
     const response = result.response;
