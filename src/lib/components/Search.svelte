@@ -126,11 +126,10 @@
             });
 
             if (searchResults.length === 0) {
-                errorMessage = "No attorneys found matching your search criteria. Please try a different search.";
+                errorMessage = "No attorneys found matching your search criteria. A practice area and/or state are required.";
             }
         } catch (error) {
-            console.error("Search error:", error);
-            errorMessage = "An error occurred while searching. Please try again or refine your search terms.";
+            errorMessage = "An error occurred while searching. A practice area and/or state are required.";
             searchResults = [];
         } finally {
             isLoading = false;
@@ -192,7 +191,7 @@
         </div>
         <div id="results-container" class="flex-grow overflow-y-auto px-4 pb-16 mt-4" style="max-height: calc(100% - {isMobile ? '120px' : '0px'});">
             {#if isLoading}
-                <p class="text-emerald-400 text-center mt-4">Searching for attorneys...</p>
+                <p class="text-cyan-400 text-center mt-4">Searching for attorneys...</p>
             {:else if errorMessage}
                 <p class="text-red-500 text-center mt-4">{errorMessage}</p>
             {:else if searchResults.length > 0}
@@ -208,7 +207,7 @@
             {:else if searchResults.length === 0 && searchTerm}
                 <p class="text-emerald-400 text-center mt-4">No results found. Please try a different search.</p>
             {:else}
-                <p class="text-emerald-400 text-center mt-4">Enter a search query to find attorneys.</p>
+                <p class="text-xl text-orange-300 font-bold text-center mt-4">Enter a search query to find attorneys.</p>
             {/if}
         </div>
     </div>

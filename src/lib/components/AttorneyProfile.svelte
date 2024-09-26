@@ -2,10 +2,11 @@
     import { onMount, afterUpdate } from 'svelte';
     import { page } from '$app/stores';
     import { db } from '$lib/firebase';
-    import { doc, getDoc, collection, query, where, limit, getDocs } from 'firebase/firestore';
+    import { doc, getDoc, collection, query, where, limit, getDocs, addDoc } from 'firebase/firestore';
     import { goto } from '$app/navigation';
     import {Link, Mail, Phone } from 'lucide-svelte';
     import { searchAttorneys } from '$lib/vertexAI';
+    import { requireAuth } from '$lib/auth.js';
     import Navbar from './Navbar.svelte';
     import backgroundImage from '../images/pexels-lastly-2086917.jpg';
 
@@ -13,6 +14,7 @@
     let relatedAttorneys = [];
     let loading = true;
     let error = null;
+    let user = null;
 
     $: attorneyId = $page.params.id;
 
@@ -63,6 +65,12 @@
             const attorneyDoc = await getDoc(doc(db, 'attorneyProfiles', id));
             if (attorneyDoc.exists()) {
                 attorney = { id: attorneyDoc.id, ...attorneyDoc.data() };
+                
+                // Check if the loaded attorney is the same as the logged-in user
+                if (attorney.id === user.uid) {
+                    // You might want to handle this case differently, e.g., show an edit profile button instead of a chat button
+                }
+                
                 relatedAttorneys = await fetchRelatedAttorneys(attorney);
             } else {
                 error = 'Attorney not found';
@@ -88,11 +96,39 @@
         return phoneNumber;
     }
 
-    onMount(() => {
-        if (attorneyId) {
-            loadAttorneyProfile(attorneyId);
+    onMount(async () => {
+        try {
+            user = await requireAuth();
+            if (attorneyId) {
+                loadAttorneyProfile(attorneyId);
+            }
+        } catch (error) {
+            // Handle the authentication error, show an error message, etc.
         }
     });
+
+    async function startChat() {
+        if (!user || !attorney) {
+            error = 'Unable to start chat. Please try again later.';
+            return;
+        }
+
+        if (user.uid === attorney.id) {
+            error = 'You cannot start a chat with yourself.';
+            return;
+        }
+
+        try {
+            const chatRef = await addDoc(collection(db, 'chats'), {
+                participants: [user.uid, attorney.id],
+                lastMessage: null,
+                lastMessageTimestamp: new Date(),
+            });
+            goto(`/chat/${chatRef.id}`);
+        } catch (err) {
+            error = 'Error starting chat. Please try again later.', err;
+        }
+    }
 
 </script>
 
@@ -134,18 +170,14 @@
                             <Link class="inline-block ml-1" size={16} />
                         </a>
                     </div>
-                    <div class="flex items-center">
-                        <span>Email:</span>
-                        <a href={`mailto:${attorney.email}`} class="ml-2 text-emerald-400 hover:underline">
-                            {attorney.email}
-                            <Mail class="inline-block ml-1" size={16} />
-                        </a>
-                    </div>
-                    <div class="flex items-center">
-                        <span>Phone:</span>
-                        <span class="ml-2">{formatPhoneNumber(attorney.phone)}</span>
-                        <Phone class="inline-block ml-1" size={16} />
-                    </div>
+                    {#if !loading && attorney && user && attorney.id !== user.uid}
+                        <button
+                            class="bg-custom-color-tertiary text-blue-950 font-inter py-2 px-4 rounded-sm border-none text-base sm:text-lg cursor-pointer transition duration-300 ease-in-out transform hover:bg-blue-900 hover:text-custom-color-tertiary active:scale-95"
+                            on:click={startChat}
+                        >
+                            Message Attorney
+                        </button>
+                    {/if}
                 </div>
             {/if}
         </div>
