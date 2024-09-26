@@ -120,7 +120,7 @@
                     <div class="flex-grow overflow-y-auto p-4 bg-zinc-800" bind:this={chatContainer}>
                         {#each messages as message}
                             <div class="mb-4 {message.senderId === user.uid ? 'text-right' : 'text-left'}">
-                                <p class="inline-block bg-zinc-700 rounded-lg p-2 max-w-xs break-words">
+                                <p class="inline-block bg-zinc-700 text-custom-color-tertiary rounded-lg p-2 max-w-xs break-words">
                                     {message.content}
                                 </p>
                                 <p class="text-xs text-gray-500 mt-1">
