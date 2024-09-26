@@ -77,6 +77,9 @@
                     <li>
                         <a href="/profile" class="block mt-4 lg:inline-block lg:mt-0 text-white hover:text-orange-400 mr-4 text-lg">Profile</a>
                     </li>
+                    <li>
+                        <a href="/chats" class="block mt-4 lg:inline-block lg:mt-0 text-white hover:text-orange-400 mr-4 text-lg">Chats</a>
+                    </li>
                     {#if userRole === 'admin'}
                         <li>
                             <a href="/admin" class="block mt-4 lg:inline-block lg:mt-0 text-white hover:text-orange-400 mr-4 text-lg">Admin Dashboard</a>
