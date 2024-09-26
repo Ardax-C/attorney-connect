@@ -27,6 +27,7 @@
     let showNavbar = true;
     let lastScrollTop = 0;
     let signupCard;
+    let isLoading = false;
 
     const states = [
         'Alabama', 'Alaska', 'Arizona', 'Arkansas', 'California', 'Colorado', 'Connecticut', 'Delaware', 'Florida', 'Georgia',
@@ -74,39 +75,6 @@
         }
     }
 
-    async function generateKeywords(city, state, practiceAreas) {
-        try {
-            const result = await generateAttorneyKeywords(city, state, practiceAreas);
-            
-            // Combine AI-generated keywords with basic terms
-            const baseKeywords = [
-                city.toLowerCase(),
-                state.toLowerCase(),
-                ...city.toLowerCase().split(' '),
-                ...state.toLowerCase().split(' '),
-                ...practiceAreas.flatMap(area => area.toLowerCase().split(' '))
-            ];
-
-            // Ensure all keywords are lowercase and unique
-            const allKeywords = [...new Set([
-                ...baseKeywords,
-                ...result.keywords
-            ])].map(keyword => keyword.toLowerCase());
-
-            return allKeywords;
-        } catch (error) {
-            console.error('Error generating keywords:', error);
-            // Fallback to basic keyword generation if AI fails
-            return [...new Set([
-                city.toLowerCase(),
-                state.toLowerCase(),
-                ...city.toLowerCase().split(' '),
-                ...state.toLowerCase().split(' '),
-                ...practiceAreas.flatMap(area => area.toLowerCase().split(' '))
-            ])];
-        }
-    }
-
     async function handleSubmit() {
         if (!profilePicture) {
             profilePictureError = 'Please select a profile picture.';
@@ -117,6 +85,8 @@
             errorMessage = 'Please fill out all required fields.';
             return;
         }
+
+        isLoading = true;
 
         try {
             // Create user in Firebase Authentication
@@ -291,6 +261,11 @@
             </div>
         </div>
     </div>
+    {#if isLoading}
+        <div class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+            <div class="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-emerald-400"></div>
+        </div>
+    {/if}
 </main>
 
 <style>
