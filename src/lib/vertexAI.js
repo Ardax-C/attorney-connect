@@ -12,11 +12,11 @@ const firebaseConfig = {
 };
 
 
-export async function generateAttorneyKeywords(city, state, practiceAreas) {
+export async function generateAttorneyKeywords(firstName, lastName, city, state, practiceAreas) {
   try {
     const practiceAreasString = practiceAreas.join(', ');
     const prompt = `
-      Generate a focused list of relevant keywords for an attorney specializing in ${practiceAreasString} located in ${city}, ${state}. The list should include:
+      Generate a focused list of relevant keywords for an attorney named ${firstName} ${lastName} specializing in ${practiceAreasString} located in ${city}, ${state}. The list should include:
 
       1. The terms "attorney", "attorneys", "lawyer", and "lawyers" by default.
       2. First and last names of the attorney.

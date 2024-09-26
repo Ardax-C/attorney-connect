@@ -113,6 +113,11 @@
             return;
         }
 
+        if (!firstName || !lastName || !city || !state || practiceAreas.some(area => !area.trim())) {
+            errorMessage = 'Please fill out all required fields.';
+            return;
+        }
+
         try {
             // Create user in Firebase Authentication
             const userCredential = await createUserWithEmailAndPassword(auth, email, password);
@@ -128,7 +133,7 @@
             const profilePictureUrl = await getDownloadURL(profilePictureRef);
 
             // Generate keywords
-            const keywords = await generateKeywords(city, state, practiceAreas.filter(area => area.trim() !== ''));
+            const keywords = await generateAttorneyKeywords(firstName, lastName, city, state, practiceAreas.filter(area => area.trim() !== ''));
 
             // Create user profile in Firestore
             await setDoc(doc(db, "attorneyProfiles", user.uid), {
@@ -223,11 +228,11 @@
                         </div>
                         <div>
                             <label for="city" class="block text-emerald-400 text-base mb-1">City</label>
-                            <input type="text" id="city" bind:value={city} class="w-full px-4 py-2 text-base border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-custom-color-primary">
+                            <input type="text" id="city" bind:value={city} class="w-full px-4 py-2 text-base border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-custom-color-primary" required>
                         </div>
                         <div>
                             <label for="state" class="block text-emerald-400 text-base mb-1">State</label>
-                            <select id="state" bind:value={state} class="w-full px-4 py-2 text-base border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-custom-color-primary">
+                            <select id="state" bind:value={state} class="w-full px-4 py-2 text-base border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-custom-color-primary" required>
                                 <option value="">- Select -</option>
                                 {#each states as state}
                                     <option value={state}>{state}</option>
@@ -241,7 +246,7 @@
                             <label for="practiceAreas" class="block text-emerald-400 text-base mb-1">Practice Areas</label>
                             {#each practiceAreas as practiceArea, index}
                                 <div class="flex items-center mb-2">
-                                    <input type="text" id="practiceAreas" bind:value={practiceAreas[index]} class="w-full px-4 py-2 text-base border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-custom-color-primary">
+                                    <input type="text" id="practiceAreas" bind:value={practiceAreas[index]} class="w-full px-4 py-2 text-base border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-custom-color-primary" required>
                                     {#if index === practiceAreas.length - 1}
                                         <button type="button" on:click={addPracticeArea} class="ml-2 bg-custom-btn-bg text-custom-btn-text px-4 py-2 text-base rounded hover:bg-custom-btn-hover-bg hover:text-custom-btn-hover-text focus:outline-none focus:ring-2 focus:ring-custom-btn-active-bg">
                                             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 20 20" fill="currentColor">
