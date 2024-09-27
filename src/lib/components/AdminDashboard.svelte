@@ -181,6 +181,10 @@
         );
     }
 
+    function handleProfileClick(attorneyId) {
+        goto(`/attorney/${attorneyId}`);
+    }
+
     function handleSearchBarSearch(event) {
         if (event.detail) {
             searchTerm = event.detail.searchTerm;
@@ -263,17 +267,18 @@
             {:else}
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {#each filteredUsers as user}
-                        <Card>
-                            <div class="p-6">
-                                <h2 class="text-xl font-bold mb-2 text-custom-color-tertiary">{user.firstName} {user.lastName}</h2>
-                                <p class="text-sm text-orange-400 mb-4">{user.email}</p>
-                                <div class="space-y-2 mb-4">
-                                    <p><span class="font-semibold">State:</span> {user.state}</p>
-                                    <p><span class="font-semibold">Practice Areas:</span> {user.practiceAreas ? user.practiceAreas.join(', ') : 'None'}</p>
-                                    <p><span class="font-semibold">Status:</span> <span class={`font-semibold ${user.status === 'approved' ? 'text-green-500' : user.status === 'denied' ? 'text-red-500' : 'text-yellow-500'}`}>{user.status}</span></p>
-                                    <p><span class="font-semibold">Role:</span> {user.role}</p>
-                                </div>
-                                <div class="flex flex-wrap gap-2">
+                        <button class="profile-card cursor-pointer transition-all duration-300 ease-in-out transform hover:scale-105 hover:shadow-lg active:scale-95" on:click={() => handleProfileClick(user.id)} on:keydown={(event) => event.key === 'Enter' && handleProfileClick(user.id)}>
+                            <Card>
+                                <div class="p-6">
+                                    <h2 class="text-xl font-bold mb-2 text-custom-color-tertiary">{user.firstName} {user.lastName}</h2>
+                                    <p class="text-sm text-orange-400 mb-4">{user.email}</p>
+                                    <div class="space-y-2 mb-4">
+                                        <p><span class="font-semibold">State:</span> {user.state}</p>
+                                        <p><span class="font-semibold">Practice Areas:</span> {user.practiceAreas ? user.practiceAreas.join(', ') : 'None'}</p>
+                                        <p><span class="font-semibold">Status:</span> <span class={`font-semibold ${user.status === 'approved' ? 'text-green-500' : user.status === 'denied' ? 'text-red-500' : 'text-yellow-500'}`}>{user.status}</span></p>
+                                        <p><span class="font-semibold">Role:</span> {user.role}</p>
+                                    </div>
+                                    <button class="flex flex-wrap gap-2" on:click|stopPropagation on:keydown={(event) => event.key === 'Enter' && event.target.click()}>
                                     <Select 
                                         value={user.status} 
                                         options={statusOptions.filter(option => option.value !== 'all')} 
@@ -289,8 +294,8 @@
                                         <Trash2 size={16} />
                                     </Button>
                                 </div>
-                            </div>
-                        </Card>
+                            </Card>
+                        </button>
                     {/each}
                 </div>
             {/if}
@@ -301,5 +306,17 @@
 <style>
     :global(body) {
         overflow: hidden;
+    }
+
+    .profile-card {
+        transition: all 0.3s ease-in-out;
+    }
+
+    .profile-card:hover {
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    }
+
+    .profile-card:active {
+        transform: scale(0.95);
     }
 </style>

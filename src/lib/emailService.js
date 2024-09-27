@@ -18,12 +18,7 @@ export async function sendEmail(to, subject, body, replyTo = '') {
         time: body.time,
         reply_to: replyTo || to,
     };
+    
+    await emailjs.send(serviceID, templateID, templateParams, userID);
 
-    try {
-        await emailjs.send(serviceID, templateID, templateParams, userID);
-        console.log('Email sent successfully');
-    } catch (error) {
-        console.error('Error sending email:', error);
-        throw error;
-    }
 }
