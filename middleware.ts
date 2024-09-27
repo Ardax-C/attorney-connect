@@ -1,10 +1,10 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 
 export const config = {
   matcher: '/:path*',
 };
 
-export default function middleware(req) {
+export default function middleware(req: NextRequest) {
   const country = req.geo?.country || 'XX';
   
   // Allow access for US and Canada
