@@ -175,6 +175,18 @@
         await sendEmail(adminEmail, emailSubject, emailBody, email);
     }
 
+    function handleWebsiteInput(event) {
+        let input = event.target.value.trim();
+        
+        // Check if the input already starts with a protocol
+        if (!/^https?:\/\//i.test(input) && input !== '') {
+            // If no protocol is present, prepend 'https://'
+            input = 'https://' + input;
+        }
+        
+        website = input;
+    }
+
 </script>
 
 <main class="bg-no-repeat bg-center bg-cover min-h-screen flex flex-col" style="background-image: url({backgroundImage})">
@@ -220,7 +232,13 @@
                         </div>
                         <div>
                             <label for="website" class="block text-emerald-400 text-base mb-1">Website</label>
-                            <input type="url" id="website" bind:value={website} class="w-full px-4 py-2 text-base border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-custom-color-primary">
+                            <input 
+                                type="text" 
+                                id="website" 
+                                bind:value={website} 
+                                on:input={handleWebsiteInput}
+                                class="w-full px-4 py-2 text-base border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-custom-color-primary"
+                            >
                         </div>
                         <div>
                             <label for="city" class="block text-emerald-400 text-base mb-1">City</label>
