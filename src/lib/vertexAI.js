@@ -80,65 +80,89 @@ const firebaseApp = initializeApp(firebaseConfig);
 const vertexAI = getVertexAI(firebaseApp);
 const model = getGenerativeModel(vertexAI, { model: "gemini-1.5-flash" });
 
+
 export async function searchAttorneys(query) {
+  if (!query || query.trim() === '') {
+    return {
+      names: { full: [], first: [], last: [] },
+      locations: { states: [], cities: [] },
+      practiceAreas: [],
+      keywords: [],
+      isGeneral: true,
+      isAllAttorneys: true  // flag to indicate a request for all attorneys
+    };
+  }
+
   try {
     const prompt = `
-      Parse the following natural language search query for attorneys:
+      Analyze the following natural language search query for attorneys:
       "${query}"
-
-      The query may include attorney names, practice areas, locations (states, cities), specializations, or other relevant keywords.
 
       Do not provide legal advice or referrals. Instead, extract and return the following information in JSON format:
       {
-        "names": [list of full or partial attorney names mentioned],
-        "firstNames": [list of first names mentioned], 
-        "lastNames": [list of last names mentioned],
-        "practiceAreas": [list of practice areas mentioned, in title case],
-        "states": [list of states mentioned, in title case], 
-        "cities": [list of cities mentioned, in title case],
-        "keywords": [other relevant keywords from the query, in lowercase],
-        "isAllAttorneys": boolean indicating if the query is asking for all attorneys,
-        "specializations": [list of specializations mentioned, in title case]
+        "names": {
+          "full": [list of full names],
+          "first": [list of first names],
+          "last": [list of last names]
+        },
+        "locations": {
+          "states": [list of states],
+          "cities": [list of cities]
+        },
+        "practiceAreas": [list of practice areas],
+        "keywords": [other relevant keywords],
+        "isGeneral": boolean indicating if the query is for general attorney search
       }
 
       Guidelines:
-      - If a field is not mentioned in the query, set it to an empty array or false for booleans.
-      - Handle potential spelling mistakes and vague queries. Use best judgment to interpret intent.
-      - For names, extract full names if provided. If only first or last names are mentioned, populate the respective fields.
-      - Practice areas and specializations should be standardized to title case (e.g., "Personal Injury", "Estate Planning").  
-      - States and cities should be title cased (e.g., "New York", "Los Angeles").
-      - The "keywords" field should contain any other terms relevant to the search that don't fit in the other categories. 
-      - Set "isAllAttorneys" to true if the query seems to be searching for all attorneys, attorneys in general, or is very broad.
-      - Aim to extract as much relevant information as possible to enable a comprehensive search.
+      - Names: Identify and separate full names, first names, and last names.
+      - Locations: Recognize both states and cities. Use full state names, not abbreviations.
+      - Practice Areas: Identify standard legal practice areas. Use title case (e.g., "Estate Planning").
+      - Keywords: Include any other relevant search terms that don't fit into the above categories.
+      - isGeneral: Set to true if the query is broad (e.g., "find a lawyer" or "attorneys near me").
+      - If a category is not applicable, use an empty array.
+      - Correct minor spelling mistakes and interpret vague terms to the best ability.
+
+      Ensure all extracted information is relevant to searching for attorneys.
     `;
+
     const result = await model.generateContent(prompt);
     const response = result.response;
     let textResponse = response.text();
-   
+
+    let parsedResponse;
     try {
-      textResponse = textResponse.replace(/^```json\s*/, '').replace(/\s*```$/, '');
-      const parsedResponse = JSON.parse(textResponse);
-  
-      return {
-        practiceAreas: parsedResponse.practiceAreas?.map(area => area.toLowerCase()) || [],
-        states: parsedResponse.states?.map(state => toTitleCase(state)) || [],
-        cities: parsedResponse.cities?.map(city => toTitleCase(city)) || [],
-        keywords: parsedResponse.keywords?.map(keyword => keyword.toLowerCase()) || [],
-        isAllAttorneys: parsedResponse.isAllAttorneys || false,
-        specializations: parsedResponse.specializations?.map(spec => spec.toLowerCase()) || []
-      };
+      const jsonStart = textResponse.indexOf('{');
+      const jsonEnd = textResponse.lastIndexOf('}') + 1;
+      
+      if (jsonStart === -1 || jsonEnd === -1) {
+        throw new Error("No valid JSON object found in the response");
+      }
+
+      const jsonString = textResponse.slice(jsonStart, jsonEnd);
+      parsedResponse = JSON.parse(jsonString);
     } catch (jsonError) {
       console.warn("Failed to parse response as JSON:", jsonError.message);
-     
-      return {
+      console.log("Raw response:", textResponse);
+      
+      // Fallback parsing
+      parsedResponse = {
+        names: { full: [], first: [], last: [] },
+        locations: { states: [], cities: [] },
         practiceAreas: [],
-        states: [],
-        cities: [],
         keywords: query.toLowerCase().split(/\s+/).filter(word => word.length > 3),
-        isAllAttorneys: query.toLowerCase().includes("all attorneys"),
-        specializations: []
+        isGeneral: true
       };
     }
+
+    return {
+      names: parsedResponse.names || { full: [], first: [], last: [] },
+      locations: parsedResponse.locations || { states: [], cities: [] },
+      practiceAreas: parsedResponse.practiceAreas?.map(area => area.toLowerCase()) || [],
+      keywords: parsedResponse.keywords?.map(keyword => keyword.toLowerCase()) || [],
+      isGeneral: parsedResponse.isGeneral || false,
+      isAllAttorneys: false  // Set to false for non-empty queries
+    };
   } catch (error) {
     console.error('Error in searchAttorneys:', error);
     throw error;

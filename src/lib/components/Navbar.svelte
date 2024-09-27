@@ -7,13 +7,20 @@
     import { signOut } from 'firebase/auth';
     import { goto } from '$app/navigation';
     import { doc, getDoc } from 'firebase/firestore';
+    import { ChevronLeft, ChevronRight } from 'lucide-svelte';
 
     let currentPath = '';
     let isMenuOpen = false;
     let user = null;
     let userRole = null;
     let userStatus = null;
-    export let visible = true; // Prop to control visibility
+    
+    // for use on the search page when a user has initiated a search
+    export let visible = true; 
+    export let isSearchPage = false; 
+    export let currentPage = 1; 
+    export let totalPages = 1; 
+    export let onPageChange; 
 
     onMount(() => {
         if (typeof window !== 'undefined') {
@@ -51,59 +58,93 @@
             console.error("Error signing out: ", error);
         }
     }
+
+    function handlePreviousPage() {
+        if (currentPage > 1) {
+            onPageChange(currentPage - 1);
+        }
+    }
+
+    function handleNextPage() {
+        if (currentPage < totalPages) {
+            onPageChange(currentPage + 1);
+        }
+    }
 </script>
 
 <nav class="fixed top-0 left-0 right-0 z-50 transition-transform duration-300 ease-in-out {visible ? 'translate-y-0' : '-translate-y-full'} shadow-xl">
-    <div class="w-full flex items-center justify-between flex-wrap bg-zinc-900 p-3">
-        <div class="flex items-center flex-shrink-0 text-white mr-6">
+    <div class="w-full flex items-center justify-between bg-zinc-900 p-3">
+        <!-- Left section (Logo) -->
+        <div class="flex-shrink-0 w-1/4">
             <a href="{currentPath === '/' ? `${base}/login` : `${base}/`}">
                 <img src="{brandLogo}" alt="" class="filter-brand-logo-1 h-12 w-auto">
             </a>
         </div>
-        <div class="block lg:hidden">
-            <button on:click={toggleMenu} class="flex items-center px-3 py-2 border rounded text-custom-color-secondary border-custom-color-secondary hover:text-white hover:border-white">
-                <svg class="fill-current h-3 w-3" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                    <title>Menu</title>
-                    <path d="M0 3h20v2H0V3zm0 6h20v2H0V9zm0 6h20v2H0v-2z"/>
-                </svg>
-            </button>
+
+        <!-- Center section (Pagination) -->
+        <div class="flex-grow flex justify-center items-center w-1/2">
+            {#if isSearchPage}
+                <div class="flex items-center space-x-2">
+                    <button on:click={handlePreviousPage} class="text-white" disabled={currentPage === 1}>
+                        <ChevronLeft size={24} />
+                    </button>
+                    <span class="text-white mx-2">{currentPage}</span>
+                    <button on:click={handleNextPage} class="text-white" disabled={currentPage === totalPages}>
+                        <ChevronRight size={24} />
+                    </button>
+                </div>
+            {/if}
         </div>
-        <div class="w-full block lg:flex lg:items-center lg:w-auto {isMenuOpen ? 'block' : 'hidden'}" id="nav-content">
-            <ul class="text-sm lg:flex-grow lg:flex lg:justify-end">
+
+        <!-- Right section (Menu items) -->
+        <div class="flex-shrink-0 w-1/4 flex justify-end items-center">
+            <div class="hidden lg:flex items-center space-x-4">
                 {#if user && userStatus === 'approved'}
-                    <li>
-                        <a href="/search" class="block mt-4 lg:inline-block lg:mt-0 text-white hover:text-orange-400 mr-4 text-lg">Search</a>
-                    </li>
-                    <li>
-                        <a href="/profile" class="block mt-4 lg:inline-block lg:mt-0 text-white hover:text-orange-400 mr-4 text-lg">Profile</a>
-                    </li>
-                    <li>
-                        <a href="/chats" class="block mt-4 lg:inline-block lg:mt-0 text-white hover:text-orange-400 mr-4 text-lg">Chats</a>
-                    </li>
+                    <a href="/search" class="text-white hover:text-orange-400 text-lg">Search</a>
+                    <a href="/profile" class="text-white hover:text-orange-400 text-lg">Profile</a>
+                    <a href="/chats" class="text-white hover:text-orange-400 text-lg">Chats</a>
                     {#if userRole === 'admin'}
-                        <li>
-                            <a href="/admin" class="block mt-4 lg:inline-block lg:mt-0 text-white hover:text-orange-400 mr-4 text-lg">Admin Dashboard</a>
-                        </li>
+                        <a href="/admin" class="text-white hover:text-orange-400 text-lg">Admin Dashboard</a>
                     {/if}
-                    <li>
-                        <button on:click={handleLogout} class="block mt-4 lg:inline-block lg:mt-0 text-white hover:text-orange-400 mr-4 text-lg">Logout</button>
-                    </li>
+                    <button on:click={handleLogout} class="text-white hover:text-orange-400 text-lg">Logout</button>
                 {:else if user && userStatus === 'pending'}
-                    <li>
-                        <a href="/registration-pending" class="block mt-4 lg:inline-block lg:mt-0 text-white hover:text-orange-400 mr-4 text-lg">Registration Pending</a>
-                    </li>
-                    <li>
-                        <button on:click={handleLogout} class="block mt-4 lg:inline-block lg:mt-0 text-white hover:text-orange-400 mr-4 text-lg">Logout</button>
-                    </li>
+                    <a href="/registration-pending" class="text-white hover:text-orange-400 text-lg">Registration Pending</a>
+                    <button on:click={handleLogout} class="text-white hover:text-orange-400 text-lg">Logout</button>
                 {:else}
-                    <li>
-                        <a href="/login" class="block mt-4 lg:inline-block lg:mt-0 text-white hover:text-orange-400 mr-4 text-lg">Login</a>
-                    </li>
-                    <li>
-                        <a href="/signup" class="block mt-4 lg:inline-block lg:mt-0 text-white hover:text-orange-400 mr-4 text-lg">Sign Up</a>
-                    </li>
+                    <a href="/login" class="text-white hover:text-orange-400 text-lg">Login</a>
+                    <a href="/signup" class="text-white hover:text-orange-400 text-lg">Sign Up</a>
                 {/if}
-            </ul>
+            </div>
+            <div class="lg:hidden">
+                <button on:click={toggleMenu} class="text-white hover:text-orange-400">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path>
+                    </svg>
+                </button>
+            </div>
         </div>
     </div>
+
+    <!-- Mobile menu -->
+    {#if isMenuOpen}
+        <div class="lg:hidden bg-zinc-800">
+            <div class="px-2 pt-2 pb-3 space-y-1">
+                {#if user && userStatus === 'approved'}
+                    <a href="/search" class="block text-white hover:text-orange-400 text-lg">Search</a>
+                    <a href="/profile" class="block text-white hover:text-orange-400 text-lg">Profile</a>
+                    <a href="/chats" class="block text-white hover:text-orange-400 text-lg">Chats</a>
+                    {#if userRole === 'admin'}
+                        <a href="/admin" class="block text-white hover:text-orange-400 text-lg">Admin Dashboard</a>
+                    {/if}
+                    <button on:click={handleLogout} class="block w-full text-left text-white hover:text-orange-400 text-lg">Logout</button>
+                {:else if user && userStatus === 'pending'}
+                    <a href="/registration-pending" class="block text-white hover:text-orange-400 text-lg">Registration Pending</a>
+                    <button on:click={handleLogout} class="block w-full text-left text-white hover:text-orange-400 text-lg">Logout</button>
+                {:else}
+                    <a href="/login" class="block text-white hover:text-orange-400 text-lg">Login</a>
+                    <a href="/signup" class="block text-white hover:text-orange-400 text-lg">Sign Up</a>
+                {/if}
+            </div>
+        </div>
+    {/if}
 </nav>

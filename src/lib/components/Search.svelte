@@ -3,7 +3,7 @@
     import { page } from '$app/stores';
     import { goto } from '$app/navigation';
     import { auth, db } from '$lib/firebase';
-    import { collection, query, getDocs, where, orderBy, limit } from 'firebase/firestore';
+    import { collection, query, getDocs, where, orderBy, limit, startAfter, or, and } from 'firebase/firestore';
     import { ChevronDown, ChevronUp } from 'lucide-svelte';
     import Navbar from './Navbar.svelte';
     import SearchBar from './SearchBar.svelte';
@@ -24,6 +24,16 @@
     let isSearchExpanded = false;
     let innerHeight;
 
+    // Pagination variables
+    let currentPage = 1;
+    let totalPages = 1;
+    let attorneysPerPage = 20;  // Default, can be adjusted
+    let lastVisible = null;
+    let isViewingAllAttorneys = false;
+
+    // New variable to indicate we're on the search page
+    let isSearchPage = true;
+
     onMount(() => {
         const unsubscribe = auth.onAuthStateChanged(async (user) => {
             if (user) {
@@ -40,6 +50,9 @@
                 if (incomingSearchTerm) {
                     searchTerm = incomingSearchTerm;
                     await handleSearch();
+                } else {
+                    // Initialize with all attorneys if no search term
+                    handleSearch();
                 }
             } else {
                 goto('/login');
@@ -79,7 +92,7 @@
         isSearchExpanded = !isSearchExpanded;
     }
 
-    async function handleSearch(event) {
+    async function handleSearch(event, page = 1) {
         if (event && event.detail) {
             searchTerm = event.detail.searchTerm || '';
         }
@@ -87,37 +100,80 @@
         errorMessage = '';
         searchResults = [];
         isLoading = true;
+        currentPage = page;
 
         try {
             const aiResponse = await searchAttorneys(searchTerm);
-
             let firestoreQuery = collection(db, "attorneyProfiles");
             let conditions = [];
-            
-            if (aiResponse.states.length > 0) {
-                conditions.push(where("state", "in", aiResponse.states));
-            }
-            if (aiResponse.cities.length > 0) {
-                conditions.push(where("city", "in", aiResponse.cities));
+
+            isViewingAllAttorneys = aiResponse.isAllAttorneys;
+
+            if (aiResponse.isAllAttorneys) {
+                // Query for all attorneys
+                firestoreQuery = query(firestoreQuery, orderBy("lastName"), limit(attorneysPerPage));
+            } else {
+                // Handle name searches
+                if (aiResponse.names.full.length > 0 || aiResponse.names.first.length > 0 || aiResponse.names.last.length > 0) {
+                    const nameConditions = [];
+                    aiResponse.names.full.forEach(name => {
+                        const [firstName, lastName] = name.split(' ');
+                        if (firstName && lastName) {
+                            nameConditions.push(and(
+                                where("firstName", "==", firstName),
+                                where("lastName", "==", lastName)
+                            ));
+                        }
+                    });
+                    if (aiResponse.names.first.length > 0) {
+                        nameConditions.push(where("firstName", "in", aiResponse.names.first));
+                    }
+                    if (aiResponse.names.last.length > 0) {
+                        nameConditions.push(where("lastName", "in", aiResponse.names.last));
+                    }
+                    if (nameConditions.length > 0) {
+                        conditions.push(or(...nameConditions));
+                    }
+                }
+
+                // Handle location searches
+                if (aiResponse.locations.states.length > 0) {
+                    conditions.push(where("state", "in", aiResponse.locations.states));
+                }
+                if (aiResponse.locations.cities.length > 0) {
+                    conditions.push(where("city", "in", aiResponse.locations.cities));
+                }
+
+                // Handle practice areas and keywords
+                const searchTerms = [
+                    ...new Set([
+                        ...aiResponse.practiceAreas,
+                        ...aiResponse.keywords
+                    ].map(term => term.toLowerCase()))
+                ];
+
+                if (searchTerms.length > 0) {
+                    conditions.push(or(
+                        where("searchTerms.keywords", "array-contains-any", searchTerms),
+                        where("practiceAreas", "array-contains-any", searchTerms.map(toTitleCase))
+                    ));
+                }
+
+                // Construct the final query
+                if (conditions.length > 0) {
+                    firestoreQuery = query(firestoreQuery, 
+                        aiResponse.isGeneral ? or(...conditions) : and(...conditions), 
+                        orderBy("lastName"), 
+                        limit(attorneysPerPage)
+                    );
+                } else {
+                    firestoreQuery = query(firestoreQuery, orderBy("lastName"), limit(attorneysPerPage));
+                }
             }
 
-            const searchTerms = [
-                ...new Set([
-                    ...aiResponse.practiceAreas,
-                    ...aiResponse.keywords,
-                    ...aiResponse.specializations
-                ])
-            ];
-
-            if (searchTerms.length > 0 && !aiResponse.isAllAttorneys) {
-                conditions.push(where("searchTerms", "array-contains-any", searchTerms));
+            if (page > 1 && lastVisible) {
+                firestoreQuery = query(firestoreQuery, startAfter(lastVisible));
             }
-            
-            if (conditions.length > 0) {
-                firestoreQuery = query(firestoreQuery, ...conditions);
-            }
-
-            firestoreQuery = query(firestoreQuery, orderBy("lastName"), limit(50));
 
             const querySnapshot = await getDocs(firestoreQuery);
             searchResults = querySnapshot.docs.map(doc => {
@@ -125,11 +181,21 @@
                 return { id: doc.id, ...data };
             });
 
+            if (querySnapshot.docs.length > 0) {
+                lastVisible = querySnapshot.docs[querySnapshot.docs.length - 1];
+            }
+
+            // Calculate total pages
+            const totalAttorneysQuery = await getDocs(query(collection(db, "attorneyProfiles")));
+            const totalAttorneys = totalAttorneysQuery.size;
+            totalPages = Math.ceil(totalAttorneys / attorneysPerPage);
+
             if (searchResults.length === 0) {
-                errorMessage = "No attorneys found matching your search criteria. A practice area and/or state are required.";
+                errorMessage = "No attorneys found matching your search criteria. Please try different keywords or locations.";
             }
         } catch (error) {
-            errorMessage = "An error occurred while searching. A practice area and/or state are required.";
+            console.error("Search error:", error);
+            errorMessage = "An error occurred while searching. Please try again.";
             searchResults = [];
         } finally {
             isLoading = false;
@@ -149,13 +215,35 @@
         goto(`/attorney/${attorneyId}`);
     }
 
+    function handlePageChange(newPage) {
+        handleSearch(null, newPage);
+    }
+
+    function handleAttorneysPerPageChange(event) {
+        attorneysPerPage = parseInt(event.target.value);
+        handleSearch();
+    }
+
+    function toTitleCase(str) {
+        return str.replace(/\w\S*/g, function(txt) {
+            return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();
+        });
+    }
+
     $: if (isMobile) {
         isSearchExpanded = true;
     }
 </script>
 
+<Navbar 
+    bind:visible={showNavbar}
+    {isSearchPage}
+    {currentPage}
+    {totalPages}
+    onPageChange={handlePageChange}
+/>
+
 <main class="bg-no-repeat bg-center bg-cover flex flex-col min-h-screen" style="background-image: url({backgroundImage})">
-    <Navbar bind:visible={showNavbar} />
     <div class="flex-grow flex flex-col overflow-hidden {showNavbar ? 'mt-16' : 'mt-0'}" style="height: {innerHeight}px">
         <div class="w-full transition-all duration-300 ease-in-out {showNavbar ? '' : 'fixed top-0 left-0 right-0 z-40 bg-zinc-800 bg-opacity-90'}">
             {#if isMobile}
@@ -183,6 +271,16 @@
                                     on:search={handleSearchBarSearch}
                                     showSearchButton={true}
                                 />
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <select bind:value={attorneysPerPage} on:change={handleAttorneysPerPageChange} class="bg-zinc-700 text-white rounded p-2">
+                                    <option value="10">10 per page</option>
+                                    <option value="20">20 per page</option>
+                                    <option value="50">50 per page</option>
+                                </select>
+                                {#if isViewingAllAttorneys}
+                                    <span class="text-cyan-400">Viewing all attorneys</span>
+                                {/if}
                             </div>
                         </div>
                     {/if}
