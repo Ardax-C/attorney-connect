@@ -57,12 +57,17 @@
         state = '';
         practiceAreas = [''];
         profilePicture = null;
-        profilePictureError = '';
         barNumber = '';
     }
   
     function addPracticeArea() {
         practiceAreas = [...practiceAreas, ''];
+    }
+
+    function removePracticeArea(index) {
+        if (practiceAreas.length > 1) {
+            practiceAreas = practiceAreas.filter((_, i) => i !== index);
+        }
     }
   
     function handleProfilePictureUpload(event) {
@@ -79,11 +84,6 @@
     }
 
     async function handleSubmit() {
-        if (!profilePicture) {
-            profilePictureError = 'Please select a profile picture.';
-            return;
-        }
-
         if (!firstName || !lastName || !city || !state || practiceAreas.some(area => !area.trim())) {
             errorMessage = 'Please fill out all required fields.';
             return;
@@ -254,23 +254,33 @@
                             </select>
                         </div>
                     </div>
-
                     <div class="sm:col-span-2 md:col-span-3 space-y-4">
-                        <div>
-                            <label for="practiceAreas" class="block text-emerald-400 text-base mb-1">Practice Areas</label>
-                            {#each practiceAreas as practiceArea, index}
-                                <div class="flex items-center mb-2">
-                                    <input type="text" id="practiceAreas" bind:value={practiceAreas[index]} class="w-full px-4 py-2 text-base border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-custom-color-primary" required>
-                                    {#if index === practiceAreas.length - 1}
-                                        <button type="button" on:click={addPracticeArea} class="ml-2 bg-custom-btn-bg text-custom-btn-text px-4 py-2 text-base rounded hover:bg-custom-btn-hover-bg hover:text-custom-btn-hover-text focus:outline-none focus:ring-2 focus:ring-custom-btn-active-bg">
-                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 20 20" fill="currentColor">
-                                                <path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd" />
-                                            </svg>
-                                        </button>
-                                    {/if}
-                                </div>
-                            {/each}
-                        </div>
+                        
+                        <div class="sm:col-span-2 md:col-span-3 space-y-4">
+                            <div>
+                                <label for="practiceAreas" class="block text-emerald-400 text-base mb-1">Practice Areas</label>
+                                {#each practiceAreas as practiceArea, index}
+                                    <div class="flex items-center mb-2 gap-2">
+                                        <input type="text" id="practiceAreas" bind:value={practiceAreas[index]} class="flex-grow px-4 py-2 text-base border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-custom-color-primary" required>
+                                        <div class="flex-shrink-0">
+                                            {#if practiceAreas.length > 1}
+                                                <button type="button" on:click={() => removePracticeArea(index)} class="bg-red-500 text-white px-2 py-2 text-base rounded hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-400">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 20 20" fill="currentColor">
+                                                        <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                                    </svg>
+                                                </button>
+                                            {/if}
+                                            {#if index === practiceAreas.length - 1}
+                                                <button type="button" on:click={addPracticeArea} class="bg-custom-btn-bg text-custom-btn-text px-2 py-2 text-base rounded hover:bg-custom-btn-hover-bg hover:text-custom-btn-hover-text focus:outline-none focus:ring-2 focus:ring-custom-btn-active-bg">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 20 20" fill="currentColor">
+                                                        <path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd" />
+                                                    </svg>
+                                                </button>
+                                            {/if}
+                                        </div>
+                                    </div>
+                                {/each}
+                            </div>
 
                         <div>
                             <label for="profilePicture" class="block text-emerald-400 text-base mb-2">Profile Picture</label>
@@ -278,9 +288,6 @@
                             <label for="profilePicture" class="bg-custom-btn-bg text-custom-btn-text px-4 py-2 text-base rounded cursor-pointer hover:bg-custom-btn-hover-bg hover:text-custom-btn-hover-text focus:outline-none focus:ring-2 focus:ring-custom-btn-active-bg">
                                 {profilePicture ? profilePicture.name : 'Choose File'}
                             </label>
-                            {#if profilePictureError}
-                                <p class="text-red-500 mt-1 text-sm">{profilePictureError}</p>
-                            {/if}
                         </div>
                         
                         {#if errorMessage}
