@@ -1,10 +1,10 @@
 <script>
     import { onMount } from 'svelte';
     import { goto } from '$app/navigation';
-    import { db, auth } from '$lib/firebase';
+    import { db, auth, functions } from '$lib/firebase';
     import { collection, query, getDocs, doc, updateDoc, deleteDoc, where } from 'firebase/firestore';
-    import { deleteUser } from 'firebase/auth';
     import { ChevronDown, ChevronUp, Trash2 } from 'lucide-svelte';
+    import { httpsCallable } from 'firebase/functions';
     import Navbar from './Navbar.svelte';
     import Button from '$lib/components/ui/Button.svelte';
     import Card from '$lib/components/ui/Card.svelte';
@@ -149,15 +149,26 @@
     async function deleteUserProfile(userId) {
         if (confirm("Are you sure you want to delete this user? This action cannot be undone.")) {
             try {
-                await deleteDoc(doc(db, "attorneyProfiles", userId));
-                const user = auth.currentUser;
-                if (user && user.uid === userId) {
-                    await deleteUser(user);
-                }
-                await fetchUsers();
+                const deleteUserFunction = httpsCallable(functions, 'deleteUser');
+                await deleteUserFunction({ userId: userId });
+                
+                users = users.filter(user => user.id !== userId);
+                filterUsers();
+                alert("User deleted successfully");
             } catch (error) {
                 alert("An error occurred while deleting the user. Please try again.");
             }
+        }
+    }
+
+    async function setUserAsAdmin(userId) {
+        try {
+            const setAdminClaimFunction = httpsCallable(functions, 'setAdminClaim');
+            await setAdminClaimFunction({ uid: userId });
+            alert('User has been set as an admin.');
+            await fetchUsers(); // Refresh the user list
+        } catch (error) {
+            alert('Failed to set user as admin. See console for details.');
         }
     }
 
@@ -273,6 +284,7 @@
                                         options={roleOptions.filter(option => option.value !== 'all')} 
                                         on:change={(event) => updateUserRole(user.id, event.target.value)} 
                                     />
+                                    <Button on:click={() => setUserAsAdmin(user.id)}>Make Admin</Button>
                                     <Button variant="destructive" size="sm" on:click={() => deleteUserProfile(user.id)}>
                                         <Trash2 size={16} />
                                     </Button>
