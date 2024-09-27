@@ -13,6 +13,7 @@
         "@sveltejs/kit": "^2.5.28",
         "@sveltejs/vite-plugin-svelte": "^3.0.0",
         "@types/eslint": "^9.6.0",
+        "@types/next": "^8.0.7",
         "autoprefixer": "^10.4.20",
         "copyfiles": "^2.4.1",
         "eslint": "^9.0.0",

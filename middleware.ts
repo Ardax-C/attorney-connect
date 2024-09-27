@@ -1,17 +1,20 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { geolocation } from '@vercel/edge';
+import type { RequestContext } from '@vercel/edge';
 
 export const config = {
   matcher: '/:path*',
 };
 
-export default function middleware(req: NextRequest) {
-  const country = req.geo?.country || 'XX';
+export default function middleware(request: Request, context: RequestContext) {
+  const { country } = geolocation(request);
   
   // Allow access for US and Canada
   if (country === 'US' || country === 'CA') {
-    return NextResponse.next();
+    return new Response(null, {
+      status: 200,
+    });
   }
   
   // Block access for other countries
-  return new NextResponse('Access denied', { status: 403 });
+  return new Response('Access denied', { status: 403 });
 }
