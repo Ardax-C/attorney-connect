@@ -5,7 +5,7 @@
     import { doc, collection, query, orderBy, onSnapshot, addDoc, updateDoc, serverTimestamp, getDoc } from 'firebase/firestore';
     import { requireAuth } from '$lib/auth.js';
     import Navbar from './Navbar.svelte';
-    import backgroundImage from '../images/pexels-lastly-2086917.jpg';
+    import backgroundImage from '../images/dark_lattice.png';
 
     export let chatId;
 

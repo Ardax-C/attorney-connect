@@ -9,7 +9,7 @@
     import SearchBar from './SearchBar.svelte';
     import UserProfileCard from './UserProfileCard.svelte';
     import MobileSearchComponent from './MobileSearchComponent.svelte';
-    import backgroundImage from '../images/pexels-lastly-2086917.jpg';
+    import backgroundImage from '../images/dark_lattice.png';
     import { searchAttorneys } from '$lib/vertexAI';
 
     let errorMessage = '';

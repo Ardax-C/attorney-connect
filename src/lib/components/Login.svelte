@@ -1,6 +1,6 @@
 <script>
     import Navbar from './Navbar.svelte';
-    import backgroundImage from '../images/pexels-lastly-2086917.jpg';
+    import backgroundImage from '../images/dark_lattice.png';
     import { onMount } from 'svelte';
     import { auth, db } from '$lib/firebase';
     import { goto } from '$app/navigation';

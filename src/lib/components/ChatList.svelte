@@ -4,7 +4,7 @@
     import { collection, query, where, orderBy, onSnapshot, getDoc, doc, updateDoc, arrayRemove, addDoc, serverTimestamp } from 'firebase/firestore';
     import { goto } from '$app/navigation';
     import { requireAuth } from '$lib/auth.js';
-    import backgroundImage from '$lib/images/pexels-lastly-2086917.jpg';
+    import backgroundImage from '$lib/images/dark_lattice.png';
 	import Navbar from './Navbar.svelte';
 
     let chats = [];

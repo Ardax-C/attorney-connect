@@ -5,7 +5,7 @@
     import { doc, getDoc } from 'firebase/firestore';
     import { goto } from '$app/navigation';
     import Navbar from './Navbar.svelte';
-    import backgroundImage from '../images/pexels-lastly-2086917.jpg';
+    import backgroundImage from '../images/dark_lattice.png';
 
     let user = null;
     let profile = null;

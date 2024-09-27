@@ -11,7 +11,7 @@
     import Select from '$lib/components/ui/Select.svelte';
     import SearchBar from './SearchBar.svelte';
     import MobileSearchComponent from './MobileSearchComponent.svelte';
-    import backgroundImage from '../images/pexels-lastly-2086917.jpg';
+    import backgroundImage from '../images/dark_lattice.png';
 
     let users = [];
     let filteredUsers = [];

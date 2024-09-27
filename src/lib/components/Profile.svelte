@@ -5,7 +5,7 @@
     import { onAuthStateChanged } from 'firebase/auth';
     import { goto } from '$app/navigation'
     import { doc, getDoc, updateDoc, setDoc } from 'firebase/firestore';
-    import backgroundImage from '../images/pexels-lastly-2086917.jpg';
+    import backgroundImage from '../images/dark_lattice.png';
     import { faPencilAlt, faCheck, faTimes } from '@fortawesome/free-solid-svg-icons';
     import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
 

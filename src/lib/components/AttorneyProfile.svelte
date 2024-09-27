@@ -8,7 +8,7 @@
     import { searchAttorneys } from '$lib/vertexAI';
     import { requireAuth } from '$lib/auth.js';
     import Navbar from './Navbar.svelte';
-    import backgroundImage from '../images/pexels-lastly-2086917.jpg';
+    import backgroundImage from '../images/dark_lattice.png';
 
     let attorney = null;
     let relatedAttorneys = [];
