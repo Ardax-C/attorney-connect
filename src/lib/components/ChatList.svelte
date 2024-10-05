@@ -1,28 +1,36 @@
 <script>
-    import { onMount } from 'svelte';
+    import { onMount, onDestroy } from 'svelte';
     import { db } from '$lib/firebase';
-    import { collection, query, where, orderBy, onSnapshot, getDoc, doc, updateDoc, arrayRemove, addDoc, serverTimestamp, deleteDoc } from 'firebase/firestore';
+    import { collection, query, where, orderBy, onSnapshot, getDoc, doc, updateDoc, 
+                arrayRemove, addDoc, serverTimestamp, deleteDoc, deleteField, runTransaction } from 'firebase/firestore';
     import { goto } from '$app/navigation';
     import { requireAuth } from '$lib/auth.js';
     import backgroundImage from '$lib/images/dark_lattice.png';
-	import Navbar from '$lib/components/Navbar.svelte';
+    import Navbar from '$lib/components/Navbar.svelte';
 
     let chats = [];
     let loading = true;
     let error = null;
     let user = null;
+    let unsubscribe = null;
 
     onMount(async () => {
         try {
             user = await requireAuth();
-            loadChats();
+            unsubscribe = loadChats();
         } catch (error) {
             loading = false;
             error = 'Authentication error. Please log in and try again.';
         }
     });
 
-    async function loadChats() {
+    onDestroy(() => {
+        if (unsubscribe) {
+            unsubscribe();
+        }
+    });
+
+    function loadChats() {
         const chatsRef = collection(db, 'chats');
         const q = query(
             chatsRef,
@@ -30,7 +38,7 @@
             orderBy('lastMessageTimestamp', 'desc')
         );
 
-        const unsubscribe = onSnapshot(q, async (snapshot) => {
+        return onSnapshot(q, async (snapshot) => {
             const chatPromises = snapshot.docs.map(async (chatDoc) => {
                 const chatData = chatDoc.data();
                 const otherParticipantId = chatData.participants.find(id => id !== user.uid);
@@ -71,11 +79,9 @@
             chats = await Promise.all(chatPromises);
             loading = false;
         }, (err) => {
-            error = 'Error loading chats. Please try again later.', err;
+            error = 'Error loading chats. Please try again later.';
             loading = false;
         });
-
-        return unsubscribe;
     }
 
     async function navigateToChat(chatId) {
@@ -103,45 +109,44 @@
 
         try {
             const chatRef = doc(db, 'chats', chat.id);
-            const chatDoc = await getDoc(chatRef);
             
-            if (!chatDoc.exists()) {
-                console.error('Chat document does not exist');
-                return;
-            }
+            await runTransaction(db, async (transaction) => {
+                const chatDoc = await transaction.get(chatRef);
+                
+                if (!chatDoc.exists()) {
+                    throw new Error('Chat document does not exist');
+                }
 
-            const currentParticipants = chatDoc.data().participants;
+                const chatData = chatDoc.data();
+                const currentParticipants = chatData.participants;
 
-            if (currentParticipants.length === 1 && currentParticipants[0] === user.uid) {
-                // This is the last participant, delete the entire chat document
-                await deleteDoc(chatRef);
-            } else {
-                // Remove the current user from the participants array
-                await updateDoc(chatRef, {
-                    participants: arrayRemove(user.uid)
-                });
+                if (currentParticipants.length === 1 && currentParticipants[0] === user.uid) {
+                    transaction.delete(chatRef);
+                } else {
+                    const updatedParticipants = currentParticipants.filter(id => id !== user.uid);
+                    transaction.update(chatRef, {
+                        participants: updatedParticipants,
+                        [`unreadCount.${user.uid}`]: deleteField(),
+                        [`activeUsers.${user.uid}`]: deleteField(),
+                        lastMessage: `A user has left the conversation.`,
+                        lastMessageTimestamp: serverTimestamp()
+                    });
 
-                // Add a message indicating the user has left the chat
-                const messagesRef = collection(chatRef, 'messages');
-                await addDoc(messagesRef, {
-                    content: `A user has left the conversation.`,
-                    senderId: 'system',
-                    timestamp: serverTimestamp()
-                });
-
-                // Update the last message in the chat document
-                await updateDoc(chatRef, {
-                    lastMessage: `A user has left the conversation.`,
-                    lastMessageTimestamp: serverTimestamp()
-                });
-            }
+                    // Add a system message
+                    const messagesRef = collection(chatRef, 'messages');
+                    transaction.set(doc(messagesRef), {
+                        content: `A user has left the conversation.`,
+                        senderId: 'system',
+                        timestamp: serverTimestamp()
+                    });
+                }
+            });
 
             // Remove the chat from the local array
             chats = chats.filter(c => c.id !== chat.id);
             error = null; // Clear any previous error messages
         } catch (err) {
-            console.error('Error deleting chat:', err);
-            error = 'Error deleting chat. Please try again.';
+            error = `Error deleting chat: ${err.message}. Please try again.`;
         }
     }
 </script>
