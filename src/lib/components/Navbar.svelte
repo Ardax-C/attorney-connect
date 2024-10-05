@@ -107,10 +107,10 @@
                 {#if user && userStatus === 'approved'}
                     <a href="/search" class="text-white hover:text-orange-400 text-lg">Search</a>
                     <a href="/profile" class="text-white hover:text-orange-400 text-lg">Profile</a>
-                    <div class="relative">
+                    <div class="relative inline-flex items-center">
                         <a href="/chats" class="text-white hover:text-orange-400 text-lg">Chats</a>
                         {#if hasNotifications}
-                            <span class="absolute -top-1 -left-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">{$notificationCount}</span>
+                            <span class="absolute -top-1 -right-3 bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center">{$notificationCount}</span>
                         {/if}
                     </div>
                     {#if userRole === 'admin'}
@@ -142,10 +142,10 @@
                 {#if user && userStatus === 'approved'}
                     <a href="/search" class="block text-white hover:text-orange-400 text-lg">Search</a>
                     <a href="/profile" class="block text-white hover:text-orange-400 text-lg">Profile</a>
-                    <div class="relative inline-block">
+                    <div class="relative inline-flex items-center">
                         <a href="/chats" class="block text-white hover:text-orange-400 text-lg">Chats</a>
                         {#if hasNotifications}
-                            <span class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">{$notificationCount}</span>
+                            <span class="absolute -top-1 -right-4 bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center">{$notificationCount}</span>
                         {/if}
                     </div>
                     {#if userRole === 'admin'}
