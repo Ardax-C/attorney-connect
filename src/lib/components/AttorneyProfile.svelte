@@ -108,6 +108,21 @@
         }
     });
 
+    async function checkExistingChat(userId, attorneyId) {
+        const chatsRef = collection(db, 'chats');
+        const q = query(
+            chatsRef,
+            where('participants', 'array-contains', userId)
+        );
+        
+        const querySnapshot = await getDocs(q);
+        const existingChat = querySnapshot.docs.find(doc => 
+            doc.data().participants.includes(attorneyId)
+        );
+        
+        return existingChat ? existingChat.id : null;
+    }
+
     async function startChat() {
         if (!user || !attorney) {
             error = 'Unable to start chat. Please try again later.';
@@ -120,6 +135,16 @@
         }
 
         try {
+            // Check if a chat already exists
+            const existingChatId = await checkExistingChat(user.uid, attorney.id);
+            
+            if (existingChatId) {
+                // If chat exists, navigate to it
+                goto(`/chat/${existingChatId}`);
+                return;
+            }
+
+            // If no existing chat, create a new one
             const chatRef = await addDoc(collection(db, 'chats'), {
                 participants: [user.uid, attorney.id],
                 lastMessage: null,
@@ -150,7 +175,8 @@
 
             goto(`/chat/${chatRef.id}`);
         } catch (err) {
-            error = 'Error starting chat. Please try again later.', err;
+            error = 'Error starting chat. Please try again later.';
+            console.error(err);
         }
     }
 
