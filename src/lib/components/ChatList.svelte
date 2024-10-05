@@ -1,7 +1,7 @@
 <script>
     import { onMount } from 'svelte';
     import { db } from '$lib/firebase';
-    import { collection, query, where, orderBy, onSnapshot, getDoc, doc, updateDoc, arrayRemove, addDoc, serverTimestamp } from 'firebase/firestore';
+    import { collection, query, where, orderBy, onSnapshot, getDoc, doc, updateDoc, arrayRemove, addDoc, serverTimestamp, deleteDoc } from 'firebase/firestore';
     import { goto } from '$app/navigation';
     import { requireAuth } from '$lib/auth.js';
     import backgroundImage from '$lib/images/dark_lattice.png';
@@ -90,25 +90,38 @@
 
         try {
             const chatRef = doc(db, 'chats', chat.id);
+            const chatDoc = await getDoc(chatRef);
             
-            // Remove the current user from the participants array
-            await updateDoc(chatRef, {
-                participants: arrayRemove(user.uid)
-            });
+            if (!chatDoc.exists()) {
+                console.error('Chat document does not exist');
+                return;
+            }
 
-            // Add a message indicating the user has left the chat
-            const messagesRef = collection(chatRef, 'messages');
-            await addDoc(messagesRef, {
-                content: `The other user has left the conversation.`,
-                senderId: 'system',
-                timestamp: serverTimestamp()
-            });
+            const currentParticipants = chatDoc.data().participants;
 
-            // Update the last message in the chat document
-            await updateDoc(chatRef, {
-                lastMessage: `The other user has left the conversation.`,
-                lastMessageTimestamp: serverTimestamp()
-            });
+            if (currentParticipants.length === 1 && currentParticipants[0] === user.uid) {
+                // This is the last participant, delete the entire chat document
+                await deleteDoc(chatRef);
+            } else {
+                // Remove the current user from the participants array
+                await updateDoc(chatRef, {
+                    participants: arrayRemove(user.uid)
+                });
+
+                // Add a message indicating the user has left the chat
+                const messagesRef = collection(chatRef, 'messages');
+                await addDoc(messagesRef, {
+                    content: `A user has left the conversation.`,
+                    senderId: 'system',
+                    timestamp: serverTimestamp()
+                });
+
+                // Update the last message in the chat document
+                await updateDoc(chatRef, {
+                    lastMessage: `A user has left the conversation.`,
+                    lastMessageTimestamp: serverTimestamp()
+                });
+            }
 
             // Remove the chat from the local array
             chats = chats.filter(c => c.id !== chat.id);
