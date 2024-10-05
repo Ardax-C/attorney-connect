@@ -4,6 +4,7 @@
     import { db } from '$lib/firebase';
     import { doc, getDoc, collection, query, where, limit, getDocs, addDoc } from 'firebase/firestore';
     import { goto } from '$app/navigation';
+    import { sendNewChatEmail } from '$lib/emailService';
     import {Link, Mail, Phone } from 'lucide-svelte';
     import { searchAttorneys } from '$lib/vertexAI';
     import { requireAuth } from '$lib/auth.js';
@@ -124,6 +125,29 @@
                 lastMessage: null,
                 lastMessageTimestamp: new Date(),
             });
+
+            // Retrieve the user's data from Firestore
+            const userDoc = await getDoc(doc(db, 'attorneyProfiles', user.uid));
+            if (userDoc.exists()) {
+                const userData = userDoc.data();
+                const userFirstName = userData.firstName;
+                const userLastName = userData.lastName;
+
+                // Send an email notification to the attorney
+                if (attorney.email) {
+                    await sendNewChatEmail(
+                        attorney.email,
+                        userFirstName,
+                        userLastName,
+                        user.email
+                    );
+                } else {
+                    console.error('Attorney email not available for new chat notification.');
+                }
+            } else {
+                console.error('User data not found in Firestore.');
+            }
+
             goto(`/chat/${chatRef.id}`);
         } catch (err) {
             error = 'Error starting chat. Please try again later.', err;
