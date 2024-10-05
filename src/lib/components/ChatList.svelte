@@ -5,7 +5,7 @@
     import { goto } from '$app/navigation';
     import { requireAuth } from '$lib/auth.js';
     import backgroundImage from '$lib/images/dark_lattice.png';
-	import Navbar from './Navbar.svelte';
+	import Navbar from '$lib/components/Navbar.svelte';
 
     let chats = [];
     let loading = true;
@@ -78,8 +78,21 @@
         return unsubscribe;
     }
 
-    function navigateToChat(chatId) {
-        goto(`/chat/${chatId}`);
+    async function navigateToChat(chatId) {
+        try {
+            // Mark the chat as read before navigating
+            const chatRef = doc(db, 'chats', chatId);
+            await updateDoc(chatRef, {
+                [`unreadCount.${user.uid}`]: 0
+            });
+
+            // Navigate to the chat
+            goto(`/chat/${chatId}`);
+        } catch (err) {
+            console.error('Error marking chat as read:', err);
+            // Navigate anyway, even if marking as read fails
+            goto(`/chat/${chatId}`);
+        }
     }
 
     async function deleteChat(chat, event) {
@@ -170,6 +183,11 @@
                                     </p>
                                 {:else}
                                     <p class="text-gray-400 text-sm mt-2">No messages yet</p>
+                                {/if}
+                                {#if chat.unreadCount && chat.unreadCount[user.uid] > 0}
+                                    <span class="absolute top-2 left-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                                        {chat.unreadCount[user.uid]}
+                                    </span>
                                 {/if}
                                 <button
                                     class="absolute top-2 right-2 bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600 transition-colors duration-200"

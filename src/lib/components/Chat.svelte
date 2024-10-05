@@ -1,8 +1,8 @@
 <script>
-    import { onMount, afterUpdate } from 'svelte';
+    import { onMount, afterUpdate, onDestroy } from 'svelte';
     import { page } from '$app/stores';
     import { db, auth } from '$lib/firebase';
-    import { doc, collection, query, orderBy, onSnapshot, addDoc, updateDoc, serverTimestamp, getDoc } from 'firebase/firestore';
+    import { doc, collection, query, orderBy, onSnapshot, addDoc, updateDoc, serverTimestamp, getDoc, increment } from 'firebase/firestore';
     import { requireAuth } from '$lib/auth.js';
     import Navbar from './Navbar.svelte';
     import backgroundImage from '../images/dark_lattice.png';
@@ -16,12 +16,15 @@
     let loading = true;
     let error = null;
     let otherParticipantName = "Attorney";
+    let otherParticipantId = null;
+    let unsubscribe;
 
     onMount(async () => {
         try {
             user = await requireAuth();
             if (chatId) {
-                loadChat();
+                await loadChat();
+                markChatAsActive();
             }
         } catch (error) {
             loading = false;
@@ -29,12 +32,19 @@
         }
     });
 
+    onDestroy(() => {
+        if (unsubscribe) {
+            unsubscribe();
+        }
+        markChatAsInactive();
+    });
+
     async function loadChat() {
         const chatRef = doc(db, 'chats', chatId);
         const messagesRef = collection(chatRef, 'messages');
         const messagesQuery = query(messagesRef, orderBy('timestamp', 'asc'));
 
-        const unsubscribe = onSnapshot(messagesQuery, (snapshot) => {
+        unsubscribe = onSnapshot(messagesQuery, (snapshot) => {
             messages = snapshot.docs.map((doc) => ({
                 id: doc.id,
                 ...doc.data()
@@ -49,7 +59,7 @@
         const chatDoc = await getDoc(chatRef);
         if (chatDoc.exists()) {
             const chatData = chatDoc.data();
-            const otherParticipantId = chatData.participants.find(id => id !== user.uid);
+            otherParticipantId = chatData.participants.find(id => id !== user.uid);
             if (otherParticipantId) {
                 const attorneyDoc = await getDoc(doc(db, 'attorneyProfiles', otherParticipantId));
                 if (attorneyDoc.exists()) {
@@ -62,15 +72,22 @@
                 otherParticipantName = "Unknown Participant";
             }
         }
-
-        return unsubscribe;
     }
 
-    afterUpdate(() => {
-        if (chatContainer) {
-            chatContainer.scrollTop = chatContainer.scrollHeight;
-        }
-    });
+    async function markChatAsActive() {
+        const chatRef = doc(db, 'chats', chatId);
+        await updateDoc(chatRef, {
+            [`activeUsers.${user.uid}`]: true,
+            [`unreadCount.${user.uid}`]: 0
+        });
+    }
+
+    async function markChatAsInactive() {
+        const chatRef = doc(db, 'chats', chatId);
+        await updateDoc(chatRef, {
+            [`activeUsers.${user.uid}`]: false
+        });
+    }
 
     async function sendMessage() {
         if (newMessage.trim() === '') return;
@@ -79,16 +96,24 @@
             const chatRef = doc(db, 'chats', chatId);
             const messagesRef = collection(chatRef, 'messages');
 
+            const messageTimestamp = serverTimestamp();
+
             await addDoc(messagesRef, {
                 content: newMessage.trim(),
                 senderId: user.uid,
-                timestamp: serverTimestamp()
+                timestamp: messageTimestamp
             });
 
-            // Update the last message in the chat document
+            const chatDoc = await getDoc(chatRef);
+            const chatData = chatDoc.data();
+
+            // Only increment unread count if the other user is not active
+            const incrementUnread = chatData.activeUsers && !chatData.activeUsers[otherParticipantId];
+
             await updateDoc(chatRef, {
                 lastMessage: newMessage.trim(),
-                lastMessageTimestamp: serverTimestamp()
+                lastMessageTimestamp: messageTimestamp,
+                ...(incrementUnread ? { [`unreadCount.${otherParticipantId}`]: increment(1) } : {})
             });
 
             newMessage = '';

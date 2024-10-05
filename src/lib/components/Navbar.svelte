@@ -8,6 +8,7 @@
     import { goto } from '$app/navigation';
     import { doc, getDoc } from 'firebase/firestore';
     import { ChevronLeft, ChevronRight } from 'lucide-svelte';
+    import { notificationCount } from '$lib/stores/notificationStore';
 
     let currentPath = '';
     let isMenuOpen = false;
@@ -21,6 +22,10 @@
     export let currentPage = 1; 
     export let totalPages = 1; 
     export let onPageChange; 
+
+    let hasNotifications = false;
+
+    $: hasNotifications = $notificationCount > 0;
 
     onMount(() => {
         if (typeof window !== 'undefined') {
@@ -102,7 +107,12 @@
                 {#if user && userStatus === 'approved'}
                     <a href="/search" class="text-white hover:text-orange-400 text-lg">Search</a>
                     <a href="/profile" class="text-white hover:text-orange-400 text-lg">Profile</a>
-                    <a href="/chats" class="text-white hover:text-orange-400 text-lg">Chats</a>
+                    <div class="relative">
+                        <a href="/chats" class="text-white hover:text-orange-400 text-lg">Chats</a>
+                        {#if hasNotifications}
+                            <span class="absolute -top-1 -left-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">{$notificationCount}</span>
+                        {/if}
+                    </div>
                     {#if userRole === 'admin'}
                         <a href="/admin" class="text-white hover:text-orange-400 text-lg">Admin Dashboard</a>
                     {/if}
@@ -132,7 +142,12 @@
                 {#if user && userStatus === 'approved'}
                     <a href="/search" class="block text-white hover:text-orange-400 text-lg">Search</a>
                     <a href="/profile" class="block text-white hover:text-orange-400 text-lg">Profile</a>
-                    <a href="/chats" class="block text-white hover:text-orange-400 text-lg">Chats</a>
+                    <div class="relative inline-block">
+                        <a href="/chats" class="block text-white hover:text-orange-400 text-lg">Chats</a>
+                        {#if hasNotifications}
+                            <span class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">{$notificationCount}</span>
+                        {/if}
+                    </div>
                     {#if userRole === 'admin'}
                         <a href="/admin" class="block text-white hover:text-orange-400 text-lg">Admin Dashboard</a>
                     {/if}
