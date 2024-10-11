@@ -77,7 +77,7 @@
     }
 </script>
 
-<nav class="fixed top-0 left-0 right-0 z-50 transition-transform duration-300 ease-in-out {visible ? 'translate-y-0' : '-translate-y-full'} shadow-xl">
+<nav class="fixed top-0 left-0 right-0 z-50 shadow-xl">
     <div class="w-full flex items-center justify-between bg-zinc-900 p-3">
         <!-- Left section (Logo) -->
         <div class="flex-shrink-0 w-1/4">

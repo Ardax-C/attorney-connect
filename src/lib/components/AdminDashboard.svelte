@@ -86,7 +86,7 @@
     function handleScroll(event) {
         const scrollTop = event.target.scrollTop;
         if (scrollTop > lastScrollTop && scrollTop > 50) {
-            showNavbar = false;
+            showNavbar = true;
         } else if (scrollTop < lastScrollTop || scrollTop === 0) {
             showNavbar = true;
         }
@@ -261,7 +261,7 @@
             {/if}
         </div>
 
-        <div id="results-container" class="flex-grow overflow-y-auto px-4 pb-16 mt-4" style="max-height: calc(100% - {isMobile ? '120px' : '0px'});">
+        <div id="results-container" class="flex-grow overflow-y-auto px-4 pb-16 mt-4 mb-4" style="max-height: calc(100% - {isMobile ? '120px' : '0px'});">
             {#if filteredUsers.length === 0}
                 <p class="text-custom-color-secondary">No users found.</p>
             {:else}
