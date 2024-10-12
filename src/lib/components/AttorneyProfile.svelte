@@ -1,13 +1,12 @@
 <script>
-    import { onMount, afterUpdate } from 'svelte';
+    import { onMount } from 'svelte';
     import { page } from '$app/stores';
+    import { goto } from '$app/navigation';
     import { db } from '$lib/firebase';
     import { doc, getDoc, collection, query, where, limit, getDocs, addDoc } from 'firebase/firestore';
-    import { goto } from '$app/navigation';
-    import { sendNewChatEmail } from '$lib/emailService';
-    import {Link, Mail, Phone } from 'lucide-svelte';
-    import { searchAttorneys } from '$lib/vertexAI';
+    import { Link } from 'lucide-svelte';
     import { requireAuth } from '$lib/auth.js';
+    import { sendNewChatEmail } from '$lib/emailService';
     import Navbar from './Navbar.svelte';
     import backgroundImage from '../images/dark_lattice.png';
 
@@ -19,45 +18,17 @@
 
     $: attorneyId = $page.params.id;
 
-    $: if (attorneyId) {
-        loadAttorneyProfile(attorneyId);
-    }
-
-    async function fetchRelatedAttorneys(currentAttorney) {
+    onMount(async () => {
         try {
-            // Generate a search query based on the current attorney's information
-            const searchQuery = `${currentAttorney.practiceAreas.join(' ')} attorney in ${currentAttorney.state}`;
-            
-            // Use the Vertex AI to parse the search query
-            const parsedQuery = await searchAttorneys(searchQuery);
-
-            // Combine all relevant terms for the Firestore query
-            const searchTerms = [
-                ...parsedQuery.keywords,
-                ...parsedQuery.practiceAreas,
-                currentAttorney.state.toLowerCase(),
-                ...currentAttorney.practiceAreas.map(area => area.toLowerCase())
-            ];
-
-            // Create a Firestore query
-            const q = query(
-                collection(db, 'attorneyProfiles'),
-                where('state', '==', currentAttorney.state),
-                where('searchTerms', 'array-contains-any', searchTerms),
-                limit(5)
-            );
-
-            const querySnapshot = await getDocs(q);
-
-            const relatedAttorneys = querySnapshot.docs
-                .map(doc => ({ id: doc.id, ...doc.data() }))
-                .filter(attorney => attorney.id !== currentAttorney.id);
-
-            return relatedAttorneys;
+            user = await requireAuth();
+            if (attorneyId) {
+                await loadAttorneyProfile(attorneyId);
+            }
         } catch (error) {
-            throw error;
+            console.error("Authentication error:", error);
+            error = "Authentication failed. Please log in and try again.";
         }
-    }
+    });
 
     async function loadAttorneyProfile(id) {
         loading = true;
@@ -66,25 +37,38 @@
             const attorneyDoc = await getDoc(doc(db, 'attorneyProfiles', id));
             if (attorneyDoc.exists()) {
                 attorney = { id: attorneyDoc.id, ...attorneyDoc.data() };
-                
-                // Check if the loaded attorney is the same as the logged-in user
-                if (attorney.id === user.uid) {
-                    // You might want to handle this case differently, e.g., show an edit profile button instead of a chat button
-                }
-                
-                relatedAttorneys = await fetchRelatedAttorneys(attorney);
+                await loadRelatedAttorneys(attorney);
             } else {
                 error = 'Attorney not found';
             }
         } catch (err) {
+            console.error("Error loading attorney profile:", err);
             error = 'Error loading attorney profile';
         } finally {
             loading = false;
         }
     }
 
+    async function loadRelatedAttorneys(currentAttorney) {
+        try {
+            const q = query(
+                collection(db, 'attorneyProfiles'),
+                where('state', '==', currentAttorney.state),
+                where('practiceAreas', 'array-contains-any', currentAttorney.practiceAreas),
+                limit(5)
+            );
+
+            const querySnapshot = await getDocs(q);
+            relatedAttorneys = querySnapshot.docs
+                .map(doc => ({ id: doc.id, ...doc.data() }))
+                .filter(attorney => attorney.id !== currentAttorney.id);
+        } catch (error) {
+            console.error("Error fetching related attorneys:", error);
+        }
+    }
+
     function navigateToAttorney(attorneyId) {
-        goto(`/attorney/${attorneyId}`, { replaceState: true });
+        goto(`/attorney/${attorneyId}`);
     }
 
     function formatPhoneNumber(phoneNumber) {
@@ -97,16 +81,50 @@
         return phoneNumber;
     }
 
-    onMount(async () => {
-        try {
-            user = await requireAuth();
-            if (attorneyId) {
-                loadAttorneyProfile(attorneyId);
-            }
-        } catch (error) {
-            // Handle the authentication error, show an error message, etc.
+    async function startChat() {
+        if (!user || !attorney) {
+            error = 'Unable to start chat. Please try again later.';
+            return;
         }
-    });
+
+        if (user.uid === attorney.id) {
+            error = 'You cannot start a chat with yourself.';
+            return;
+        }
+
+        try {
+            const existingChatId = await checkExistingChat(user.uid, attorney.id);
+            
+            if (existingChatId) {
+                goto(`/chat/${existingChatId}`);
+                return;
+            }
+
+            const chatRef = await addDoc(collection(db, 'chats'), {
+                participants: [user.uid, attorney.id],
+                lastMessage: null,
+                lastMessageTimestamp: new Date(),
+            });
+
+            const userDoc = await getDoc(doc(db, 'attorneyProfiles', user.uid));
+            if (userDoc.exists()) {
+                const userData = userDoc.data();
+                if (attorney.email) {
+                    await sendNewChatEmail(
+                        attorney.email,
+                        userData.firstName,
+                        userData.lastName,
+                        user.email
+                    );
+                }
+            }
+
+            goto(`/chat/${chatRef.id}`);
+        } catch (err) {
+            console.error("Error starting chat:", err);
+            error = 'Error starting chat. Please try again later.';
+        }
+    }
 
     async function checkExistingChat(userId, attorneyId) {
         const chatsRef = collection(db, 'chats');
@@ -122,64 +140,6 @@
         
         return existingChat ? existingChat.id : null;
     }
-
-    async function startChat() {
-        if (!user || !attorney) {
-            error = 'Unable to start chat. Please try again later.';
-            return;
-        }
-
-        if (user.uid === attorney.id) {
-            error = 'You cannot start a chat with yourself.';
-            return;
-        }
-
-        try {
-            // Check if a chat already exists
-            const existingChatId = await checkExistingChat(user.uid, attorney.id);
-            
-            if (existingChatId) {
-                // If chat exists, navigate to it
-                goto(`/chat/${existingChatId}`);
-                return;
-            }
-
-            // If no existing chat, create a new one
-            const chatRef = await addDoc(collection(db, 'chats'), {
-                participants: [user.uid, attorney.id],
-                lastMessage: null,
-                lastMessageTimestamp: new Date(),
-            });
-
-            // Retrieve the user's data from Firestore
-            const userDoc = await getDoc(doc(db, 'attorneyProfiles', user.uid));
-            if (userDoc.exists()) {
-                const userData = userDoc.data();
-                const userFirstName = userData.firstName;
-                const userLastName = userData.lastName;
-
-                // Send an email notification to the attorney
-                if (attorney.email) {
-                    await sendNewChatEmail(
-                        attorney.email,
-                        userFirstName,
-                        userLastName,
-                        user.email
-                    );
-                } else {
-                    console.error('Attorney email not available for new chat notification.');
-                }
-            } else {
-                console.error('User data not found in Firestore.');
-            }
-
-            goto(`/chat/${chatRef.id}`);
-        } catch (err) {
-            error = 'Error starting chat. Please try again later.';
-            console.error(err);
-        }
-    }
-
 </script>
 
 <Navbar />
@@ -220,7 +180,7 @@
                             <Link class="inline-block ml-1" size={16} />
                         </a>
                     </div>
-                    {#if !loading && attorney && user && attorney.id !== user.uid}
+                    {#if attorney && user && attorney.id !== user.uid}
                         <button
                             class="bg-custom-color-tertiary text-blue-950 font-inter py-2 px-4 rounded-sm border-none text-base sm:text-lg cursor-pointer transition duration-300 ease-in-out transform hover:bg-blue-900 hover:text-custom-color-tertiary active:scale-95"
                             on:click={startChat}

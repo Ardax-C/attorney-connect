@@ -1,16 +1,16 @@
 <script>
-    import { onMount, afterUpdate } from 'svelte';
+    import { onMount } from 'svelte';
     import { page } from '$app/stores';
     import { goto } from '$app/navigation';
     import { auth, db } from '$lib/firebase';
-    import { collection, query, getDocs, where, orderBy, limit, startAfter, or, and } from 'firebase/firestore';
+    import { collection, query, getDocs, where, orderBy, limit, startAfter } from 'firebase/firestore';
     import { ChevronDown, ChevronUp } from 'lucide-svelte';
     import Navbar from './Navbar.svelte';
     import SearchBar from './SearchBar.svelte';
     import UserProfileCard from './UserProfileCard.svelte';
     import MobileSearchComponent from './MobileSearchComponent.svelte';
     import backgroundImage from '../images/dark_lattice.png';
-    import { searchAttorneys } from '$lib/vertexAI';
+    import { searchAttorneys, calculateRelevanceScore } from '$lib/vertexAI';
 
     let errorMessage = '';
     let searchTerm = '';
@@ -27,7 +27,7 @@
     // Pagination variables
     let currentPage = 1;
     let totalPages = 1;
-    let attorneysPerPage = 20;  // Default, can be adjusted
+    let attorneysPerPage = 20;
     let lastVisible = null;
     let isViewingAllAttorneys = false;
 
@@ -81,7 +81,7 @@
     function handleScroll(event) {
         const scrollTop = event.target.scrollTop;
         if (scrollTop > lastScrollTop && scrollTop > 50) {
-            showNavbar = true;
+            showNavbar = false;
         } else if (scrollTop < lastScrollTop || scrollTop === 0) {
             showNavbar = true;
         }
@@ -103,72 +103,22 @@
         currentPage = page;
 
         try {
-            const aiResponse = await searchAttorneys(searchTerm);
+            const queryAnalysis = await searchAttorneys(searchTerm);
+
             let firestoreQuery = collection(db, "attorneyProfiles");
             let conditions = [];
 
-            isViewingAllAttorneys = aiResponse.isAllAttorneys;
+            if (queryAnalysis.locations.states.length > 0) {
+                conditions.push(where("state", "in", queryAnalysis.locations.states));
+            }
+            if (queryAnalysis.locations.cities.length > 0) {
+                conditions.push(where("city", "in", queryAnalysis.locations.cities));
+            }
 
-            if (aiResponse.isAllAttorneys) {
-                // Query for all attorneys
-                firestoreQuery = query(firestoreQuery, orderBy("lastName"), limit(attorneysPerPage));
+            if (conditions.length > 0) {
+                firestoreQuery = query(firestoreQuery, ...conditions, orderBy("lastName"), limit(100));
             } else {
-                // Handle name searches
-                if (aiResponse.names.full.length > 0 || aiResponse.names.first.length > 0 || aiResponse.names.last.length > 0) {
-                    const nameConditions = [];
-                    aiResponse.names.full.forEach(name => {
-                        const [firstName, lastName] = name.split(' ');
-                        if (firstName && lastName) {
-                            nameConditions.push(and(
-                                where("firstName", "==", firstName),
-                                where("lastName", "==", lastName)
-                            ));
-                        }
-                    });
-                    if (aiResponse.names.first.length > 0) {
-                        nameConditions.push(where("firstName", "in", aiResponse.names.first));
-                    }
-                    if (aiResponse.names.last.length > 0) {
-                        nameConditions.push(where("lastName", "in", aiResponse.names.last));
-                    }
-                    if (nameConditions.length > 0) {
-                        conditions.push(or(...nameConditions));
-                    }
-                }
-
-                // Handle location searches
-                if (aiResponse.locations.states.length > 0) {
-                    conditions.push(where("state", "in", aiResponse.locations.states));
-                }
-                if (aiResponse.locations.cities.length > 0) {
-                    conditions.push(where("city", "in", aiResponse.locations.cities));
-                }
-
-                // Handle practice areas and keywords
-                const searchTerms = [
-                    ...new Set([
-                        ...aiResponse.practiceAreas,
-                        ...aiResponse.keywords
-                    ].map(term => term.toLowerCase()))
-                ];
-
-                if (searchTerms.length > 0) {
-                    conditions.push(or(
-                        where("searchTerms.keywords", "array-contains-any", searchTerms),
-                        where("practiceAreas", "array-contains-any", searchTerms.map(toTitleCase))
-                    ));
-                }
-
-                // Construct the final query
-                if (conditions.length > 0) {
-                    firestoreQuery = query(firestoreQuery, 
-                        aiResponse.isGeneral ? or(...conditions) : and(...conditions), 
-                        orderBy("lastName"), 
-                        limit(attorneysPerPage)
-                    );
-                } else {
-                    firestoreQuery = query(firestoreQuery, orderBy("lastName"), limit(attorneysPerPage));
-                }
+                firestoreQuery = query(firestoreQuery, orderBy("lastName"), limit(100));
             }
 
             if (page > 1 && lastVisible) {
@@ -176,25 +126,38 @@
             }
 
             const querySnapshot = await getDocs(firestoreQuery);
-            searchResults = querySnapshot.docs.map(doc => {
+
+            let allResults = querySnapshot.docs.map(doc => {
                 const data = doc.data();
                 return { id: doc.id, ...data };
             });
 
-            if (querySnapshot.docs.length > 0) {
-                lastVisible = querySnapshot.docs[querySnapshot.docs.length - 1];
+            if (searchTerm.trim() !== '') {
+                allResults = allResults
+                    .filter(attorney => attorney.searchTerms && attorney.searchTerms.keywords)
+                    .map(attorney => ({
+                    ...attorney,
+                    relevanceScore: calculateRelevanceScore(attorney, queryAnalysis)
+                    }))
+                    .filter(attorney => attorney.relevanceScore > 0)
+                    .sort((a, b) => b.relevanceScore - a.relevanceScore);
+            }
+
+            // Paginate results
+            const startIndex = (page - 1) * attorneysPerPage;
+            searchResults = allResults.slice(startIndex, startIndex + attorneysPerPage);
+
+            if (searchResults.length > 0) {
+                lastVisible = querySnapshot.docs[searchResults.length - 1];
             }
 
             // Calculate total pages
-            const totalAttorneysQuery = await getDocs(query(collection(db, "attorneyProfiles")));
-            const totalAttorneys = totalAttorneysQuery.size;
-            totalPages = Math.ceil(totalAttorneys / attorneysPerPage);
+            totalPages = Math.ceil(allResults.length / attorneysPerPage);
 
-            if (searchResults.length === 0) {
-                errorMessage = "No attorneys found matching your search criteria. Please try different keywords or locations.";
+            if (searchResults.length === 0 && searchTerm.trim() !== '') {
+                errorMessage = "No attorneys found matching your search criteria. Please try different keywords or broaden your search.";
             }
         } catch (error) {
-            console.error("Search error:", error);
             errorMessage = "An error occurred while searching. Please try again.";
             searchResults = [];
         } finally {
@@ -222,12 +185,6 @@
     function handleAttorneysPerPageChange(event) {
         attorneysPerPage = parseInt(event.target.value);
         handleSearch();
-    }
-
-    function toTitleCase(str) {
-        return str.replace(/\w\S*/g, function(txt) {
-            return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();
-        });
     }
 
     $: if (isMobile) {
