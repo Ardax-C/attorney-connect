@@ -1,5 +1,7 @@
 import { initializeApp } from "firebase/app";
 import { getVertexAI, getGenerativeModel } from "firebase/vertexai-preview";
+import { db } from '$lib/firebase';
+import { collection, getDocs, query, where } from 'firebase/firestore';
 import Fuse from 'fuse.js';
 
 const firebaseConfig = {
@@ -16,253 +18,163 @@ const firebaseApp = initializeApp(firebaseConfig);
 const vertexAI = getVertexAI(firebaseApp);
 const model = getGenerativeModel(vertexAI, { model: "gemini-1.5-flash" });
 
-const locations = [
-  { name: 'Alabama', type: 'state' },
-  { name: 'Alaska', type: 'state' },
-  { name: 'Arizona', type: 'state' },
-  { name: 'Arkansas', type: 'state' },
-  { name: 'California', type: 'state' },
-  { name: 'Colorado', type: 'state' },
-  { name: 'Connecticut', type: 'state' },
-  { name: 'Delaware', type: 'state' },
-  { name: 'Florida', type: 'state' },
-  { name: 'Georgia', type: 'state' },
-  { name: 'Hawaii', type: 'state' },
-  { name: 'Idaho', type: 'state' },
-  { name: 'Illinois', type: 'state' },
-  { name: 'Indiana', type: 'state' },
-  { name: 'Iowa', type: 'state' },
-  { name: 'Kansas', type: 'state' },
-  { name: 'Kentucky', type: 'state' },
-  { name: 'Louisiana', type: 'state' },
-  { name: 'Maine', type: 'state' },
-  { name: 'Maryland', type: 'state' },
-  { name: 'Massachusetts', type: 'state' },
-  { name: 'Michigan', type: 'state' },
-  { name: 'Minnesota', type: 'state' },
-  { name: 'Mississippi', type: 'state' },
-  { name: 'Missouri', type: 'state' },
-  { name: 'Montana', type: 'state' },
-  { name: 'Nebraska', type: 'state' },
-  { name: 'Nevada', type: 'state' },
-  { name: 'New Hampshire', type: 'state' },
-  { name: 'New Jersey', type: 'state' },
-  { name: 'New Mexico', type: 'state' },
-  { name: 'New York', type: 'state' },
-  { name: 'North Carolina', type: 'state' },
-  { name: 'North Dakota', type: 'state' },
-  { name: 'Ohio', type: 'state' },
-  { name: 'Oklahoma', type: 'state' },
-  { name: 'Oregon', type: 'state' },
-  { name: 'Pennsylvania', type: 'state' },
-  { name: 'Rhode Island', type: 'state' },
-  { name: 'South Carolina', type: 'state' },
-  { name: 'South Dakota', type: 'state' },
-  { name: 'Tennessee', type: 'state' },
-  { name: 'Texas', type: 'state' },
-  { name: 'Utah', type: 'state' },
-  { name: 'Vermont', type: 'state' },
-  { name: 'Virginia', type: 'state' },
-  { name: 'Washington', type: 'state' },
-  { name: 'West Virginia', type: 'state' },
-  { name: 'Wisconsin', type: 'state' },
-  { name: 'Wyoming', type: 'state' },
-  
-  // Major cities
-  { name: 'New York City', type: 'city' },
-  { name: 'Los Angeles', type: 'city' },
-  { name: 'Chicago', type: 'city' },
-  { name: 'Houston', type: 'city' },
-  { name: 'Phoenix', type: 'city' },
-  { name: 'Philadelphia', type: 'city' },
-  { name: 'San Antonio', type: 'city' },
-  { name: 'San Diego', type: 'city' },
-  { name: 'Dallas', type: 'city' },
-  { name: 'San Jose', type: 'city' },
-  { name: 'Austin', type: 'city' },
-  { name: 'Jacksonville', type: 'city' },
-  { name: 'Fort Worth', type: 'city' },
-  { name: 'Columbus', type: 'city' },
-  { name: 'San Francisco', type: 'city' },
-  { name: 'Charlotte', type: 'city' },
-  { name: 'Indianapolis', type: 'city' },
-  { name: 'Seattle', type: 'city' },
-  { name: 'Denver', type: 'city' },
-  { name: 'Washington D.C.', type: 'city' },
-  { name: 'Boston', type: 'city' },
-  { name: 'El Paso', type: 'city' },
-  { name: 'Detroit', type: 'city' },
-  { name: 'Nashville', type: 'city' },
-  { name: 'Portland', type: 'city' },
-  { name: 'Memphis', type: 'city' },
-  { name: 'Oklahoma City', type: 'city' },
-  { name: 'Las Vegas', type: 'city' },
-  { name: 'Louisville', type: 'city' },
-  { name: 'Baltimore', type: 'city' },
-  { name: 'Milwaukee', type: 'city' },
-  { name: 'Albuquerque', type: 'city' },
-  { name: 'Tucson', type: 'city' },
-  { name: 'Fresno', type: 'city' },
-  { name: 'Sacramento', type: 'city' },
-  { name: 'Long Beach', type: 'city' },
-  { name: 'Kansas City', type: 'city' },
-  { name: 'Mesa', type: 'city' },
-  { name: 'Atlanta', type: 'city' },
-  { name: 'Colorado Springs', type: 'city' },
-  { name: 'Raleigh', type: 'city' },
-  { name: 'Omaha', type: 'city' },
-  { name: 'Miami', type: 'city' },
-  { name: 'Oakland', type: 'city' },
-  { name: 'Minneapolis', type: 'city' },
-  { name: 'Tulsa', type: 'city' },
-  { name: 'Cleveland', type: 'city' },
-  { name: 'Wichita', type: 'city' },
-  { name: 'Arlington', type: 'city' },
-  { name: 'New Orleans', type: 'city' }
-];
+let statesFuse;
+let practiceAreasFuse;
 
-const fuse = new Fuse(locations, {
-  keys: ['name'],
-  threshold: 0.4,
-});
+async function initializeFuseInstances() {
+  if (!statesFuse || !practiceAreasFuse) {
+    const statesSnapshot = await getDocs(collection(db, 'stateMapping'));
+    const states = statesSnapshot.docs.map(doc => doc.id);
+    statesFuse = new Fuse(states, { threshold: 0.3 });
 
-export async function searchAttorneys(query) {
-
-  if (!query || query.trim() === '') {
-    return {
-      keywords: [],
-      locations: { states: [], cities: [] },
-      isGeneral: true
-    };
-  }
-
-  try {
-    const prompt = `
-      Analyze the following natural language search query for attorneys:
-      "${query}"
-
-      Extract and return the following information in JSON format:
-      {
-        "keywords": [list of relevant keywords],
-        "locations": [list of possible location names mentioned],
-        "isGeneral": boolean indicating if the query is for a general attorney search
-      }
-
-      Guidelines:
-      - Keywords: Extract relevant terms that could match attorney specialties, practice areas, or general legal terms.
-      - Locations: Extract any mentioned location names that could be cities or states.
-      - isGeneral: Set to true if the query is broad (e.g., "find a lawyer" or "attorneys near me")
-      - If a category is not applicable, use an empty array.
-      - Correct minor spelling mistakes and interpret vague terms to the best ability.
-
-      Ensure all extracted information is relevant to searching for attorneys.
-    `;
-
-    const result = await model.generateContent(prompt);
-    const response = result.response;
-    let textResponse = response.text();
-
-    let parsedResponse;
-
-    try {
-      // Extract JSON from the response
-      const jsonMatch = textResponse.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        parsedResponse = JSON.parse(jsonMatch[0]);
-      } else {
-        throw new Error("No valid JSON found in the response");
-      }
-    } catch (jsonError) {
-      console.log("Failed to parse response as JSON:", jsonError.message);
-      
-      // Fallback parsing logic
-      parsedResponse = {
-        keywords: [],
-        locations: [],
-        isGeneral: true
-      };
-
-      // Basic text parsing to extract information
-      const lowercaseResponse = textResponse.toLowerCase();
-      
-      // Extract keywords
-      const commonKeywords = ['attorney', 'lawyer', 'legal', 'law', 'litigation', 'counsel', 'advocate'];
-      parsedResponse.keywords = commonKeywords.filter(keyword => lowercaseResponse.includes(keyword));
-
-      // Extract locations
-      parsedResponse.locations = locations
-        .filter(loc => lowercaseResponse.includes(loc.name.toLowerCase()))
-        .map(loc => loc.name);
-
-      // Determine if it's a general search
-      parsedResponse.isGeneral = lowercaseResponse.includes('general') || parsedResponse.keywords.length === 0;
-    }
-
-    // Perform fuzzy matching on locations
-    let matchedLocations = { states: [], cities: [] };
-    if (parsedResponse.locations && parsedResponse.locations.length > 0) {
-      for (let loc of parsedResponse.locations) {
-        const results = fuse.search(loc);
-        if (results.length > 0) {
-          const bestMatch = results[0].item;
-          if (bestMatch.type === 'state') {
-            matchedLocations.states.push(bestMatch.name);
-          } else if (bestMatch.type === 'city') {
-            matchedLocations.cities.push(bestMatch.name);
-          }
-        }
-      }
-    }
-
-    const finalResponse = {
-      keywords: parsedResponse.keywords || [],
-      locations: matchedLocations,
-      isGeneral: parsedResponse.isGeneral || false
-    };
-    return finalResponse;
-  } catch (error) {
-    console.log('Error:', error);
-    // Return a default response instead of throwing an error
-    return {
-      keywords: [],
-      locations: { states: [], cities: [] },
-      isGeneral: true
-    };
+    const practiceAreasSnapshot = await getDocs(collection(db, 'practiceAreas'));
+    const practiceAreas = practiceAreasSnapshot.docs.map(doc => doc.data().practiceArea);
+    practiceAreasFuse = new Fuse(practiceAreas, { threshold: 0.3 });
   }
 }
 
-export function calculateRelevanceScore(attorney, queryAnalysis) {
-  let score = 0;
+export async function searchAttorneys(searchTerm) {
 
-  // Keyword match
-  const keywordMatch = queryAnalysis.keywords.some(keyword => 
-    (attorney.searchTerms && attorney.searchTerms.keywords && 
-     attorney.searchTerms.keywords.some(attorneyKeyword => 
-       attorneyKeyword.toLowerCase().includes(keyword.toLowerCase())
-    )) ||
-    (attorney.practiceAreas && 
-     attorney.practiceAreas.some(area => 
-       area.toLowerCase().includes(keyword.toLowerCase())
-    ))
-  );
-  if (keywordMatch) {
-    score += 3;
+  if (!searchTerm || searchTerm.trim() === '') {
+    return { extractedInfo: null, results: [] };
   }
 
-  // Location match
-  if (queryAnalysis.locations.states.includes(attorney.state)) {
-    score += 2;
+  try {
+    await initializeFuseInstances();
+
+    // Extract keywords, practice areas, and locations using Gemini
+    const extractedInfo = await extractInfoWithGemini(searchTerm);
+
+    // Store original values before fuzzy matching
+    const originalLocations = [...extractedInfo.locations];
+    const originalPracticeAreas = [...extractedInfo.practiceAreas];
+
+    // Apply fuzzy matching to locations and practice areas
+    const fuzzyMatchedInfo = {
+      ...extractedInfo,
+      originalLocations,
+      originalPracticeAreas,
+      locations: fuzzyMatchLocations(extractedInfo.locations),
+      practiceAreas: fuzzyMatchPracticeAreas(extractedInfo.practiceAreas)
+    };
+
+    // Fetch attorneys based on extracted information
+    let matchedAttorneys = await fetchMatchingAttorneys(fuzzyMatchedInfo);
+
+    // Calculate relevance scores
+    const scoredResults = calculateRelevanceScores(matchedAttorneys, fuzzyMatchedInfo);
+
+    return { extractedInfo: fuzzyMatchedInfo, results: scoredResults };
+  } catch (error) {
+    console.error('Error:', error);
+    return { extractedInfo: null, results: [] };
   }
-  if (attorney.city && queryAnalysis.locations.cities.includes(attorney.city)) {
-    score += 1.5;
+}
+
+function fuzzyMatchLocations(locations) {
+  return locations.flatMap(location => {
+    const results = statesFuse.search(location);
+    return results.length > 0 ? results.map(result => result.item) : [location];
+  });
+}
+
+function fuzzyMatchPracticeAreas(practiceAreas) {
+  return practiceAreas.flatMap(area => {
+    const results = practiceAreasFuse.search(area);
+    return results.length > 0 ? results.map(result => result.item) : [area];
+  });
+}
+
+function calculateRelevanceScores(profiles, extractedInfo) {
+  const scoredProfiles = profiles.map(profile => {
+    let score = 0;
+
+    // Location matching
+    if (extractedInfo.locations.length > 0) {
+      const locationMatch = extractedInfo.locations.some(loc =>
+        profile.state.toLowerCase() === loc.toLowerCase() ||
+        profile.city.toLowerCase() === loc.toLowerCase()
+      );
+      if (locationMatch) score += 10;
+    }
+
+    // Practice area matching
+    const practiceAreaMatches = extractedInfo.practiceAreas.filter(area =>
+      profile.practiceAreas.some(pa => pa.toLowerCase().includes(area.toLowerCase()))
+    );
+    score += practiceAreaMatches.length * 5;
+
+    // Keyword matching
+    const profileKeywords = [
+      ...profile.searchTerms?.keywords || [],
+      ...profile.practiceAreas || []
+    ].map(k => k.toLowerCase());
+
+    const keywordMatches = extractedInfo.keywords.filter(keyword =>
+      profileKeywords.some(pk => pk.includes(keyword.toLowerCase()))
+    );
+    score += keywordMatches.length;
+
+    return { ...profile, relevanceScore: score };
+  });
+
+  return scoredProfiles
+    .filter(profile => profile.relevanceScore > 0)
+    .sort((a, b) => b.relevanceScore - a.relevanceScore);
+}
+
+async function extractInfoWithGemini(searchTerm) {
+  const prompt = `
+    Analyze the following natural language search query for attorneys:
+    "${searchTerm}"
+
+    Extract and return the following information in JSON format:
+    {
+      "keywords": [list of relevant keywords],
+      "practiceAreas": [list of specific practice areas mentioned or implied],
+      "locations": [list of locations mentioned (cities or states)],
+      "isGeneralSearch": boolean indicating if it's a general search for attorneys
+    }
+
+    Guidelines:
+    - Keywords should be individual words or short phrases relevant to the query.
+    - Practice areas should be specific legal fields (e.g., "personal injury", "family law", "criminal defense").
+    - Locations should be recognized city or state names in the United States.
+    - Set isGeneralSearch to true if the query is just looking for attorneys without specifying a practice area or location.
+    - If a category is not applicable, use an empty array.
+    - Correct minor spelling mistakes and interpret vague terms to the best ability.
+  `;
+
+  const result = await model.generateContent(prompt);
+  const response = result.response;
+  const textResponse = response.text();
+
+  try {
+    const jsonMatch = textResponse.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      return JSON.parse(jsonMatch[0]);
+    } else {
+      throw new Error("No valid JSON found in the response");
+    }
+  } catch (error) {
+    console.error('Error parsing response:', error);
+    return { keywords: [], practiceAreas: [], locations: [], isGeneralSearch: true };
+  }
+}
+
+async function fetchMatchingAttorneys(extractedInfo) {
+  let attorneyQuery = query(collection(db, 'attorneyProfiles'));
+
+  if (extractedInfo.locations.length > 0) {
+    attorneyQuery = query(attorneyQuery, where('state', 'in', extractedInfo.locations));
   }
 
-  // If it's a general search, give some score to all attorneys
-  if (queryAnalysis.isGeneral) {
-    score += 1;
+  if (extractedInfo.practiceAreas.length > 0) {
+    attorneyQuery = query(attorneyQuery, where('practiceAreas', 'array-contains-any', extractedInfo.practiceAreas));
   }
 
-  return score;
+  const snapshot = await getDocs(attorneyQuery);
+  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 }
 
 export async function generateAttorneyKeywords(firstName, lastName, city, state, practiceAreas) {
@@ -327,6 +239,8 @@ export async function generateAttorneyKeywords(firstName, lastName, city, state,
     throw error;
   }
 }
+
+export { fuzzyMatchLocations, fuzzyMatchPracticeAreas };
 
 // Helper function to convert strings to Title Case
 function toTitleCase(str) {

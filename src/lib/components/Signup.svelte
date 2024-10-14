@@ -5,7 +5,7 @@
     import { base } from '$app/paths';
     import { auth, db } from '$lib/firebase';
     import { createUserWithEmailAndPassword, sendEmailVerification, signOut } from 'firebase/auth';
-    import { doc, setDoc } from 'firebase/firestore';
+    import { doc, setDoc, getDoc, updateDoc, arrayUnion, runTransaction } from 'firebase/firestore';
     import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
     import { goto } from '$app/navigation';
     import { generateAttorneyKeywords } from '../vertexAI';
@@ -126,35 +126,92 @@
                 keywords,
                 searchTerms: keywords,
                 barNumber,
-
             });
 
-            // Add state to the states collection
-            await setDoc(doc(db, "states", state), {
-                state
+            // Update stateMapping collection
+            await runTransaction(db, async (transaction) => {
+                const stateRef = doc(db, "stateMapping", state);
+                const stateDoc = await transaction.get(stateRef);
+                const cityRef = doc(stateRef, 'cities', city);
+                const cityDoc = await transaction.get(cityRef);
+
+                // Perform all reads before writes
+                const stateExists = stateDoc.exists();
+                const cityExists = cityDoc.exists();
+                const currentCityCount = stateExists ? (stateDoc.data().cityCount || 0) : 0;
+
+                // Now perform writes
+                if (!stateExists) {
+                    transaction.set(stateRef, {
+                        state: state,
+                        attorneys: [user.uid],
+                        cityCount: 1
+                    });
+                } else {
+                    transaction.update(stateRef, {
+                        attorneys: arrayUnion(user.uid)
+                    });
+                }
+
+                if (!cityExists) {
+                    transaction.set(cityRef, {
+                        attorneys: [user.uid]
+                    });
+                    transaction.update(stateRef, {
+                        cityCount: currentCityCount + 1
+                    });
+                } else {
+                    transaction.update(cityRef, {
+                        attorneys: arrayUnion(user.uid)
+                    });
+                }
             });
+
+            // Update practiceAreaMappings collection
+            const practiceAreaUpdates = practiceAreas.filter(area => area.trim() !== '').map(async (area) => {
+                const normalizedArea = area.toLowerCase().trim();
+                const safeDocId = normalizedArea.replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+                const docRef = doc(db, "practiceAreaMappings", safeDocId);
+                const docSnap = await getDoc(docRef);
+
+                if (docSnap.exists()) {
+                    return updateDoc(docRef, {
+                        uids: arrayUnion(user.uid)
+                    });
+                } else {
+                    return setDoc(docRef, {
+                        originalName: area,
+                        uids: [user.uid]
+                    });
+                }
+            });
+
+            await Promise.all(practiceAreaUpdates);
 
             // Add each practice area to the practiceAreas collection
-            for (const area of practiceAreas.filter(area => area.trim() !== '')) {
-                await setDoc(doc(db, "practiceAreas", area), {
-                    practiceArea: area
-                });
-            }
+            const practiceAreaCreations = practiceAreas.filter(area => area.trim() !== '').map(area => 
+                setDoc(doc(db, "practiceAreas", area), { practiceArea: area })
+            );
+
+            await Promise.all(practiceAreaCreations);
             
             await signOut(auth);
             // Send email to admin
-            sendMailNotification();
+            await sendMailNotification();
             resetForm();
             showNavigation = true;
             // Redirect to a "Registration Pending" page
             goto('/registration-pending');
 
         } catch (error) {
+            console.error("Error during registration:", error);
             if (error.code === 'auth/email-already-in-use') {
                 errorMessage = 'This email is already in use. Please try another email.';
             } else {
                 errorMessage = 'An error occurred during registration. Please try again.';
             }
+        } finally {
+            isLoading = false;
         }
     }
 

@@ -150,13 +150,14 @@
         if (confirm("Are you sure you want to delete this user? This action cannot be undone.")) {
             try {
                 const deleteUserFunction = httpsCallable(functions, 'deleteUser');
-                await deleteUserFunction({ userId: userId });
+                const result = await deleteUserFunction({ userId: userId });
                 
                 users = users.filter(user => user.id !== userId);
                 filterUsers();
-                alert("User deleted successfully");
+                alert(result.data.result);
             } catch (error) {
-                alert("An error occurred while deleting the user. Please try again.");
+                console.error("Error deleting user:", error);
+                alert(`An error occurred while deleting the user: ${error.message}`);
             }
         }
     }

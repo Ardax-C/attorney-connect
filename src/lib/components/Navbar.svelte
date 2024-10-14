@@ -1,39 +1,28 @@
 <script>
-    import '../../styles/custom-filters.css';
-    import brandLogo from '../images/logo-small.png';
     import { onMount } from 'svelte';
     import { base } from '$app/paths';
+    import { goto } from '$app/navigation';
     import { auth, db } from '$lib/firebase';
     import { signOut } from 'firebase/auth';
-    import { goto } from '$app/navigation';
     import { doc, getDoc } from 'firebase/firestore';
-    import { ChevronLeft, ChevronRight } from 'lucide-svelte';
+    import { ChevronLeft, ChevronRight, Menu, X } from 'lucide-svelte';
     import { notificationCount } from '$lib/stores/notificationStore';
+    import brandLogo from '../images/logo-small.png';
 
-    let currentPath = '';
-    let isMenuOpen = false;
+    export let isSearchPage = false;
+    export let currentPage = 1;
+    export let totalPages = 1;
+    export let onPageChange = () => {};
+
     let user = null;
     let userRole = null;
     let userStatus = null;
-    
-    // for use on the search page when a user has initiated a search
-    export let visible = true; 
-    export let isSearchPage = false; 
-    export let currentPage = 1; 
-    export let totalPages = 1; 
-    export let onPageChange; 
-
+    let isMenuOpen = false;
     let hasNotifications = false;
 
     $: hasNotifications = $notificationCount > 0;
 
     onMount(() => {
-        if (typeof window !== 'undefined') {
-            currentPath = window.location.pathname;
-            window.addEventListener('popstate', () => {
-                currentPath = window.location.pathname;
-            });
-        }
         const unsubscribe = auth.onAuthStateChanged(async (firebaseUser) => {
             user = firebaseUser;
             if (user) {
@@ -77,89 +66,98 @@
     }
 </script>
 
-<nav class="fixed top-0 left-0 right-0 z-50 shadow-xl">
-    <div class="w-full flex items-center justify-between bg-zinc-900 p-3">
-        <!-- Left section (Logo) -->
-        <div class="flex-shrink-0 w-1/4">
-            <a href="{currentPath === '/' ? `${base}/login` : `${base}/`}">
-                <img src="{brandLogo}" alt="" class="filter-brand-logo-1 h-12 w-auto">
-            </a>
-        </div>
-
-        <!-- Center section (Pagination) -->
-        <div class="flex-grow flex justify-center items-center w-1/2">
+<nav class="fixed top-0 left-0 right-0 z-50 bg-zinc-900 shadow-xl">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex items-center justify-between h-16">
+            <div class="flex-shrink-0">
+                <a href="{base}/">
+                    <img src="{brandLogo}" alt="Logo" class="h-8 w-auto filter-brand-logo-1">
+                </a>
+            </div>
+            
             {#if isSearchPage}
                 <div class="flex items-center space-x-2">
                     <button on:click={handlePreviousPage} class="text-white" disabled={currentPage === 1}>
                         <ChevronLeft size={24} />
                     </button>
-                    <span class="text-white mx-2">{currentPage}</span>
+                    <span class="text-white mx-2">{currentPage} / {totalPages}</span>
                     <button on:click={handleNextPage} class="text-white" disabled={currentPage === totalPages}>
                         <ChevronRight size={24} />
                     </button>
                 </div>
             {/if}
-        </div>
-
-        <!-- Right section (Menu items) -->
-        <div class="flex-shrink-0 w-1/4 flex justify-end items-center">
-            <div class="hidden lg:flex items-center space-x-4">
-                {#if user && userStatus === 'approved'}
-                    <a href="/search" class="text-white hover:text-orange-400 text-lg">Search</a>
-                    <a href="/profile" class="text-white hover:text-orange-400 text-lg">Profile</a>
-                    <div class="relative inline-flex items-center">
-                        <a href="/chats" class="text-white hover:text-orange-400 text-lg">Chats</a>
-                        {#if hasNotifications}
-                            <span class="absolute -top-1 -right-3 bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center">{$notificationCount}</span>
+            
+            <div class="hidden md:block">
+                <div class="ml-10 flex items-baseline space-x-4">
+                    {#if user && userStatus === 'approved'}
+                        <a href="/search" class="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Search</a>
+                        <a href="/profile" class="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Profile</a>
+                        <div class="relative">
+                            <a href="/chats" class="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Chats</a>
+                            {#if hasNotifications}
+                                <span class="absolute top-0 right-0 block h-2 w-2 rounded-full bg-red-400 ring-2 ring-white"></span>
+                            {/if}
+                        </div>
+                        {#if userRole === 'admin'}
+                            <a href="/admin" class="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Admin Dashboard</a>
                         {/if}
-                    </div>
-                    {#if userRole === 'admin'}
-                        <a href="/admin" class="text-white hover:text-orange-400 text-lg">Admin Dashboard</a>
+                        <button on:click={handleLogout} class="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Logout</button>
+                    {:else if user && userStatus === 'pending'}
+                        <a href="/registration-pending" class="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Registration Pending</a>
+                        <button on:click={handleLogout} class="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Logout</button>
+                    {:else}
+                        <a href="/login" class="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Login</a>
+                        <a href="/signup" class="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Sign Up</a>
                     {/if}
-                    <button on:click={handleLogout} class="text-white hover:text-orange-400 text-lg">Logout</button>
-                {:else if user && userStatus === 'pending'}
-                    <a href="/registration-pending" class="text-white hover:text-orange-400 text-lg">Registration Pending</a>
-                    <button on:click={handleLogout} class="text-white hover:text-orange-400 text-lg">Logout</button>
-                {:else}
-                    <a href="/login" class="text-white hover:text-orange-400 text-lg">Login</a>
-                    <a href="/signup" class="text-white hover:text-orange-400 text-lg">Sign Up</a>
-                {/if}
+                </div>
             </div>
-            <div class="lg:hidden">
-                <button on:click={toggleMenu} class="text-white hover:text-orange-400">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path>
-                    </svg>
+            
+            <div class="md:hidden">
+                <button on:click={toggleMenu} class="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-white hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white">
+                    {#if isMenuOpen}
+                        <X size={24} />
+                    {:else}
+                        <Menu size={24} />
+                    {/if}
                 </button>
             </div>
         </div>
     </div>
 
-    <!-- Mobile menu -->
     {#if isMenuOpen}
-        <div class="lg:hidden bg-zinc-800">
-            <div class="px-2 pt-2 pb-3 space-y-1">
+        <div class="md:hidden">
+            <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3">
                 {#if user && userStatus === 'approved'}
-                    <a href="/search" class="block text-white hover:text-orange-400 text-lg">Search</a>
-                    <a href="/profile" class="block text-white hover:text-orange-400 text-lg">Profile</a>
-                    <div class="relative inline-flex items-center">
-                        <a href="/chats" class="block text-white hover:text-orange-400 text-lg">Chats</a>
+                    <a href="/search" class="text-gray-300 hover:bg-gray-700 hover:text-white block px-3 py-2 rounded-md text-base font-medium">Search</a>
+                    <a href="/profile" class="text-gray-300 hover:bg-gray-700 hover:text-white block px-3 py-2 rounded-md text-base font-medium">Profile</a>
+                    <a href="/chats" class="text-gray-300 hover:bg-gray-700 hover:text-white block px-3 py-2 rounded-md text-base font-medium">
+                        Chats
                         {#if hasNotifications}
-                            <span class="absolute -top-1 -right-4 bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center">{$notificationCount}</span>
+                            <span class="ml-2 inline-block h-2 w-2 rounded-full bg-red-400"></span>
                         {/if}
-                    </div>
+                    </a>
                     {#if userRole === 'admin'}
-                        <a href="/admin" class="block text-white hover:text-orange-400 text-lg">Admin Dashboard</a>
+                        <a href="/admin" class="text-gray-300 hover:bg-gray-700 hover:text-white block px-3 py-2 rounded-md text-base font-medium">Admin Dashboard</a>
                     {/if}
-                    <button on:click={handleLogout} class="block w-full text-left text-white hover:text-orange-400 text-lg">Logout</button>
+                    <button on:click={handleLogout} class="text-gray-300 hover:bg-gray-700 hover:text-white block px-3 py-2 rounded-md text-base font-medium w-full text-left">Logout</button>
                 {:else if user && userStatus === 'pending'}
-                    <a href="/registration-pending" class="block text-white hover:text-orange-400 text-lg">Registration Pending</a>
-                    <button on:click={handleLogout} class="block w-full text-left text-white hover:text-orange-400 text-lg">Logout</button>
+                    <a href="/registration-pending" class="text-gray-300 hover:bg-gray-700 hover:text-white block px-3 py-2 rounded-md text-base font-medium">Registration Pending</a>
+                    <button on:click={handleLogout} class="text-gray-300 hover:bg-gray-700 hover:text-white block px-3 py-2 rounded-md text-base font-medium w-full text-left">Logout</button>
                 {:else}
-                    <a href="/login" class="block text-white hover:text-orange-400 text-lg">Login</a>
-                    <a href="/signup" class="block text-white hover:text-orange-400 text-lg">Sign Up</a>
+                    <a href="/login" class="text-gray-300 hover:bg-gray-700 hover:text-white block px-3 py-2 rounded-md text-base font-medium">Login</a>
+                    <a href="/signup" class="text-gray-300 hover:bg-gray-700 hover:text-white block px-3 py-2 rounded-md text-base font-medium">Sign Up</a>
                 {/if}
             </div>
         </div>
     {/if}
 </nav>
+
+<style>
+    nav {
+        background-color: #18181b; /* Equivalent to bg-zinc-900 */
+    }
+
+    .filter-brand-logo-1 {
+        filter: invert(0%) sepia(4%) saturate(13%) hue-rotate(314deg) brightness(98%) contrast(105%);
+    }
+</style>
