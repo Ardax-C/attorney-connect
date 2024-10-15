@@ -1,3 +1,4 @@
+// small change to trigger vercel build
 const functions = require('firebase-functions');
 const admin = require('firebase-admin');
 admin.initializeApp();
