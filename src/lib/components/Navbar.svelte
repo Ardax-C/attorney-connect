@@ -112,6 +112,12 @@
                         >
                             Legal Requests
                         </a>
+                        <a 
+                            href="/briefs"
+                            class="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium"
+                        >
+                            Court Opinions
+                        </a>
                         <button on:click={handleLogout} class="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Logout</button>
                     {:else if user && userStatus === 'pending'}
                         <a href="/registration-pending" class="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Registration Pending</a>
@@ -155,6 +161,12 @@
                         class="text-gray-300 hover:bg-gray-700 hover:text-white block px-3 py-2 rounded-md text-base font-medium"
                     >
                         Legal Requests
+                    </a>
+                    <a 
+                        href="/briefs"
+                        class="text-emerald-400 hover:text-cyan-400 block px-3 py-2 rounded-md text-base font-medium"
+                    >
+                        Court Opinions
                     </a>
                     <button on:click={handleLogout} class="text-gray-300 hover:bg-gray-700 hover:text-white block px-3 py-2 rounded-md text-base font-medium w-full text-left">Logout</button>
                 {:else if user && userStatus === 'pending'}

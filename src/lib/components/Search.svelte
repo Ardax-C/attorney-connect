@@ -150,9 +150,8 @@
     }
 </script>
 
-<main class="bg-no-repeat bg-center bg-cover h-screen fixed w-full" style="background-image: url({backgroundImage})">
+<main class="bg-no-repeat bg-center bg-cover h-screen overflow-hidden" style="background-image: url({backgroundImage})">
     <Navbar />
-    
     <!-- Mobile Search Controls (only visible on mobile) -->
     <div class="md:hidden fixed top-16 left-0 right-0 z-10 transition-transform duration-300" 
          class:translate-y-[-100%]={!showMobileSearch}>
@@ -196,11 +195,11 @@
         </div>
     </div>
 
-    <div class="container mx-auto px-4 py-8 mt-16 h-[calc(100vh-6rem)]">
+    <div class="container mx-auto px-4 py-4 mt-16 h-[calc(100vh-4rem)] overflow-hidden">
         <!-- Desktop Search Controls -->
-        <div class="hidden md:block mb-8">
+        <div class="hidden md:block h-full">
             <!-- Search Header - Update visibility -->
-            <div class="flex flex-col md:flex-row justify-between items-center mb-8 md:block hidden">
+            <div class="flex flex-col md:flex-row justify-between items-center mb-4 md:block hidden w-full">
                 <h1 class="text-3xl font-bold text-custom-color-tertiary mb-4 md:mb-0">Search Attorneys</h1>
                 <div class="flex items-center space-x-2">
                     <span class="text-emerald-400">Page {currentPage} of {totalPages}</span>
@@ -228,7 +227,7 @@
             </div>
 
             <!-- Search Grid Layout -->
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 h-[calc(100%-5rem)]">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 h-[calc(100%-2rem)]">
                 <!-- Search Filters Panel - Update visibility -->
                 <div class="lg:col-span-1 {showMobileSearch ? '' : 'hidden'} md:block">
                     <div class="bg-zinc-800 bg-opacity-90 rounded-xl shadow-2xl p-6">
@@ -254,9 +253,9 @@
                     </div>
                 </div>
 
-                <!-- Results Grid - Add touch handlers -->
+                <!-- Results Grid - Updated margins -->
                 <div 
-                    class="lg:col-span-2 overflow-y-auto pr-2 scrollbar-hide"
+                    class="lg:col-span-2 overflow-y-auto h-[calc(100%-2rem)] lg:h-[calc(100%-4rem)] pr-2 scrollbar-hide"
                     on:touchstart={handleTouchStart}
                     on:touchend={handleTouchEnd}
                     on:scroll={handleScroll}
@@ -305,8 +304,8 @@
             </div>
         </div>
 
-        <!-- Mobile Results View -->
-        <div class="md:hidden h-full overflow-y-auto pr-2 scrollbar-hide"
+        <!-- Mobile Results View - Updated margins -->
+        <div class="md:hidden h-[calc(100vh-16rem)] overflow-y-auto mb-8 pr-2 scrollbar-hide"
              on:touchstart={handleTouchStart}
              on:touchend={handleTouchEnd}
              on:scroll={handleScroll}>
@@ -352,10 +351,6 @@
 </main>
 
 <style>
-    :global(body) {
-        overflow: hidden;
-    }
-
     /* Add custom scrollbar hiding */
     :global(.scrollbar-hide) {
         -ms-overflow-style: none;  /* IE and Edge */
