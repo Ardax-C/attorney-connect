@@ -58,7 +58,6 @@
         try {
             peerConnection = new RTCPeerConnection(servers);
 
-            // Handle incoming tracks
             peerConnection.ontrack = (event) => {
                 remoteStream = event.streams[0];
                 if (remoteVideo) {
@@ -66,7 +65,6 @@
                 }
             };
 
-            // Handle ICE candidates
             peerConnection.onicecandidate = async (event) => {
                 if (event.candidate) {
                     const chatRef = doc(db, 'chats', chatId);
@@ -76,13 +74,12 @@
                 }
             };
 
-            // Handle connection state changes
             peerConnection.onconnectionstatechange = () => {
                 connectionState = peerConnection.connectionState;
                 if (connectionState === 'disconnected') {
                     attemptReconnection();
                 } else if (connectionState === 'connected') {
-                    reconnectAttempts = 0; // Reset attempts on successful connection
+                    reconnectAttempts = 0;
                 }
             };
 
@@ -90,19 +87,6 @@
         } catch (err) {
             throw err;
         }
-    }
-
-    // Add debug logging
-    function logCallState(location) {
-        console.log(`[${location}] Call State:`, {
-            isCallActive,
-            isCallPending,
-            showIncomingCallDialog,
-            hasLocalStream: !!localStream,
-            hasPeerConnection: !!peerConnection,
-            userId,
-            isCaller: currentCallData?.caller === userId
-        });
     }
 
     // Export the methods that need to be called from parent
@@ -139,7 +123,6 @@
                     timestamp: Date.now()
                 }
             });
-            logCallState('startCall-end');
         } catch (error) {
             console.error('Error starting call:', error);
             await cleanupCall();
@@ -148,48 +131,39 @@
         }
     }
 
-    async function handleIncomingCall(videoCallData) {
+    async function handleIncomingCall(callData) {
         try {
-            console.log('Handling call update:', videoCallData);
-            
             // Don't process old call data
-            if (currentCallData?.timestamp && videoCallData.timestamp < currentCallData.timestamp) {
-                console.log('Ignoring older call state update');
+            if (currentCallData?.timestamp && callData.timestamp < currentCallData.timestamp) {
                 return;
             }
 
             // Store the current call data
-            currentCallData = videoCallData;
+            currentCallData = callData;
 
-            switch (videoCallData.status) {
+            switch (callData.status) {
                 case 'pending':
-                    if (videoCallData.recipient === userId && !isCallActive) {
-                        console.log('Recipient: Showing incoming call dialog');
+                    if (callData.recipient === userId && !isCallActive) {
                         showIncomingCallDialog = true;
-                        // Ensure these are set correctly for the recipient
                         isCallPending = true;
                         isCallActive = false;
-                    } else if (videoCallData.caller === userId) {
-                        console.log('Caller: Maintaining pending state');
+                    } else if (callData.caller === userId) {
                         isCallPending = true;
                         isCallActive = true;
                     }
                     break;
 
                 case 'active':
-                    console.log('Call is active');
                     showIncomingCallDialog = false;
                     isCallActive = true;
                     isCallPending = false;
 
-                    // For caller: Handle answer only once
-                    if (videoCallData.caller === userId && 
-                        videoCallData.answer && 
+                    if (callData.caller === userId && 
+                        callData.answer && 
                         peerConnection?.signalingState === 'have-local-offer') {
-                        console.log('Caller: Processing answer');
                         try {
                             await peerConnection.setRemoteDescription(
-                                new RTCSessionDescription(videoCallData.answer)
+                                new RTCSessionDescription(callData.answer)
                             );
                         } catch (error) {
                             if (!error.message.includes('Cannot set remote answer in state stable')) {
@@ -205,15 +179,13 @@
 
                 case 'rejected':
                 case 'ended':
-                    console.log('Call ended or rejected');
-                    await cleanupCall(true); // Force cleanup
+                    await cleanupCall(true);
                     return;
             }
 
-            // Handle ICE candidates
-            if (videoCallData.candidates && peerConnection) {
-                const otherParty = userId === videoCallData.caller ? videoCallData.recipient : videoCallData.caller;
-                const candidates = videoCallData.candidates[otherParty];
+            if (callData.candidates && peerConnection) {
+                const otherParty = userId === callData.caller ? callData.recipient : callData.caller;
+                const candidates = callData.candidates[otherParty];
                 if (candidates) {
                     for (const candidate of candidates) {
                         try {
@@ -224,17 +196,13 @@
                     }
                 }
             }
-
-            logCallState('handleIncomingCall-end');
-        } catch (error) {
-            console.error('Error handling incoming call:', error);
+        } catch (err) {
             await cleanupCall();
         }
     }
 
     async function acceptCall() {
         try {
-            console.log('Accepting call as recipient');
             showIncomingCallDialog = false;
             
             if (!currentCallData?.offer) {
@@ -242,7 +210,6 @@
                 return;
             }
 
-            // Set states before media setup
             isCallActive = true;
             isCallPending = false;
             
@@ -262,7 +229,6 @@
             const answer = await peerConnection.createAnswer();
             await peerConnection.setLocalDescription(answer);
 
-            // Keep all existing call data when updating
             const updatedCallData = {
                 ...currentCallData,
                 answer: {
@@ -273,12 +239,9 @@
                 timestamp: Date.now()
             };
 
-            // Update Firestore with the complete call data
             await updateDoc(doc(db, 'chats', chatId), {
                 videoCall: updatedCallData
             });
-            
-            logCallState('acceptCall-end');
         } catch (error) {
             console.error('Error accepting call:', error);
             await cleanupCall();
@@ -297,50 +260,29 @@
     }
 
     async function cleanupCall(force = false) {
-        console.log('Cleaning up call');
-        
-        // Only cleanup if we're not in an active call or if forced
-        if (!force && isCallActive && currentCallData?.status === 'active') {
-            console.log('Skipping cleanup for active call');
-            return;
-        }
-
-        if (localStream) {
-            localStream.getTracks().forEach(track => {
-                track.stop();
-            });
-        }
         if (peerConnection) {
             peerConnection.close();
+            peerConnection = null;
         }
         
-        localStream = null;
-        remoteStream = null;
-        peerConnection = null;
+        if (localStream) {
+            localStream.getTracks().forEach(track => track.stop());
+            localStream = null;
+        }
+        
+        if (remoteStream) {
+            remoteStream.getTracks().forEach(track => track.stop());
+            remoteStream = null;
+        }
+
         isCallActive = false;
         isCallPending = false;
         showIncomingCallDialog = false;
-        currentCallData = null;
-        
-        if (force) {
-            try {
-                await updateDoc(doc(db, 'chats', chatId), {
-                    videoCall: {
-                        status: 'ended'
-                    }
-                });
-            } catch (error) {
-                console.error('Error updating call status during cleanup:', error);
-            }
-        }
         
         if (callTimer) {
             clearInterval(callTimer);
             callTimer = null;
-            callDuration = 0;
         }
-        
-        logCallState('cleanupCall-end');
     }
 
     async function endCall() {
