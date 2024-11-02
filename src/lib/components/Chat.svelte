@@ -402,6 +402,12 @@
             {#if loading}
                 <!-- Loading state -->
             {:else}
+                <VideoChat
+                    bind:this={videoChatComponent}
+                    {chatId}
+                    userId={user?.uid}
+                    {otherParticipantId}
+                />
                 <div class="fixed inset-x-0 top-[64px] bottom-0 flex bg-gray-950/50 backdrop-blur-sm">
                     <!-- Chat Container -->
                     <div class="w-full flex flex-col bg-gray-900/90">
@@ -453,12 +459,17 @@
                                                             {attachment.name} ({formatFileSize(attachment.size)})
                                                         </div>
                                                     {:else}
-                                                        <img 
-                                                            src={attachment.url} 
-                                                            alt=""
-                                                            class="max-w-full rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
+                                                        <button 
                                                             on:click={() => window.open(attachment.url, '_blank')}
-                                                        />
+                                                            on:keydown={(e) => e.key === 'Enter' && window.open(attachment.url, '_blank')}
+                                                            class="block w-full"
+                                                        >
+                                                            <img 
+                                                                src={attachment.url} 
+                                                                alt=""
+                                                                class="max-w-full rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
+                                                            />
+                                                        </button>
                                                     {/if}
                                                 </div>
                                             {/each}
