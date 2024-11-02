@@ -1,6 +1,5 @@
 <script>
     import { onMount } from 'svelte';
-    import { base } from '$app/paths';
     import { goto } from '$app/navigation';
     import { auth, db } from '$lib/firebase';
     import { signOut } from 'firebase/auth';
@@ -76,7 +75,7 @@
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex items-center justify-between h-16">
             <div class="flex-shrink-0">
-                <a href="{base}/">
+                <a href="/">
                     <img src="{brandLogo}" alt="Logo" class="h-8 w-auto filter-brand-logo-1">
                 </a>
             </div>
