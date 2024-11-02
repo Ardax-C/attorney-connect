@@ -50,7 +50,6 @@
                 localVideo.srcObject = localStream;
             }
         } catch (err) {
-            console.error('Error accessing media devices:', err);
             throw err;
         }
     }
@@ -89,7 +88,6 @@
 
             return peerConnection;
         } catch (err) {
-            console.error('Error creating peer connection:', err);
             throw err;
         }
     }
@@ -221,7 +219,7 @@
                         try {
                             await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
                         } catch (error) {
-                            console.error('Error adding ICE candidate:', error);
+                            // Remove console.error
                         }
                     }
                 }
@@ -390,20 +388,17 @@
     // Add reconnection function
     async function attemptReconnection() {
         if (reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
-            console.log('Max reconnection attempts reached');
             await endCall();
             return;
         }
         
         reconnectAttempts++;
-        console.log(`Attempting reconnection (${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS})`);
         
         try {
             await cleanupCall(false);
             await handleStartCall();
         } catch (error) {
-            console.error('Reconnection attempt failed:', error);
-            setTimeout(attemptReconnection, 2000); // Try again in 2 seconds
+            setTimeout(attemptReconnection, 2000);
         }
     }
 
@@ -519,22 +514,27 @@
     /* Add any additional styles here */
 </style>
 
-<!-- Add call duration display -->
-<div class="absolute top-4 left-1/2 -translate-x-1/2 bg-black/70 px-4 py-2 rounded-full backdrop-blur-sm">
-    <span class="text-white/90 text-sm font-medium">{formatDuration(callDuration)}</span>
-</div>
+<!-- Move these elements inside the isCallActive conditional -->
+{#if isCallActive}
+    <div class="fixed inset-0 flex items-center justify-center z-50">
+        <!-- Call duration display - moved inside -->
+        <div class="absolute top-4 left-1/2 -translate-x-1/2 bg-black/70 px-4 py-2 rounded-full backdrop-blur-sm">
+            <span class="text-white/90 text-sm font-medium">{formatDuration(callDuration)}</span>
+        </div>
 
-<!-- Add connection status indicator -->
-<div class="absolute top-4 right-4 flex items-center gap-2 bg-black/70 px-3 py-1.5 rounded-full backdrop-blur-sm">
-    <div class="w-2 h-2 rounded-full {
-        connectionState === 'connected' ? 'bg-green-500' :
-        connectionState === 'connecting' ? 'bg-yellow-500 animate-pulse' :
-        'bg-red-500'
-    }"></div>
-    <span class="text-white/90 text-xs capitalize">{connectionState}</span>
-</div>
+        <!-- Connection status indicator - moved inside -->
+        <div class="absolute top-4 right-4 flex items-center gap-2 bg-black/70 px-3 py-1.5 rounded-full backdrop-blur-sm">
+            <div class="w-2 h-2 rounded-full {
+                connectionState === 'connected' ? 'bg-green-500' :
+                connectionState === 'connecting' ? 'bg-yellow-500 animate-pulse' :
+                'bg-red-500'
+            }"></div>
+            <span class="text-white/90 text-xs capitalize">{connectionState}</span>
+        </div>
+    </div>
+{/if}
 
-<!-- Add loading overlay -->
+<!-- Loading overlay remains outside -->
 {#if isLoading}
     <div class="absolute inset-0 bg-black/50 flex items-center justify-center backdrop-blur-sm z-50">
         <div class="flex flex-col items-center gap-4">

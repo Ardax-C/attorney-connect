@@ -143,7 +143,6 @@
                     let decryptedContent;
                     
                     try {
-                        // Only decrypt the content if it's not an attachment-only message
                         if (data.content && !data.content.startsWith('📷 ') && !data.content.startsWith('📎 ')) {
                             decryptedContent = await decryptMessage(
                                 data.content,
@@ -151,11 +150,9 @@
                                 data.iv
                             );
                         } else {
-                            // For attachment messages, use the content as-is
                             decryptedContent = data.content;
                         }
                     } catch (error) {
-                        console.error('Decryption error:', error);
                         decryptedContent = '[Encryption Error]';
                     }
 
@@ -166,7 +163,7 @@
                         timestamp: data.timestamp?.toDate?.() || new Date(),
                         attachments: data.attachments || [],
                         readBy: data.readBy || [],
-                        delivered: data.delivered || false  // Include delivered status
+                        delivered: data.delivered || false
                     };
                 })
             );
@@ -174,11 +171,9 @@
             messages = decryptedMessages;
             loading = false;
 
-            // Mark messages as delivered first, then as read
             await markMessagesAsDelivered();
             await markMessagesAsRead();
         }, (err) => {
-            console.error('Error in message subscription:', err);
             error = 'Error loading messages. Please try again later.';
             loading = false;
         });
@@ -222,7 +217,6 @@
             });
 
         } catch (err) {
-            console.error('Error sending message:', err);
             error = 'Error sending message. Please try again.';
         }
     }
@@ -373,7 +367,6 @@
             });
 
         } catch (error) {
-            console.error('Error uploading file:', error);
             alert('Failed to upload file. Please try again.');
         } finally {
             isUploading = false;
@@ -392,8 +385,6 @@
     function startCall() {
         if (videoChatComponent) {
             videoChatComponent.startCall();
-        } else {
-            console.error('VideoChat component not found');
         }
     }
 </script>
