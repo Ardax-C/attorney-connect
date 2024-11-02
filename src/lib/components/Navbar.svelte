@@ -109,7 +109,7 @@
                         {/if}
                         <a
                             href="/requests"
-                            class="text-emerald-400 hover:text-emerald-300 px-3 py-2 rounded-md text-sm font-medium"
+                            class="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium"
                         >
                             Legal Requests
                         </a>

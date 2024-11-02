@@ -17,6 +17,7 @@
     let user = null;
     let loading = true;
     let error = null;
+    let chatData = null;
     let otherParticipantName = "Attorney";
     let otherParticipantId = null;
     let unsubscribe;
@@ -123,8 +124,10 @@
         
         // Add typing users subscription
         typingUsersSubscription = onSnapshot(chatRef, (doc) => {
-            const data = doc.data();
-            typingUsers = new Set(data?.typingUsers || []);
+            if (doc.exists()) {
+                chatData = doc.data();
+                typingUsers = new Set(chatData?.typingUsers || []);
+            }
         });
 
         const messagesRef = collection(chatRef, 'messages');
