@@ -80,57 +80,56 @@
     }
 
     async function startCall() {
-        isCallPending = true;
-        await setupMediaDevices();
-        createPeerConnection();
-        
-        localStream.getTracks().forEach(track => {
-            peerConnection.addTrack(track, localStream);
-        });
+        try {
+            isCallPending = true;
+            isCallActive = true;
+            await setupMediaDevices();
+            createPeerConnection();
+            
+            localStream.getTracks().forEach(track => {
+                peerConnection.addTrack(track, localStream);
+            });
 
-        const offer = await peerConnection.createOffer();
-        await peerConnection.setLocalDescription(offer);
+            const offer = await peerConnection.createOffer();
+            await peerConnection.setLocalDescription(offer);
 
-        await updateDoc(doc(db, 'chats', chatId), {
-            videoCall: {
-                offer: {
-                    type: offer.type,
-                    sdp: offer.sdp
-                },
-                caller: userId,
-                recipient: otherParticipantId,
-                status: 'pending'
-            }
-        });
+            await updateDoc(doc(db, 'chats', chatId), {
+                videoCall: {
+                    offer: {
+                        type: offer.type,
+                        sdp: offer.sdp
+                    },
+                    caller: userId,
+                    recipient: otherParticipantId,
+                    status: 'pending'
+                }
+            });
+        } catch (error) {
+            console.error('Error starting call:', error);
+            await cleanupCall();
+        }
     }
 
     async function handleIncomingCall(videoCallData) {
         try {
             currentCallData = videoCallData;
             
-            if (videoCallData.status === 'pending' && 
+            if (videoCallData.caller === userId && videoCallData.status === 'active') {
+                isCallActive = true;
+                isCallPending = false;
+                if (videoCallData.answer) {
+                    await peerConnection.setRemoteDescription(new RTCSessionDescription(videoCallData.answer));
+                }
+            }
+            else if (videoCallData.status === 'pending' && 
                 videoCallData.caller !== userId && 
                 videoCallData.recipient === userId) {
                 showIncomingCallDialog = true;
-            } else if (videoCallData.status === 'active') {
-                showIncomingCallDialog = false;
-                
-                // If we're the caller and we have an answer, set up the connection
-                if (videoCallData.caller === userId && videoCallData.answer) {
-                    if (!peerConnection) {
-                        console.error('No peer connection found for caller');
-                        return;
-                    }
-                    await peerConnection.setRemoteDescription(new RTCSessionDescription(videoCallData.answer));
-                }
-                
-                isCallActive = true;
-                isCallPending = false;
-            } else if (videoCallData.status === 'rejected' || videoCallData.status === 'ended') {
+            }
+            else if (videoCallData.status === 'rejected' || videoCallData.status === 'ended') {
                 await cleanupCall();
             }
 
-            // Handle ICE candidates
             if (videoCallData.candidates) {
                 const otherParty = userId === videoCallData.caller ? videoCallData.recipient : videoCallData.caller;
                 const candidates = videoCallData.candidates[otherParty];
@@ -159,27 +158,23 @@
                 return;
             }
             
-            // Setup media devices first
+            isCallActive = true;
+            isCallPending = false;
+            
             await setupMediaDevices();
+            createPeerConnection();
             
-            // Create and configure peer connection
-            peerConnection = createPeerConnection();
-            
-            // Add local tracks to peer connection
             if (localStream) {
                 localStream.getTracks().forEach(track => {
                     peerConnection.addTrack(track, localStream);
                 });
             }
 
-            // Set remote description (offer) first
             await peerConnection.setRemoteDescription(new RTCSessionDescription(currentCallData.offer));
             
-            // Create and set local description (answer)
             const answer = await peerConnection.createAnswer();
             await peerConnection.setLocalDescription(answer);
 
-            // Update Firestore with the answer
             await updateDoc(doc(db, 'chats', chatId), {
                 videoCall: {
                     ...currentCallData,
@@ -190,14 +185,9 @@
                     status: 'active'
                 }
             });
-            
-            isCallActive = true;
-            isCallPending = false;
-
         } catch (error) {
             console.error('Error accepting call:', error);
             await cleanupCall();
-            // Optionally show an error message to the user
         }
     }
 
