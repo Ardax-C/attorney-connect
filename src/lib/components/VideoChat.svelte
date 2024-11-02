@@ -380,53 +380,77 @@
     </div>
 {/if}
 
-<div class="fixed right-4 bottom-20 w-full max-w-[300px] z-50 flex flex-col gap-4 md:right-4 md:bottom-20 sm:right-2 sm:bottom-16 sm:max-w-[160px]">
+<div class="fixed right-4 bottom-4 flex flex-col gap-4 z-50 {isCallActive ? 'desktop:right-8 desktop:bottom-8' : ''}">
     {#if isCallActive}
-        <!-- Remote Video -->
-        <div class="relative w-full aspect-video sm:aspect-[3/4] rounded-lg overflow-hidden bg-black/20">
-            <video 
-                bind:this={remoteVideo} 
-                autoplay 
-                playsinline 
-                class="w-full h-full object-cover"
-            >
-                <track kind="captions">
-            </video>
-        </div>
+        <!-- Main call container for desktop -->
+        <div class="flex flex-col desktop:flex-row gap-4">
+            <!-- Remote Video -->
+            <div class="relative w-[300px] desktop:w-[480px] aspect-video rounded-lg overflow-hidden bg-black/20 shadow-lg">
+                <video 
+                    bind:this={remoteVideo} 
+                    autoplay 
+                    playsinline 
+                    class="w-full h-full object-cover"
+                >
+                    <track kind="captions">
+                </video>
+                
+                <!-- Video Controls - Moved inside remote video container -->
+                <div class="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 bg-black/50 px-4 py-2 rounded-full">
+                    <button 
+                        on:click={toggleMute}
+                        class="bg-transparent border-none text-white cursor-pointer p-2 hover:bg-black/30 rounded-full transition-colors"
+                    >
+                        {isMuted ? '🔇' : '🔊'}
+                    </button>
+                    <button 
+                        on:click={toggleVideo}
+                        class="bg-transparent border-none text-white cursor-pointer p-2 hover:bg-black/30 rounded-full transition-colors"
+                    >
+                        {isVideoEnabled ? '📹' : '🚫'}
+                    </button>
+                    <button 
+                        on:click={endCall}
+                        class="bg-transparent border-none cursor-pointer p-2 hover:bg-black/30 rounded-full text-red-500 transition-colors"
+                    >
+                        📞
+                    </button>
+                </div>
+            </div>
 
-        <!-- Local Video -->
-        <div class="relative w-full aspect-video sm:aspect-[3/4] sm:w-20 sm:absolute sm:bottom-4 sm:right-4 rounded-lg overflow-hidden bg-black/20">
-            <video 
-                bind:this={localVideo} 
-                autoplay 
-                playsinline 
-                muted
-                class="w-full h-full object-cover"
-            >
-                <track kind="captions">
-            </video>
-        </div>
-
-        <!-- Video Controls -->
-        <div class="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-2 bg-black/50 px-2 py-1 rounded-full z-[51]">
-            <button 
-                on:click={toggleMute}
-                class="bg-transparent border-none text-white cursor-pointer p-1 hover:bg-black/30 rounded-full"
-            >
-                {isMuted ? '🔇' : '🔊'}
-            </button>
-            <button 
-                on:click={toggleVideo}
-                class="bg-transparent border-none text-white cursor-pointer p-1 hover:bg-black/30 rounded-full"
-            >
-                {isVideoEnabled ? '📹' : '🚫'}
-            </button>
-            <button 
-                on:click={endCall}
-                class="bg-transparent border-none cursor-pointer p-1 hover:bg-black/30 rounded-full text-red-500"
-            >
-                📞
-            </button>
+            <!-- Local Video -->
+            <div class="relative w-[120px] aspect-video rounded-lg overflow-hidden bg-black/20 shadow-lg desktop:self-start">
+                <video 
+                    bind:this={localVideo} 
+                    autoplay 
+                    playsinline 
+                    muted
+                    class="w-full h-full object-cover"
+                >
+                    <track kind="captions">
+                </video>
+            </div>
         </div>
     {/if}
 </div>
+
+<style>
+    /* Add these styles to ensure proper desktop layout */
+    @media (min-width: 1024px) {
+        :global(.desktop\:right-8) {
+            right: 2rem;
+        }
+        :global(.desktop\:bottom-8) {
+            bottom: 2rem;
+        }
+        :global(.desktop\:w-\[480px\]) {
+            width: 480px;
+        }
+        :global(.desktop\:flex-row) {
+            flex-direction: row;
+        }
+        :global(.desktop\:self-start) {
+            align-self: flex-start;
+        }
+    }
+</style>
