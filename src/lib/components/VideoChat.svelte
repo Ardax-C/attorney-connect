@@ -94,7 +94,13 @@
         });
     }
 
-    async function startCall() {
+    // Export the methods that need to be called from parent
+    export function startCall() {
+        return handleStartCall();
+    }
+
+    // Rename the existing startCall to handleStartCall
+    async function handleStartCall() {
         try {
             console.log('Starting call as caller');
             isCallPending = true;
@@ -118,7 +124,7 @@
                     caller: userId,
                     recipient: otherParticipantId,
                     status: 'pending',
-                    timestamp: Date.now() // Add timestamp to ensure state freshness
+                    timestamp: Date.now()
                 }
             });
             logCallState('startCall-end');

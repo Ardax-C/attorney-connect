@@ -389,11 +389,15 @@
     }
 
     // Add this function to handle voice calls
-    function startCall() {
-        if (videoChatComponent) {
-            videoChatComponent.startCall();
-        } else {
-            console.error('VideoChat component not found');
+    async function startCall() {
+        try {
+            if (videoChatComponent) {
+                await videoChatComponent.startCall();
+            } else {
+                console.error('VideoChat component not found');
+            }
+        } catch (error) {
+            console.error('Error starting video call:', error);
         }
     }
 </script>
@@ -438,10 +442,10 @@
                                     </svg>
                                 </button>
                                 <VideoChat 
+                                    bind:this={videoChatComponent}
                                     {chatId}
                                     userId={user?.uid}
                                     {otherParticipantId}
-                                    bind:this={videoChatComponent}
                                 />
                             </div>
                         </div>
