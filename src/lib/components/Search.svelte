@@ -3,7 +3,7 @@
     import { page } from '$app/stores';
     import { goto } from '$app/navigation';
     import { auth } from '$lib/firebase';
-    import { ChevronDown, ChevronUp, ChevronLeft, Search, Info } from 'lucide-svelte';
+    import { ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Search, Info } from 'lucide-svelte';
     import Navbar from './Navbar.svelte';
     import UserProfileCard from './UserProfileCard.svelte';
     import backgroundImage from '../images/dark_lattice.png';
