@@ -356,6 +356,67 @@
             cleanupCall();
         };
     });
+
+    // Add resize functionality
+    let isResizing = false;
+    let currentResizeTarget = null;
+    let initialSize = { width: 0, height: 0 };
+    let initialPosition = { x: 0, y: 0 };
+
+    onMount(() => {
+        // Add resize event listeners
+        const resizeHandles = document.querySelectorAll('.resize-handle');
+        
+        resizeHandles.forEach(handle => {
+            handle.addEventListener('mousedown', startResize);
+        });
+
+        document.addEventListener('mousemove', handleResize);
+        document.addEventListener('mouseup', stopResize);
+
+        return () => {
+            document.removeEventListener('mousemove', handleResize);
+            document.removeEventListener('mouseup', stopResize);
+        };
+    });
+
+    function startResize(e) {
+        isResizing = true;
+        currentResizeTarget = e.target.parentElement;
+        initialSize = {
+            width: currentResizeTarget.offsetWidth,
+            height: currentResizeTarget.offsetHeight
+        };
+        initialPosition = { x: e.clientX, y: e.clientY };
+        e.preventDefault();
+    }
+
+    function handleResize(e) {
+        if (!isResizing) return;
+
+        const dx = e.clientX - initialPosition.x;
+        const dy = e.clientY - initialPosition.y;
+
+        if (currentResizeTarget) {
+            const newWidth = initialSize.width + dx;
+            const newHeight = initialSize.height + dy;
+            
+            // Maintain minimum sizes
+            const minWidth = currentResizeTarget.classList.contains('local-video') ? 160 : 320;
+            const maxWidth = currentResizeTarget.classList.contains('local-video') ? 240 : 800;
+            
+            if (newWidth >= minWidth && newWidth <= maxWidth) {
+                currentResizeTarget.style.width = `${newWidth}px`;
+                // Maintain aspect ratio (16:9)
+                currentResizeTarget.style.height = `${newWidth * 0.5625}px`;
+            }
+        }
+    }
+
+    function stopResize() {
+        isResizing = false;
+        currentResizeTarget = null;
+    }
 </script>
 
 {#if showIncomingCallDialog}
@@ -380,12 +441,13 @@
     </div>
 {/if}
 
-<div class="fixed right-4 bottom-4 flex flex-col gap-4 z-50 {isCallActive ? 'desktop:right-8 desktop:bottom-8' : ''}">
+<div class="absolute right-1/2 top-1/2 transform translate-x-1/2 -translate-y-1/2 flex flex-col gap-4 z-50 {isCallActive ? 'desktop:static desktop:transform-none desktop:flex desktop:justify-center' : ''}">
     {#if isCallActive}
         <!-- Main call container for desktop -->
-        <div class="flex flex-col desktop:flex-row gap-4">
+        <div class="flex flex-col desktop:flex-row gap-4 desktop:resizable">
             <!-- Remote Video -->
-            <div class="relative w-[300px] desktop:w-[480px] aspect-video rounded-lg overflow-hidden bg-black/20 shadow-lg">
+            <div class="relative w-[300px] desktop:w-[480px] desktop:min-w-[320px] desktop:max-w-[800px] aspect-video rounded-lg overflow-hidden bg-black/20 shadow-lg desktop:resize">
+                <div class="resize-handle absolute bottom-0 right-0 w-4 h-4 cursor-se-resize"></div>
                 <video 
                     bind:this={remoteVideo} 
                     autoplay 
@@ -395,7 +457,7 @@
                     <track kind="captions">
                 </video>
                 
-                <!-- Video Controls - Moved inside remote video container -->
+                <!-- Video Controls -->
                 <div class="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 bg-black/50 px-4 py-2 rounded-full">
                     <button 
                         on:click={toggleMute}
@@ -419,7 +481,8 @@
             </div>
 
             <!-- Local Video -->
-            <div class="relative w-[120px] aspect-video rounded-lg overflow-hidden bg-black/20 shadow-lg desktop:self-start">
+            <div class="relative w-[120px] desktop:min-w-[160px] desktop:max-w-[240px] aspect-video rounded-lg overflow-hidden bg-black/20 shadow-lg desktop:self-start desktop:resize">
+                <div class="resize-handle absolute bottom-0 right-0 w-4 h-4 cursor-se-resize"></div>
                 <video 
                     bind:this={localVideo} 
                     autoplay 
@@ -435,22 +498,26 @@
 </div>
 
 <style>
-    /* Add these styles to ensure proper desktop layout */
+    /* Add resize styling */
     @media (min-width: 1024px) {
-        :global(.desktop\:right-8) {
-            right: 2rem;
+        .desktop\:resize {
+            resize: both;
+            overflow: hidden;
         }
-        :global(.desktop\:bottom-8) {
-            bottom: 2rem;
+
+        .resize-handle {
+            background: linear-gradient(135deg, transparent 50%, rgba(255,255,255,0.3) 50%);
+            z-index: 10;
         }
-        :global(.desktop\:w-\[480px\]) {
-            width: 480px;
-        }
-        :global(.desktop\:flex-row) {
-            flex-direction: row;
-        }
-        :global(.desktop\:self-start) {
-            align-self: flex-start;
+
+        /* Maintain aspect ratio while resizing */
+        video {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
         }
     }
 </style>
