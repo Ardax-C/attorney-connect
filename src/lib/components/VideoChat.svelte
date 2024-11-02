@@ -6,6 +6,8 @@
     export let chatId;
     export let userId;
     export let otherParticipantId;
+    export let showBriefs = false;
+    export let toggleBriefs;
     
     let localStream;
     let remoteStream;
@@ -381,10 +383,10 @@
     </div>
 {/if}
 
-<div class="fixed inset-0 {isCallActive ? 'z-50' : 'pointer-events-none opacity-0'}">
+<div class="fixed {showBriefs ? 'w-[50%]' : 'w-full'} inset-y-0 left-0 {isCallActive ? 'z-50' : 'pointer-events-none opacity-0'}">
     {#if isCallActive}
         <div class="absolute inset-0 flex flex-col bg-gray-950">
-            <!-- Update the video container -->
+            <!-- Video container -->
             <div class="relative w-full h-full bg-black overflow-hidden">
                 <video 
                     bind:this={remoteVideo} 
@@ -395,24 +397,27 @@
                     <track kind="captions">
                 </video>
 
-                <!-- Update the controls container to ensure it stays visible -->
-                <div class="absolute inset-0 flex flex-col justify-between pointer-events-none">
-                    <!-- Top controls -->
-                    <div class="p-4 flex justify-between items-start pointer-events-auto">
-                        <!-- Duration -->
+                <!-- Update the controls container -->
+                <div class="absolute inset-0 flex flex-col justify-between pointer-events-none {showBriefs ? 'w-[50%]' : 'w-full'}">
+                    <!-- Top controls - Updated positioning -->
+                    <div class="p-4 flex justify-between items-start pointer-events-auto relative z-[70]">
+                        <!-- Left side controls -->
                         <div class="bg-black/70 px-4 py-2 rounded-full backdrop-blur-sm">
                             <span class="text-white/90 text-sm font-medium">
                                 {formatDuration(callDuration)}
                             </span>
                         </div>
-                        <!-- Connection Status -->
-                        <div class="flex items-center gap-2 bg-black/70 px-3 py-1.5 rounded-full backdrop-blur-sm">
-                            <div class="w-2 h-2 rounded-full {
-                                connectionState === 'connected' ? 'bg-green-500' :
-                                connectionState === 'connecting' ? 'bg-yellow-500 animate-pulse' :
-                                'bg-red-500'
-                            }"></div>
-                            <span class="text-white/90 text-xs capitalize">{connectionState}</span>
+                        
+                        <!-- Right side controls - Moved to left side -->
+                        <div class="flex items-center gap-2 absolute left-20">
+                            <button 
+                                class="p-2.5 rounded-full bg-black/70 hover:bg-black/80 transition-colors backdrop-blur-sm"
+                                on:click={toggleBriefs}
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 {showBriefs ? 'text-blue-400' : 'text-white/90'}" viewBox="0 0 20 20" fill="currentColor">
+                                    <path d="M9 4.804A7.968 7.968 0 005.5 4c-1.255 0-2.443.29-3.5.804v10A7.969 7.969 0 015.5 14c1.669 0 3.218.51 4.5 1.385A7.962 7.962 0 0114.5 14c1.255 0 2.443.29 3.5.804v-10A7.968 7.968 0 0014.5 4c-1.255 0-2.443.29-3.5.804V12a1 1 0 11-2 0V4.804z"/>
+                                </svg>
+                            </button>
                         </div>
                     </div>
 
@@ -466,8 +471,8 @@
                     </div>
                 </div>
 
-                <!-- Local video PiP -->
-                <div class="absolute top-4 right-4 w-[30%] max-w-[200px] aspect-video rounded-lg overflow-hidden bg-black/20 shadow-lg pointer-events-auto">
+                <!-- Update PiP video container -->
+                <div class="absolute top-4 right-4 w-[30%] max-w-[200px] aspect-video rounded-lg overflow-hidden bg-black/20 shadow-lg pointer-events-auto z-[65]">
                     <video 
                         bind:this={localVideo} 
                         autoplay 

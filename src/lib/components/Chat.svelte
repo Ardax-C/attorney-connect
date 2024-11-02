@@ -9,6 +9,7 @@
     import { generateEncryptionKey, exportKey, importKey, encryptMessage, decryptMessage } from '$lib/services/encryptionService.js';
     import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
     import VideoChat from './VideoChat.svelte';
+    import CourtBriefs from './CourtBriefs.svelte';
 
     export let chatId;
 
@@ -41,6 +42,8 @@
     let typingMessage = '';
 
     let videoChatComponent;
+
+    let showBriefs = false;
 
     $: typingMessage = Array.from(typingUsers)
         .filter(id => id !== user?.uid)
@@ -427,6 +430,10 @@
             videoChatComponent.startCall();
         }
     }
+
+    function toggleBriefs() {
+        showBriefs = !showBriefs;
+    }
 </script>
 
 <main class="bg-no-repeat bg-center bg-cover fixed inset-0 flex flex-col" style="background-image: url({backgroundImage})">
@@ -440,11 +447,13 @@
                     {chatId}
                     userId={user?.uid}
                     {otherParticipantId}
+                    {showBriefs}
+                    {toggleBriefs}
                 />
                 <div class="fixed inset-x-0 top-[64px] bottom-0 flex bg-gray-950/50 backdrop-blur-sm">
-                    <!-- Chat Container -->
-                    <div class="w-full flex flex-col bg-gray-900/90">
-                        <!-- Chat Header -->
+                    <!-- Chat Container - Updated with dynamic width -->
+                    <div class="flex-1 flex flex-col bg-gray-900/90 {showBriefs ? 'w-[50%]' : 'w-full'} transition-all duration-300">
+                        <!-- Chat Header - Updated with briefs toggle -->
                         <div class="h-16 bg-gray-900/95 border-b border-gray-800/50 flex items-center justify-between px-3 md:px-6">
                             <div class="flex items-center gap-3">
                                 <div class="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center text-white font-medium">
@@ -456,8 +465,18 @@
                                 </div>
                             </div>
                             
-                            <!-- Call Button -->
+                            <!-- Call and Briefs Buttons -->
                             <div class="flex items-center gap-4">
+                                <!-- Briefs Toggle Button -->
+                                <button 
+                                    class="p-2.5 rounded-full bg-gray-800/50 hover:bg-gray-700/50 transition-colors"
+                                    on:click={toggleBriefs}
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 {showBriefs ? 'text-blue-400' : 'text-gray-400'}" viewBox="0 0 20 20" fill="currentColor">
+                                        <path d="M9 4.804A7.968 7.968 0 005.5 4c-1.255 0-2.443.29-3.5.804v10A7.969 7.969 0 015.5 14c1.669 0 3.218.51 4.5 1.385A7.962 7.962 0 0114.5 14c1.255 0 2.443.29 3.5.804v-10A7.968 7.968 0 0014.5 4c-1.255 0-2.443.29-3.5.804V12a1 1 0 11-2 0V4.804z"/>
+                                    </svg>
+                                </button>
+                                <!-- Existing Call Button -->
                                 <button 
                                     class="p-2.5 rounded-full bg-blue-500/10 hover:bg-blue-500/20 transition-colors {!otherParticipantId ? 'opacity-50 cursor-not-allowed' : ''}"
                                     on:click={startCall}
@@ -470,7 +489,7 @@
                             </div>
                         </div>
 
-                        <!-- Messages Container -->
+                        <!-- Existing Messages Container -->
                         <div 
                             bind:this={chatContainer}
                             on:scroll={handleScroll}
@@ -536,7 +555,7 @@
                             {/each}
                         </div>
 
-                        <!-- Message Input -->
+                        <!-- Existing Message Input -->
                         <div class="w-full bg-gray-900/95 border-t border-gray-800/50">
                             <!-- Add typing indicator here -->
                             {#if typingMessage}
@@ -593,6 +612,15 @@
                             </div>
                         </div>
                     </div>
+
+                    <!-- Court Briefs Panel -->
+                    {#if showBriefs}
+                        <div class="w-[50%] border-l border-gray-800/50 transition-all duration-300 overflow-y-auto z-[60]">
+                            <div class="h-full pb-16 pointer-events-auto">
+                                <CourtBriefs />
+                            </div>
+                        </div>
+                    {/if}
                 </div>
             {/if}
         </div>
