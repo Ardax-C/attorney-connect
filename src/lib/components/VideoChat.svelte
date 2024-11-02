@@ -98,7 +98,6 @@
     async function handleStartCall() {
         isLoading = true;
         try {
-            console.log('Starting call as caller');
             isCallPending = true;
             isCallActive = true;
             await setupMediaDevices();
