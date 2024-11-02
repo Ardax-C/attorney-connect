@@ -59,49 +59,56 @@
 
     onMount(() => {
         profileCard = document.getElementById('profile-card');
-    });
+        
+        if (acceptedRequestsUnsubscribe) {
+            acceptedRequestsUnsubscribe();
+        }
 
-    onAuthStateChanged(auth, async (currentUser) => {
-        if (currentUser) {
-            user = currentUser;
-            try {
-                const userDoc = await getDoc(doc(db, 'attorneyProfiles', user.uid));
-                if (userDoc.exists()) {
-                    userDetails = userDoc.data();
-                    
-                    if (acceptedRequestsUnsubscribe) {
-                        acceptedRequestsUnsubscribe();
+        const unsubscribeAuth = onAuthStateChanged(auth, async (currentUser) => {
+            if (currentUser) {
+                user = currentUser;
+                try {
+                    const userDoc = await getDoc(doc(db, 'attorneyProfiles', user.uid));
+                    if (userDoc.exists()) {
+                        userDetails = userDoc.data();
+                        
+                        acceptedRequestsUnsubscribe = onSnapshot(
+                            query(
+                                collection(db, 'legalRequests'),
+                                where('assignedTo', '==', user.uid),
+                                where('status', 'in', ['accepted', 'completed']),
+                                orderBy('timestamp', 'desc')
+                            ),
+                            (snapshot) => {
+                                acceptedRequests = snapshot.docs.map(doc => ({
+                                    id: doc.id,
+                                    ...doc.data(),
+                                    notes: doc.data().notes || '',
+                                    timestamp: doc.data().timestamp?.toDate()
+                                }));
+                            }
+                        );
+                    } else {
+                        errorMessage = 'User details not found.';
                     }
-
-                    acceptedRequestsUnsubscribe = onSnapshot(
-                        query(
-                            collection(db, 'legalRequests'),
-                            where('assignedTo', '==', user.uid),
-                            where('status', 'in', ['accepted', 'completed']),
-                            orderBy('timestamp', 'desc')
-                        ),
-                        (snapshot) => {
-                            acceptedRequests = snapshot.docs.map(doc => ({
-                                id: doc.id,
-                                ...doc.data(),
-                                notes: doc.data().notes || '',
-                                timestamp: doc.data().timestamp?.toDate()
-                            }));
-                        }
-                    );
-                } else {
-                    errorMessage = 'User details not found.';
+                } catch (error) {
+                    errorMessage = error.message;
                 }
-            } catch (error) {
-                errorMessage = error.message;
+            } else {
+                errorMessage = 'No user is logged in.';
+                if (acceptedRequestsUnsubscribe) {
+                    acceptedRequestsUnsubscribe();
+                    acceptedRequestsUnsubscribe = null;
+                }
             }
-        } else {
-            errorMessage = 'No user is logged in.';
+        });
+
+        return () => {
             if (acceptedRequestsUnsubscribe) {
                 acceptedRequestsUnsubscribe();
-                acceptedRequestsUnsubscribe = null;
             }
-        }
+            unsubscribeAuth();
+        };
     });
 
     onDestroy(() => {
@@ -249,9 +256,10 @@
                 <div class="absolute -bottom-16 left-8">
                     <div class="relative">
                         <img 
-                            src={userDetails?.profilePictureUrl || 'default-profile.png'} 
-                            alt={userDetails?.firstName} 
+                            src={userDetails?.profilePictureUrl || '/images/default-avatar.png'} 
+                            alt={userDetails?.firstName || 'Profile'} 
                             class="w-32 h-32 rounded-xl object-cover border-4 border-zinc-800"
+                            on:error={(e) => e.target.src = '/images/default-avatar.png'}
                         />
                         <button class="absolute bottom-2 right-2 bg-zinc-800 p-2 rounded-full hover:bg-zinc-700 transition-colors">
                             <FontAwesomeIcon icon={faPencilAlt} class="text-emerald-400 text-sm" />
@@ -690,5 +698,21 @@
     .transform {
         transform: translateX(0);
         transition: transform 0.3s ease-in-out;
+    }
+
+    /* Add overflow control to prevent freezing */
+    :global(body) {
+        overflow-y: auto !important;
+    }
+
+    main {
+        position: relative;
+        min-height: 100vh;
+        overflow-x: hidden;
+    }
+
+    /* Ensure modals don't break scrolling */
+    :global(body.modal-open) {
+        overflow: hidden;
     }
 </style>
