@@ -440,39 +440,51 @@
     </div>
 {/if}
 
-<div class="fixed inset-0 z-50 {isCallActive ? '' : 'pointer-events-none'}">
+<div class="fixed inset-0 {isCallActive ? 'z-50' : 'pointer-events-none opacity-0'}">
     {#if isCallActive}
-        <div class="h-full flex flex-col bg-gray-950">
-            <!-- Remote Video -->
-            <div class="relative flex-1 w-full bg-black">
+        <div class="absolute inset-0 flex flex-col bg-gray-950">
+            <!-- Update the video container -->
+            <div class="relative w-full h-full bg-black overflow-hidden">
                 <video 
                     bind:this={remoteVideo} 
                     autoplay 
                     playsinline 
-                    class="w-full h-full object-cover"
+                    class="absolute inset-0 w-full h-full object-cover"
                 >
                     <track kind="captions">
                 </video>
 
-                <!-- Call Info Overlay -->
-                <div class="absolute top-0 inset-x-0 p-4 flex justify-between items-start">
-                    <!-- Duration -->
-                    <div class="bg-black/70 px-4 py-2 rounded-full backdrop-blur-sm">
-                        <span class="text-white/90 text-sm font-medium">{formatDuration(callDuration)}</span>
+                <!-- Update the controls container to ensure it stays visible -->
+                <div class="absolute inset-0 flex flex-col justify-between pointer-events-none">
+                    <!-- Top controls -->
+                    <div class="p-4 flex justify-between items-start pointer-events-auto">
+                        <!-- Duration -->
+                        <div class="bg-black/70 px-4 py-2 rounded-full backdrop-blur-sm">
+                            <span class="text-white/90 text-sm font-medium">
+                                {formatDuration(callDuration)}
+                            </span>
+                        </div>
+                        <!-- Connection Status -->
+                        <div class="flex items-center gap-2 bg-black/70 px-3 py-1.5 rounded-full backdrop-blur-sm">
+                            <div class="w-2 h-2 rounded-full {
+                                connectionState === 'connected' ? 'bg-green-500' :
+                                connectionState === 'connecting' ? 'bg-yellow-500 animate-pulse' :
+                                'bg-red-500'
+                            }"></div>
+                            <span class="text-white/90 text-xs capitalize">{connectionState}</span>
+                        </div>
                     </div>
-                    <!-- Connection Status -->
-                    <div class="flex items-center gap-2 bg-black/70 px-3 py-1.5 rounded-full backdrop-blur-sm">
-                        <div class="w-2 h-2 rounded-full {
-                            connectionState === 'connected' ? 'bg-green-500' :
-                            connectionState === 'connecting' ? 'bg-yellow-500 animate-pulse' :
-                            'bg-red-500'
-                        }"></div>
-                        <span class="text-white/90 text-xs capitalize">{connectionState}</span>
+
+                    <!-- Bottom controls -->
+                    <div class="p-4 flex justify-center pointer-events-auto">
+                        <div class="flex items-center gap-3 md:gap-6 bg-black/70 px-4 md:px-8 py-3 rounded-full backdrop-blur-sm">
+                            <!-- Existing control buttons -->
+                        </div>
                     </div>
                 </div>
 
-                <!-- Local Video - Picture in Picture -->
-                <div class="absolute top-4 right-4 w-[30%] max-w-[200px] aspect-video rounded-lg overflow-hidden bg-black/20 shadow-lg cursor-move touch-none">
+                <!-- Local video PiP -->
+                <div class="absolute top-4 right-4 w-[30%] max-w-[200px] aspect-video rounded-lg overflow-hidden bg-black/20 shadow-lg pointer-events-auto">
                     <video 
                         bind:this={localVideo} 
                         autoplay 
@@ -482,50 +494,6 @@
                     >
                         <track kind="captions">
                     </video>
-                </div>
-
-                <!-- Controls Overlay -->
-                <div class="absolute bottom-0 inset-x-0 p-4 flex justify-center">
-                    <div class="flex items-center gap-3 md:gap-6 bg-black/70 px-4 md:px-8 py-3 rounded-full backdrop-blur-sm">
-                        <!-- Mute Button -->
-                        <button 
-                            on:click={toggleMute}
-                            class="flex flex-col items-center gap-1 group"
-                        >
-                            <div class="p-2.5 md:p-3.5 rounded-full {isMuted ? 'bg-red-500/20' : 'bg-gray-700/50'} group-hover:bg-gray-600/50 transition-colors">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 {isMuted ? 'text-red-500' : 'text-white'}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d={isMuted ? "M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" : "M15.536 8.464a5 5 0 010 7.072M18.364 5.636a9 9 0 010 12.728M12 18.364l-4.243 4.243-1.414-1.414L12 15.414l4.243 4.243-1.414 1.414L12 18.364z"} />
-                                </svg>
-                            </div>
-                            <span class="text-[10px] md:text-xs text-white/80">{isMuted ? 'Unmute' : 'Mute'}</span>
-                        </button>
-
-                        <!-- Video Toggle -->
-                        <button 
-                            on:click={toggleVideo}
-                            class="flex flex-col items-center gap-1 group"
-                        >
-                            <div class="p-2.5 md:p-3.5 rounded-full {!isVideoEnabled ? 'bg-red-500/20' : 'bg-gray-700/50'} group-hover:bg-gray-600/50 transition-colors">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 {!isVideoEnabled ? 'text-red-500' : 'text-white'}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d={!isVideoEnabled ? "M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z M3 3l18 18" : "M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"} />
-                                </svg>
-                            </div>
-                            <span class="text-[10px] md:text-xs text-white/80">{isVideoEnabled ? 'Stop Video' : 'Start Video'}</span>
-                        </button>
-
-                        <!-- End Call -->
-                        <button 
-                            on:click={endCall}
-                            class="flex flex-col items-center gap-1 group"
-                        >
-                            <div class="p-2.5 md:p-3.5 rounded-full bg-red-500/20 group-hover:bg-red-600/30 transition-colors">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 8l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2M5 3a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V5a2 2 0 00-2-2H5z" />
-                                </svg>
-                            </div>
-                            <span class="text-[10px] md:text-xs text-red-500">End Call</span>
-                        </button>
-                    </div>
                 </div>
             </div>
         </div>
