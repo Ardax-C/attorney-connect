@@ -8,6 +8,7 @@
     import { ChevronLeft, ChevronRight, Menu, X } from 'lucide-svelte';
     import { notificationCount } from '$lib/stores/notificationStore';
     import brandLogo from '../images/logo-small.png';
+    import { page } from '$app/stores';
 
     export let isSearchPage = false;
     export let currentPage = 1;
@@ -21,6 +22,11 @@
     let hasNotifications = false;
 
     $: hasNotifications = $notificationCount > 0;
+
+    $: {
+        $page;
+        isMenuOpen = false;
+    }
 
     onMount(() => {
         const unsubscribe = auth.onAuthStateChanged(async (firebaseUser) => {
