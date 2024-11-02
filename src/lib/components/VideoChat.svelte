@@ -139,16 +139,12 @@
             // Store the current call data
             currentCallData = videoCallData;
 
-            // Handle call states
             switch (videoCallData.status) {
                 case 'pending':
-                    // For recipient: Show incoming call dialog
                     if (videoCallData.recipient === userId) {
                         console.log('Recipient: Showing incoming call dialog');
                         showIncomingCallDialog = true;
-                    }
-                    // For caller: Maintain call state
-                    else if (videoCallData.caller === userId) {
+                    } else if (videoCallData.caller === userId) {
                         console.log('Caller: Maintaining pending state');
                         isCallPending = true;
                         isCallActive = true;
@@ -161,13 +157,19 @@
                     isCallActive = true;
                     isCallPending = false;
 
-                    // For caller: Handle answer
-                    if (videoCallData.caller === userId && videoCallData.answer) {
+                    // For caller: Handle answer only once
+                    if (videoCallData.caller === userId && 
+                        videoCallData.answer && 
+                        peerConnection?.signalingState === 'have-local-offer') {
                         console.log('Caller: Processing answer');
-                        if (peerConnection) {
+                        try {
                             await peerConnection.setRemoteDescription(
                                 new RTCSessionDescription(videoCallData.answer)
                             );
+                        } catch (error) {
+                            if (!error.message.includes('Cannot set remote answer in state stable')) {
+                                throw error;
+                            }
                         }
                     }
                     break;
@@ -175,15 +177,15 @@
                 case 'rejected':
                 case 'ended':
                     console.log('Call ended or rejected');
-                    await cleanupCall();
+                    await cleanupCall(true); // Force cleanup
                     return;
             }
 
             // Handle ICE candidates
-            if (videoCallData.candidates) {
+            if (videoCallData.candidates && peerConnection) {
                 const otherParty = userId === videoCallData.caller ? videoCallData.recipient : videoCallData.caller;
                 const candidates = videoCallData.candidates[otherParty];
-                if (peerConnection && candidates) {
+                if (candidates) {
                     for (const candidate of candidates) {
                         try {
                             await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
@@ -197,7 +199,9 @@
             logCallState('handleIncomingCall-end');
         } catch (error) {
             console.error('Error handling incoming call:', error);
-            await cleanupCall();
+            if (!isCallActive) {
+                await cleanupCall(true);
+            }
         }
     }
 
@@ -265,11 +269,11 @@
         await cleanupCall();
     }
 
-    async function cleanupCall() {
+    async function cleanupCall(force = false) {
         console.log('Cleaning up call');
         
-        // Only cleanup if we're not in an active call
-        if (isCallActive && currentCallData?.status === 'active') {
+        // Only cleanup if we're not in an active call or if forced
+        if (!force && isCallActive && currentCallData?.status === 'active') {
             console.log('Skipping cleanup for active call');
             return;
         }
@@ -277,7 +281,6 @@
         if (localStream) {
             localStream.getTracks().forEach(track => {
                 track.stop();
-                localStream.removeTrack(track);
             });
         }
         if (peerConnection) {
