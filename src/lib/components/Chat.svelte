@@ -8,6 +8,7 @@
     import backgroundImage from '../images/dark_lattice.png';
     import { generateEncryptionKey, exportKey, importKey, encryptMessage, decryptMessage } from '$lib/services/encryptionService.js';
     import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
+    import VideoChat from './VideoChat.svelte';
 
     export let chatId;
 
@@ -401,7 +402,7 @@
                     <!-- Chat container -->
                     <div class="w-full flex flex-col bg-gray-900">
                         <!-- Header -->
-                        <div class="h-16 bg-gray-900 border-b border-gray-800/50 flex items-center px-4 md:px-6">
+                        <div class="h-16 bg-gray-900 border-b border-gray-800/50 flex items-center justify-between px-4 md:px-6">
                             <div class="flex items-center gap-3">
                                 <div class="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center">
                                     <span class="text-blue-400 font-medium">
@@ -413,6 +414,13 @@
                                     <span class="text-sm text-gray-400">Active Now</span>
                                 </div>
                             </div>
+                            
+                            <!-- Add VideoChat component here -->
+                            <VideoChat 
+                                {chatId}
+                                userId={user?.uid}
+                                {otherParticipantId}
+                            />
                         </div>
 
                         <!-- Messages Container -->
