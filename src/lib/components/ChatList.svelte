@@ -110,42 +110,48 @@
         try {
             const chatRef = doc(db, 'chats', chat.id);
             
-            await runTransaction(db, async (transaction) => {
-                const chatDoc = await transaction.get(chatRef);
-                
-                if (!chatDoc.exists()) {
-                    throw new Error('Chat document does not exist');
-                }
+            // First check if chat exists and if user is still a participant
+            const chatSnap = await getDoc(chatRef);
+            if (!chatSnap.exists()) {
+                error = 'Chat has already been deleted';
+                chats = chats.filter(c => c.id !== chat.id);
+                return;
+            }
 
-                const chatData = chatDoc.data();
-                const currentParticipants = chatData.participants;
+            const chatData = chatSnap.data();
+            if (!chatData.participants.includes(user.uid)) {
+                error = 'You are no longer a participant in this chat';
+                chats = chats.filter(c => c.id !== chat.id);
+                return;
+            }
 
-                if (currentParticipants.length === 1 && currentParticipants[0] === user.uid) {
-                    transaction.delete(chatRef);
-                } else {
-                    const updatedParticipants = currentParticipants.filter(id => id !== user.uid);
-                    transaction.update(chatRef, {
-                        participants: updatedParticipants,
-                        [`unreadCount.${user.uid}`]: deleteField(),
-                        [`activeUsers.${user.uid}`]: deleteField(),
-                        lastMessage: `A user has left the conversation.`,
-                        lastMessageTimestamp: serverTimestamp()
-                    });
+            if (chatData.participants.length === 1 && chatData.participants[0] === user.uid) {
+                // If user is the last participant, delete the chat
+                await deleteDoc(chatRef);
+            } else {
+                // If other participants exist, remove the current user
+                await updateDoc(chatRef, {
+                    participants: arrayRemove(user.uid),
+                    [`unreadCount.${user.uid}`]: deleteField(),
+                    [`activeUsers.${user.uid}`]: deleteField(),
+                    lastMessage: `A user has left the conversation.`,
+                    lastMessageTimestamp: serverTimestamp()
+                });
 
-                    // Add a system message
-                    const messagesRef = collection(chatRef, 'messages');
-                    transaction.set(doc(messagesRef), {
-                        content: `A user has left the conversation.`,
-                        senderId: 'system',
-                        timestamp: serverTimestamp()
-                    });
-                }
-            });
+                // Add a system message
+                const messagesRef = collection(chatRef, 'messages');
+                await addDoc(messagesRef, {
+                    content: `A user has left the conversation.`,
+                    senderId: 'system',
+                    timestamp: serverTimestamp()
+                });
+            }
 
             // Remove the chat from the local array
             chats = chats.filter(c => c.id !== chat.id);
-            error = null; // Clear any previous error messages
+            error = null;
         } catch (err) {
+            console.error('Error deleting chat:', err);
             error = `Error deleting chat: ${err.message}. Please try again.`;
         }
     }
