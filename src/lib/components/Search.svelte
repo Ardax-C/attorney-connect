@@ -48,17 +48,13 @@
         currentPage = page;
 
         try {
-            const { extractedInfo: newExtractedInfo, results } = await searchAttorneys(searchTerm);
+            const { extractedInfo: newExtractedInfo, results } = await searchAttorneys(searchTerm || null);
             extractedInfo = newExtractedInfo;
             totalResults = results.length;
             totalPages = Math.ceil(totalResults / resultsPerPage);
             
             const startIndex = (page - 1) * resultsPerPage;
             searchResults = results.slice(startIndex, startIndex + resultsPerPage);
-
-            if (searchResults.length === 0) {
-                errorMessage = "No attorneys found matching your search criteria. Please try different keywords or broaden your search.";
-            }
         } catch (error) {
             errorMessage = "An error occurred while searching. Please try again.";
             searchResults = [];
@@ -119,6 +115,7 @@
 
     function handleKeyPress(event) {
         if (event.key === 'Enter') {
+            event.preventDefault(); // Prevent form submission if within a form
             applyFilters();
         }
     }
@@ -168,7 +165,7 @@
                             id="keywords"
                             type="text" 
                             bind:value={keywords}
-                            on:keypress={handleKeyPress}
+                            on:keydown={handleKeyPress}
                             placeholder="Search by name or keyword"
                             class="w-full bg-zinc-700 text-white px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
                         >

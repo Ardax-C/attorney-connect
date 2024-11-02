@@ -34,9 +34,19 @@ async function initializeFuseInstances() {
 }
 
 export async function searchAttorneys(searchTerm) {
-
+  // If search term is empty, return all attorneys
   if (!searchTerm || searchTerm.trim() === '') {
-    return { extractedInfo: null, results: [] };
+    try {
+      const snapshot = await getDocs(collection(db, 'attorneyProfiles'));
+      const attorneys = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      return { 
+        extractedInfo: null, 
+        results: attorneys.sort((a, b) => a.lastName.localeCompare(b.lastName)) 
+      };
+    } catch (error) {
+      console.error('Error fetching all attorneys:', error);
+      return { extractedInfo: null, results: [] };
+    }
   }
 
   try {

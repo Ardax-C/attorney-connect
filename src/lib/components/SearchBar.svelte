@@ -13,7 +13,8 @@
     }
     
     function handleSubmit() {
-        dispatch('search', value);
+        const trimmedValue = value.trim();
+        dispatch('search', trimmedValue === '' ? '*' : trimmedValue);
     }
     
     function handleKeyDown(event) {
