@@ -16,6 +16,8 @@
     let isCallPending = false;
     let showIncomingCallDialog = false;
     let currentCallData = null;
+    let isMuted = false;
+    let isVideoEnabled = true;
     
     const servers = {
         iceServers: [
@@ -308,6 +310,20 @@
         await cleanupCall();
     }
 
+    function toggleMute() {
+        isMuted = !isMuted;
+        localStream?.getAudioTracks().forEach(track => {
+            track.enabled = !isMuted;
+        });
+    }
+
+    function toggleVideo() {
+        isVideoEnabled = !isVideoEnabled;
+        localStream?.getVideoTracks().forEach(track => {
+            track.enabled = isVideoEnabled;
+        });
+    }
+
     onMount(() => {
         const unsubscribe = onSnapshot(doc(db, 'chats', chatId), (doc) => {
             const data = doc.data();
@@ -323,67 +339,52 @@
     });
 </script>
 
-<div class="flex items-center">
-    {#if !isCallActive && !isCallPending}
-        <button
-            on:click={startCall}
-            class="text-gray-400 hover:text-emerald-400 p-2 rounded-full transition-colors"
-            title="Start video call"
-        >
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-            </svg>
-        </button>
-    {/if}
-
-    {#if showIncomingCallDialog}
-        <div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <div class="bg-gray-800 p-6 rounded-lg shadow-xl">
-                <h3 class="text-lg font-medium text-white mb-4">Incoming Video Call</h3>
-                <div class="flex gap-4">
-                    <button
-                        on:click={acceptCall}
-                        class="bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-lg"
-                    >
-                        Accept
-                    </button>
-                    <button
-                        on:click={rejectCall}
-                        class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg"
-                    >
-                        Decline
-                    </button>
-                </div>
-            </div>
+<div class="fixed right-4 bottom-20 w-full max-w-[300px] z-50 flex flex-col gap-4 md:right-4 md:bottom-20 sm:right-2 sm:bottom-16 sm:max-w-[160px]">
+    {#if isCallActive}
+        <!-- Remote Video -->
+        <div class="relative w-full aspect-video sm:aspect-[3/4] rounded-lg overflow-hidden bg-black/20">
+            <video 
+                bind:this={remoteVideo} 
+                autoplay 
+                playsinline 
+                class="w-full h-full object-cover"
+            >
+                <track kind="captions">
+            </video>
         </div>
-    {/if}
 
-    {#if isCallActive || isCallPending}
-        <div class="fixed top-24 right-4 bg-zinc-800 rounded-lg shadow-lg p-4 w-80 z-50">
-            <video
-                bind:this={localVideo}
-                autoplay
-                playsinline
+        <!-- Local Video -->
+        <div class="relative w-full aspect-video sm:aspect-[3/4] sm:w-20 sm:absolute sm:bottom-4 sm:right-4 rounded-lg overflow-hidden bg-black/20">
+            <video 
+                bind:this={localVideo} 
+                autoplay 
+                playsinline 
                 muted
-                class="w-full rounded-lg mb-2"
+                class="w-full h-full object-cover"
             >
-                <track kind="captions" label="English" src="" default />
+                <track kind="captions">
             </video>
-            
-            <video
-                bind:this={remoteVideo}
-                autoplay
-                playsinline
-                class="w-full rounded-lg mb-2"
-            >
-                <track kind="captions" label="English" src="" default />
-            </video>
+        </div>
 
-            <button
-                on:click={endCall}
-                class="w-full bg-red-500 hover:bg-red-600 text-white p-2 rounded-lg"
+        <!-- Video Controls -->
+        <div class="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-2 bg-black/50 px-2 py-1 rounded-full z-[51]">
+            <button 
+                on:click={toggleMute}
+                class="bg-transparent border-none text-white cursor-pointer p-1 hover:bg-black/30 rounded-full"
             >
-                End Call
+                {isMuted ? '🔇' : '🔊'}
+            </button>
+            <button 
+                on:click={toggleVideo}
+                class="bg-transparent border-none text-white cursor-pointer p-1 hover:bg-black/30 rounded-full"
+            >
+                {isVideoEnabled ? '📹' : '🚫'}
+            </button>
+            <button 
+                on:click={endCall}
+                class="bg-transparent border-none cursor-pointer p-1 hover:bg-black/30 rounded-full text-red-500"
+            >
+                📞
             </button>
         </div>
     {/if}
