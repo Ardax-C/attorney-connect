@@ -101,6 +101,12 @@
                         {#if userRole === 'admin'}
                             <a href="/admin" class="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Admin Dashboard</a>
                         {/if}
+                        <a
+                            href="/requests"
+                            class="text-emerald-400 hover:text-emerald-300 px-3 py-2 rounded-md text-sm font-medium"
+                        >
+                            Legal Requests
+                        </a>
                         <button on:click={handleLogout} class="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Logout</button>
                     {:else if user && userStatus === 'pending'}
                         <a href="/registration-pending" class="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Registration Pending</a>
@@ -139,6 +145,12 @@
                     {#if userRole === 'admin'}
                         <a href="/admin" class="text-gray-300 hover:bg-gray-700 hover:text-white block px-3 py-2 rounded-md text-base font-medium">Admin Dashboard</a>
                     {/if}
+                    <a
+                        href="/requests"
+                        class="text-emerald-400 hover:text-emerald-300 block px-3 py-2 rounded-md text-base font-medium"
+                    >
+                        Legal Requests
+                    </a>
                     <button on:click={handleLogout} class="text-gray-300 hover:bg-gray-700 hover:text-white block px-3 py-2 rounded-md text-base font-medium w-full text-left">Logout</button>
                 {:else if user && userStatus === 'pending'}
                     <a href="/registration-pending" class="text-gray-300 hover:bg-gray-700 hover:text-white block px-3 py-2 rounded-md text-base font-medium">Registration Pending</a>

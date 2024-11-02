@@ -17,6 +17,7 @@
     let lastScrollTop = 0;
     let loginContent;
     let errorTimeout;
+    let isLoading = false;
 
     function setTimedErrorMessage(message, duration = 3000) {
         errorMessage = message;
@@ -47,11 +48,13 @@
 
     async function handleLogin(event) {
         event.preventDefault();
-        const formData = new FormData(event.target);
-        const email = formData.get('email');
-        const password = formData.get('password');
-
+        isLoading = true;
+        
         try {
+            const formData = new FormData(event.target);
+            const email = formData.get('email');
+            const password = formData.get('password');
+
             const userCredential = await signInWithEmailAndPassword(auth, email, password);
             const user = userCredential.user;
             const userDoc = await getDocs(query(collection(db, 'attorneyProfiles'), where('email', '==', email), limit(1)));
@@ -74,6 +77,8 @@
             }
         } catch (error) {
             handleLoginError(error);
+        } finally {
+            isLoading = false;
         }
     }
 
@@ -119,42 +124,78 @@
     }
 </script>
 
-<main class="bg-no-repeat bg-center bg-cover h-screen flex flex-col" style="background-image: url({backgroundImage})">
+<main class="min-h-screen bg-gradient-to-br from-zinc-900 to-zinc-800 flex flex-col">
     <Navbar bind:visible={showNavbar} />
-    <div id="login-content" class="flex-grow overflow-y-auto pt-16"> 
-        <div class="flex items-center justify-center py-8 px-4 min-h-full">
-            <div class="bg-zinc-800 bg-opacity-90 p-6 sm:p-8 rounded-md shadow-md w-full max-w-md">
-                <h2 class="text-2xl sm:text-3xl font-bold mb-6 text-center text-custom-color-secondary">Login to your account:</h2>
-                <form on:submit={handleLogin} autocomplete="on">
-                    <div class="mb-4">
-                        <input 
-                            type="email" 
-                            id="email"
-                            name="email"
-                            autocomplete="email"
-                            placeholder="Email" 
-                            class="w-full px-4 py-3 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-custom-color-primary" 
-                            required
-                        >
+    <div id="login-content" class="flex-grow overflow-y-auto pt-16">
+        <div class="flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 min-h-full">
+            <div class="w-full max-w-md space-y-8 bg-zinc-800/50 backdrop-blur-lg p-8 rounded-2xl shadow-2xl border border-zinc-700/50">
+                <div>
+                    <!-- Add your logo here if you have one -->
+                    <h2 class="mt-6 text-3xl font-bold tracking-tight text-white text-center">
+                        Welcome back
+                    </h2>
+                    <p class="mt-2 text-sm text-zinc-400 text-center">
+                        Sign in to your account
+                    </p>
+                </div>
+
+                <form class="mt-8 space-y-6" on:submit={handleLogin}>
+                    <div class="space-y-4 rounded-md">
+                        <div>
+                            <label for="email" class="sr-only">Email address</label>
+                            <input
+                                type="email"
+                                id="email"
+                                name="email"
+                                autocomplete="email"
+                                required
+                                class="relative block w-full rounded-lg border-0 bg-zinc-700/50 py-3 px-4 text-white placeholder:text-zinc-400 focus:ring-2 focus:ring-custom-color-primary sm:text-sm sm:leading-6"
+                                placeholder="Email address"
+                            />
+                        </div>
+                        <div>
+                            <label for="password" class="sr-only">Password</label>
+                            <input
+                                type="password"
+                                id="password"
+                                name="password"
+                                autocomplete="current-password"
+                                required
+                                class="relative block w-full rounded-lg border-0 bg-zinc-700/50 py-3 px-4 text-white placeholder:text-zinc-400 focus:ring-2 focus:ring-custom-color-primary sm:text-sm sm:leading-6"
+                                placeholder="Password"
+                            />
+                        </div>
                     </div>
-                    <div class="mb-6">
-                        <input 
-                            type="password" 
-                            id="password"
-                            name="password"
-                            autocomplete="current-password"
-                            placeholder="Password" 
-                            class="w-full px-4 py-3 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-custom-color-primary" 
-                            required
-                        >
-                    </div>
+
                     {#if errorMessage}
-                        <p class="text-red-500 mb-4">{errorMessage}</p>
+                        <div class="rounded-md bg-red-500/10 p-4 transition-all duration-300 animate-in fade-in">
+                            <p class="text-sm text-red-400">{errorMessage}</p>
+                        </div>
                     {/if}
-                    <div class="flex flex-col sm:flex-row items-center justify-between">
-                        <button type="submit" class="bg-custom-btn-bg text-custom-btn-text px-6 py-3 text-base rounded-md hover:bg-custom-btn-hover-bg hover:text-custom-btn-hover-text focus:outline-none focus:ring-2 focus:ring-custom-btn-active-bg mb-4 sm:mb-0 w-full sm:w-auto">Login</button>
-                        <button type="button" on:click={() => showResetPassword = true} class="text-custom-color-secondary text-base hover:underline bg-transparent border-none p-0">Forgot Password?</button>
+
+                    <div class="flex items-center justify-between">
+                        <button
+                            type="button"
+                            on:click={() => showResetPassword = true}
+                            class="text-sm font-medium text-custom-color-secondary hover:text-custom-color-primary transition-colors"
+                        >
+                            Forgot your password?
+                        </button>
                     </div>
+
+                    <button
+                        type="submit"
+                        disabled={isLoading}
+                        class="group relative flex w-full justify-center rounded-lg bg-cyan-400 px-4 py-3 text-sm font-semibold text-white hover:bg-cyan-700/90 focus:outline-none focus:ring-2 focus:ring-custom-color-primary focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                    >
+                        {#if isLoading}
+                            <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                        {/if}
+                        {isLoading ? 'Signing in...' : 'Sign in'}
+                    </button>
                 </form>
             </div>
         </div>
@@ -162,27 +203,40 @@
 </main>
 
 {#if showResetPassword}
-    <div class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-        <div class="bg-white p-6 rounded-md shadow-md w-full max-w-md">
-            <h2 class="text-2xl font-bold mb-4">Reset Password</h2>
-            <form on:submit={handlePasswordReset}>
-                <div class="mb-4">
-                    <input 
-                        type="email" 
-                        id="resetEmail"
-                        name="email"
-                        autocomplete="email"
-                        placeholder="Email" 
-                        class="w-full px-4 py-3 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-custom-color-primary" 
-                        required
-                    >
-                </div>
+    <div class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+        <div class="bg-zinc-800 rounded-2xl shadow-2xl w-full max-w-md p-6 border border-zinc-700/50">
+            <h2 class="text-2xl font-bold text-white mb-6">Reset Password</h2>
+            <form on:submit={handlePasswordReset} class="space-y-4">
+                <input 
+                    type="email" 
+                    id="resetEmail"
+                    name="email"
+                    autocomplete="email"
+                    placeholder="Enter your email address" 
+                    class="relative block w-full rounded-lg border-0 bg-zinc-700/50 py-3 px-4 text-white placeholder:text-zinc-400 focus:ring-2 focus:ring-custom-color-primary sm:text-sm sm:leading-6"
+                    required
+                >
+                
                 {#if resetMessage}
-                    <p class="text-green-500 mb-4">{resetMessage}</p>
+                    <div class="rounded-md bg-green-500/10 p-4">
+                        <p class="text-sm text-green-400">{resetMessage}</p>
+                    </div>
                 {/if}
-                <div class="flex items-center justify-between">
-                    <button type="submit" class="bg-custom-btn-bg text-custom-btn-text px-6 py-3 text-base rounded-md hover:bg-custom-btn-hover-bg hover:text-custom-btn-hover-text focus:outline-none focus:ring-2 focus:ring-custom-btn-active-bg">Send Reset Email</button>
-                    <button type="button" on:click={() => showResetPassword = false} class="text-custom-color-secondary text-base hover:underline">Cancel</button>
+                
+                <div class="flex items-center justify-end space-x-4 mt-6">
+                    <button 
+                        type="button" 
+                        on:click={() => showResetPassword = false}
+                        class="px-4 py-2 text-sm font-medium text-zinc-400 hover:text-white transition-colors"
+                    >
+                        Cancel
+                    </button>
+                    <button 
+                        type="submit"
+                        class="px-4 py-2 bg-custom-color-tertiary text-black rounded-lg text-sm font-medium hover:bg-cyan-700/90 hover:text-white focus:outline-none focus:ring-2 focus:ring-custom-color-primary focus:ring-offset-2 transition-colors"
+                    >
+                        Send Reset Link
+                    </button>
                 </div>
             </form>
         </div>

@@ -30,6 +30,8 @@
     let lastScrollTop = 0;
     let signupCard;
     let isLoading = false;
+    let signupContainer;
+    let submitContainer;
 
     const states = [
         'Alabama', 'Alaska', 'Arizona', 'Arkansas', 'California', 'Colorado', 'Connecticut', 'Delaware', 'Florida', 'Georgia',
@@ -41,9 +43,15 @@
 
     onMount(() => {
         signupCard = document.getElementById('signup-card');
-  
-    });
+        signupContainer = document.getElementById('signup-container');
+        submitContainer = document.getElementById('submit-container');
 
+        signupContainer.addEventListener('scroll', handleScroll);
+
+        return () => {
+            signupContainer?.removeEventListener('scroll', handleScroll);
+        };
+    });
 
     function resetForm() {
         firstName = '';
@@ -244,140 +252,257 @@
         website = input;
     }
 
+    function handleScroll() {
+        if (!signupContainer || !submitContainer) return;
+
+        const { scrollTop, scrollHeight, clientHeight } = signupContainer;
+        const isAtBottom = scrollHeight - scrollTop - clientHeight < 20; // 20px threshold
+
+        submitContainer.style.opacity = isAtBottom ? '1' : '0';
+        submitContainer.style.pointerEvents = isAtBottom ? 'auto' : 'none';
+    }
+
 </script>
 
-<main class="bg-no-repeat bg-center bg-cover min-h-screen flex flex-col" style="background-image: url({backgroundImage})">
+<main class="min-h-screen bg-gradient-to-br from-zinc-900 to-zinc-800">
     <Navbar bind:visible={showNavbar} />
-    <div class="flex-grow flex items-start justify-center p-4 pt-20 overflow-hidden">
-        <div id="signup-card" class="bg-zinc-800 bg-opacity-90 rounded-md shadow-md w-full max-w-4xl max-h-[calc(92vh-4rem)] overflow-y-auto">
-            <div class="p-4 sm:p-6 md:p-8">
-                <h2 class="text-2xl font-bold mb-4 text-center text-custom-color-tertiary font-inter">Sign Up for Access!</h2>
-                <p class="text-center text-emerald-400 mb-6 text-base sm:text-lg">Once registered, you will have access to view the Attorney Directory!</p>
+    
+    <div class="container mx-auto px-4 max-w-6xl h-[calc(100vh-5rem)] mt-20 overflow-y-auto" id="signup-container">
+        <div class="bg-zinc-800/50 backdrop-blur-lg rounded-2xl shadow-2xl border border-zinc-700/50 p-6 md:p-8 mb-4">
+            <div class="text-center mb-6">
+                <h2 class="text-2xl md:text-3xl font-bold text-white mb-2">Create Your Account</h2>
+                <p class="text-emerald-400 text-base md:text-lg">Join our Attorney Directory Network</p>
+            </div>
 
-                <form on:submit|preventDefault={handleSubmit} class="grid grid-cols-2 gap-4">
-                    <div class="space-y-4">
-                        <div>
-                            <label for="firstName" class="block text-emerald-400 text-base mb-1">First Name *</label>
-                            <input type="text" id="firstName" bind:value={firstName} class="w-full px-4 py-2 text-base border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-custom-color-primary" required>
+            <form on:submit|preventDefault={handleSubmit} class="space-y-6">
+                <div class="bg-zinc-900/30 rounded-xl p-4 md:p-6 space-y-4">
+                    <h3 class="text-lg md:text-xl font-semibold text-white mb-3">Personal Information</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="space-y-2">
+                            <label for="firstName" class="block text-sm font-medium text-zinc-300">First Name *</label>
+                            <input
+                                type="text"
+                                id="firstName"
+                                bind:value={firstName}
+                                class="w-full rounded-lg border-0 bg-zinc-700/50 py-2.5 px-4 text-white placeholder:text-zinc-400 focus:ring-2 focus:ring-emerald-500"
+                                required
+                            />
                         </div>
-                        <div>
-                            <label for="lastName" class="block text-emerald-400 text-base mb-1">Last Name *</label>  
-                            <input type="text" id="lastName" bind:value={lastName} class="w-full px-4 py-2 text-base border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-custom-color-primary" required>
-                        </div>
-                        <div>
-                            <label for="email" class="block text-emerald-400 text-base mb-1">Email *</label>
-                            <input type="email" id="email" bind:value={email} class="w-full px-4 py-2 text-base border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-custom-color-primary" required>
-                        </div>
-                        <div>
-                            <label for="phone" class="block text-emerald-400 text-base mb-1">Phone/Mobile *</label>
-                            <input type="tel" id="phone" bind:value={phone} class="w-full px-4 py-2 text-base border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-custom-color-primary" required>
-                        </div>
-                        <div>
-                            <label for="barNumber" class="block text-emerald-400 text-base mb-1">Bar Number *</label>
-                            <input type="text" id="barNumber" bind:value={barNumber} class="w-full px-4 py-2 text-base border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-custom-color-primary" required>
+                        
+                        <div class="space-y-2">
+                            <label for="lastName" class="block text-sm font-medium text-zinc-300">Last Name *</label>
+                            <input
+                                type="text"
+                                id="lastName"
+                                bind:value={lastName}
+                                class="w-full rounded-lg border-0 bg-zinc-700/50 py-2.5 px-4 text-white placeholder:text-zinc-400 focus:ring-2 focus:ring-emerald-500"
+                                required
+                            />
                         </div>
                     </div>
-                    
-                    <div class="space-y-4">
-                        <div>
-                            <label for="username" class="block text-emerald-400 text-base mb-1">Username *</label>
-                            <input type="text" id="username" bind:value={username} class="w-full px-4 py-2 text-base border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-custom-color-primary" required>
+                </div>
+
+                <div class="bg-zinc-900/30 rounded-xl p-6 space-y-6">
+                    <h3 class="text-xl font-semibold text-white mb-4">Contact Information</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="space-y-2">
+                            <label for="email" class="block text-sm font-medium text-zinc-300">Email *</label>
+                            <input
+                                type="email"
+                                id="email"
+                                bind:value={email}
+                                class="w-full rounded-lg border-0 bg-zinc-700/50 py-2.5 px-4 text-white placeholder:text-zinc-400 focus:ring-2 focus:ring-emerald-500"
+                                required
+                            />
                         </div>
-                        <div>
-                            <label for="password" class="block text-emerald-400 text-base mb-1">Password *</label>
-                            <input type="password" id="password" bind:value={password} class="w-full px-4 py-2 text-base border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-custom-color-primary" required>
+
+                        <div class="space-y-2">
+                            <label for="phone" class="block text-sm font-medium text-zinc-300">Phone *</label>
+                            <input
+                                type="tel"
+                                id="phone"
+                                bind:value={phone}
+                                class="w-full rounded-lg border-0 bg-zinc-700/50 py-2.5 px-4 text-white placeholder:text-zinc-400 focus:ring-2 focus:ring-emerald-500"
+                                required
+                            />
                         </div>
-                        <div>
-                            <label for="website" class="block text-emerald-400 text-base mb-1">Website</label>
-                            <input 
-                                type="text" 
-                                id="website" 
-                                bind:value={website} 
+                    </div>
+                </div>
+
+                <div class="bg-zinc-900/30 rounded-xl p-6 space-y-6">
+                    <h3 class="text-xl font-semibold text-white mb-4">Professional Information</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="space-y-2">
+                            <label for="barNumber" class="block text-sm font-medium text-zinc-300">Bar Number *</label>
+                            <input
+                                type="text"
+                                id="barNumber"
+                                bind:value={barNumber}
+                                class="w-full rounded-lg border-0 bg-zinc-700/50 py-2.5 px-4 text-white placeholder:text-zinc-400 focus:ring-2 focus:ring-emerald-500"
+                                required
+                            />
+                        </div>
+
+                        <div class="space-y-2">
+                            <label for="website" class="block text-sm font-medium text-zinc-300">Website</label>
+                            <input
+                                type="text"
+                                id="website"
+                                bind:value={website}
                                 on:input={handleWebsiteInput}
-                                class="w-full px-4 py-2 text-base border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-custom-color-primary"
+                                class="w-full rounded-lg border-0 bg-zinc-700/50 py-2.5 px-4 text-white placeholder:text-zinc-400 focus:ring-2 focus:ring-emerald-500"
+                                placeholder="https://"
+                            />
+                        </div>
+
+                        <div class="space-y-2">
+                            <label for="city" class="block text-sm font-medium text-zinc-300">City *</label>
+                            <input
+                                type="text"
+                                id="city"
+                                bind:value={city}
+                                class="w-full rounded-lg border-0 bg-zinc-700/50 py-2.5 px-4 text-white placeholder:text-zinc-400 focus:ring-2 focus:ring-emerald-500"
+                                required
+                            />
+                        </div>
+
+                        <div class="space-y-2">
+                            <label for="state" class="block text-sm font-medium text-zinc-300">State *</label>
+                            <select
+                                id="state"
+                                bind:value={state}
+                                class="w-full rounded-lg border-0 bg-zinc-700/50 py-2.5 px-4 text-white placeholder:text-zinc-400 focus:ring-2 focus:ring-emerald-500"
+                                required
                             >
-                        </div>
-                        <div>
-                            <label for="city" class="block text-emerald-400 text-base mb-1">City</label>
-                            <input type="text" id="city" bind:value={city} class="w-full px-4 py-2 text-base border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-custom-color-primary" required>
-                        </div>
-                        <div>
-                            <label for="state" class="block text-emerald-400 text-base mb-1">State</label>
-                            <select id="state" bind:value={state} class="w-full px-4 py-2 text-base border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-custom-color-primary" required>
-                                <option value="">- Select -</option>
+                                <option value="">Select a state</option>
                                 {#each states as state}
                                     <option value={state}>{state}</option>
                                 {/each}
                             </select>
                         </div>
                     </div>
-                    <div class="sm:col-span-2 md:col-span-3 space-y-4">
-                        
-                        <div class="sm:col-span-2 md:col-span-3 space-y-4">
-                            <div>
-                                <label for="practiceAreas" class="block text-emerald-400 text-base mb-1">Practice Areas</label>
-                                {#each practiceAreas as practiceArea, index}
-                                    <div class="flex items-center mb-2 gap-2">
-                                        <input type="text" id="practiceAreas" bind:value={practiceAreas[index]} class="flex-grow px-4 py-2 text-base border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-custom-color-primary" required>
-                                        <div class="flex-shrink-0">
-                                            {#if practiceAreas.length > 1}
-                                                <button type="button" on:click={() => removePracticeArea(index)} class="bg-red-500 text-white px-2 py-2 text-base rounded hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-400">
-                                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 20 20" fill="currentColor">
-                                                        <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
-                                                    </svg>
-                                                </button>
-                                            {/if}
-                                            {#if index === practiceAreas.length - 1}
-                                                <button type="button" on:click={addPracticeArea} class="bg-custom-btn-bg text-custom-btn-text px-2 py-2 text-base rounded hover:bg-custom-btn-hover-bg hover:text-custom-btn-hover-text focus:outline-none focus:ring-2 focus:ring-custom-btn-active-bg">
-                                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 20 20" fill="currentColor">
-                                                        <path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd" />
-                                                    </svg>
-                                                </button>
-                                            {/if}
-                                        </div>
-                                    </div>
-                                {/each}
-                            </div>
+                </div>
 
-                        <div>
-                            <label for="profilePicture" class="block text-emerald-400 text-base mb-2">Profile Picture</label>
-                            <input type="file" id="profilePicture" accept="image/*" on:change={handleProfilePictureUpload} class="hidden">
-                            <label for="profilePicture" class="bg-custom-btn-bg text-custom-btn-text px-4 py-2 text-base rounded cursor-pointer hover:bg-custom-btn-hover-bg hover:text-custom-btn-hover-text focus:outline-none focus:ring-2 focus:ring-custom-btn-active-bg">
-                                {profilePicture ? profilePicture.name : 'Choose File'}
-                            </label>
-                        </div>
-                        
-                        {#if errorMessage}
-                            <p class="text-red-500">{errorMessage}</p>
-                        {/if}
-
-                        <div class="text-center">
-                            <button type="submit" class="w-full sm:w-1/2 bg-custom-btn-bg text-custom-btn-text px-6 py-3 text-base rounded hover:bg-custom-btn-hover-bg hover:text-custom-btn-hover-text focus:outline-none focus:ring-2 focus:ring-custom-btn-active-bg font-bold">Register</button>
-                        </div>
-            
-                        {#if showNavigation}
-                            <div class="mt-6 text-center">
-                                <p class="text-emerald-400 mb-4 text-base">Registration Complete! Please check your email for verification.</p>
-                                <div class="flex flex-col sm:flex-row justify-center space-y-4 sm:space-y-0 sm:space-x-4">
-                                    <a href="{base}/" class="text-custom-color-secondary text-base hover:underline">Home Screen</a>
-                                    <a href="{base}/login" class="text-custom-color-secondary text-base hover:underline">Login Screen</a>
-                                </div>
+                <div class="bg-zinc-900/30 rounded-xl p-6 space-y-6">
+                    <h3 class="text-xl font-semibold text-white mb-4">Practice Areas</h3>
+                    {#each practiceAreas as practiceArea, index}
+                        <div class="flex items-center gap-4">
+                            <input
+                                type="text"
+                                bind:value={practiceAreas[index]}
+                                class="flex-1 rounded-lg border-0 bg-zinc-700/50 py-2.5 px-4 text-white placeholder:text-zinc-400 focus:ring-2 focus:ring-emerald-500"
+                                placeholder="Enter practice area"
+                                required
+                            />
+                            <div class="flex gap-2">
+                                {#if practiceAreas.length > 1}
+                                    <button
+                                        type="button"
+                                        on:click={() => removePracticeArea(index)}
+                                        class="p-2 rounded-lg bg-red-500/20 text-red-400 hover:bg-red-500/30 transition-colors"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                        </svg>
+                                    </button>
+                                {/if}
+                                {#if index === practiceAreas.length - 1}
+                                    <button
+                                        type="button"
+                                        on:click={addPracticeArea}
+                                        class="p-2 rounded-lg bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 transition-colors"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd" />
+                                        </svg>
+                                    </button>
+                                {/if}
                             </div>
+                        </div>
+                    {/each}
+                </div>
+
+                <div class="bg-zinc-900/30 rounded-xl p-6">
+                    <h3 class="text-xl font-semibold text-white mb-4">Profile Picture</h3>
+                    <div class="flex items-center gap-4">
+                        <input type="file" id="profilePicture" accept="image/*" on:change={handleProfilePictureUpload} class="hidden" />
+                        <label
+                            for="profilePicture"
+                            class="flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 transition-colors cursor-pointer"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M4 5a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V7a2 2 0 00-2-2h-1.586a1 1 0 01-.707-.293l-1.121-1.121A2 2 0 0011.172 3H8.828a2 2 0 00-1.414.586L6.293 4.707A1 1 0 015.586 5H4zm6 9a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd" />
+                            </svg>
+                            {profilePicture ? profilePicture.name : 'Choose File'}
+                        </label>
+                        {#if profilePictureError}
+                            <p class="text-red-400 text-sm">{profilePictureError}</p>
                         {/if}
                     </div>
-                </form>
-            </div>
+                </div>
+
+                {#if errorMessage}
+                    <div class="bg-red-500/10 text-red-400 p-4 rounded-lg animate-in fade-in">
+                        {errorMessage}
+                    </div>
+                {/if}
+            </form>
         </div>
     </div>
-    {#if isLoading}
-        <div class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-            <div class="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-emerald-400"></div>
+
+    <div 
+        class="fixed bottom-0 left-0 right-0 bg-gradient-to-t from-zinc-900 to-zinc-900/0 py-6 opacity-0 transition-opacity duration-300"
+        id="submit-container"
+    >
+        <div class="container mx-auto px-4 max-w-6xl flex justify-center">
+            <button
+                type="submit"
+                form="signup-form"
+                disabled={isLoading}
+                class="px-6 py-2.5 bg-emerald-500 text-white rounded-lg font-semibold hover:bg-emerald-600 focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center gap-2"
+            >
+                {#if isLoading}
+                    <svg class="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                {/if}
+                {isLoading ? 'Creating Account...' : 'Create Account'}
+            </button>
         </div>
-    {/if}
+    </div>
 </main>
 
-<style>
+<style lang="postcss">
     :global(body) {
-        overflow: hidden;
+        @apply bg-zinc-900;
+    }
+
+    .animate-in {
+        animation: fadeIn 0.3s ease-out;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(-10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .container {
+        scrollbar-width: thin;
+        scrollbar-color: theme('colors.emerald.500') theme('colors.zinc.800');
+    }
+
+    .container::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    .container::-webkit-scrollbar-track {
+        background: theme('colors.zinc.800');
+        border-radius: 4px;
+    }
+
+    .container::-webkit-scrollbar-thumb {
+        background-color: theme('colors.emerald.500');
+        border-radius: 4px;
     }
 </style>

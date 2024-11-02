@@ -18,6 +18,12 @@
 
     $: attorneyId = $page.params.id;
 
+    $: {
+        if (attorneyId) {
+            loadAttorneyProfile(attorneyId);
+        }
+    }
+
     onMount(async () => {
         try {
             user = await requireAuth();
@@ -142,86 +148,140 @@
     }
 </script>
 
-<Navbar />
-
-<main class="bg-no-repeat bg-center bg-cover flex flex-col min-h-screen pt-16" style="background-image: url({backgroundImage})">
-    <div class="flex-grow flex flex-col md:flex-row p-4 space-y-4 md:space-y-0 md:space-x-4 max-w-7xl mx-auto w-full">
-        <!-- Current Attorney Profile -->
-        <div class="w-full md:w-1/3 bg-zinc-800 bg-opacity-90 rounded-lg shadow-xl overflow-hidden p-4">
-            {#if loading}
-                <p class="text-emerald-400">Loading...</p>
-            {:else if error}
-                <p class="text-red-500">{error}</p>
-            {:else if attorney}
-                <div class="flex items-start mb-4">
-                    <img src={attorney.profilePictureUrl || '/default-profile.png'} alt="{attorney.firstName} {attorney.lastName}" class="w-36 h-36 rounded-md object-cover mr-4">
-                    <div>
-                        <h2 class="text-xl font-bold text-cyan-400">{attorney.firstName} {attorney.lastName}</h2>
-                        <p class="text-emerald-400 text-md">{attorney.state}</p>
-                    </div>
-                </div>
-                
-                <h3 class="text-2xl font-semibold text-cyan-400 mb-1">Practice Areas:</h3>
-                <ul class="list-disc list-inside text-emerald-400 text-sm mb-2">
-                    {#each attorney.practiceAreas as area}
-                        <li>{area}</li>
-                    {/each}
-                </ul>
-                
-                <h3 class="text-2xl font-semibold text-cyan-400 mb-1">About:</h3>
-                <p class="text-emerald-400 text-sm mb-2">{attorney.about || 'No information provided.'}</p>
-                
-                <h3 class="text-2xl font-semibold text-cyan-400 mb-1">Contact:</h3>
-                <div class="text-emerald-400 text-sm space-y-2">
-                    <div class="flex items-center">
-                        <span>Website:</span>
-                        <a href={attorney.website} target="_blank" rel="noopener noreferrer" class="ml-2 text-emerald-400 hover:underline">
-                            {attorney.website}
-                            <Link class="inline-block ml-1" size={16} />
-                        </a>
-                    </div>
-                    {#if attorney && user && attorney.id !== user.uid}
-                        <button
-                            class="bg-custom-color-tertiary text-blue-950 font-inter py-2 px-4 rounded-sm border-none text-base sm:text-lg cursor-pointer transition duration-300 ease-in-out transform hover:bg-blue-900 hover:text-custom-color-tertiary active:scale-95"
-                            on:click={startChat}
-                        >
-                            Message Attorney
-                        </button>
-                    {/if}
-                </div>
-            {/if}
-        </div>
-
-        <!-- Related Attorneys -->
-        <div class="w-full md:w-2/3 bg-zinc-800 bg-opacity-90 rounded-lg shadow-xl overflow-hidden p-4">
-            <h3 class="text-xl font-bold text-cyan-400 mb-4">Related Attorneys</h3>
-            <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-                {#if loading}
-                    <p class="text-emerald-400 col-span-full">Loading related attorneys...</p>
-                {:else if error}
-                    <p class="text-red-500 col-span-full">{error}</p>
-                {:else if relatedAttorneys.length > 0}
-                    {#each relatedAttorneys as relatedAttorney}
-                        <div 
-                            class="bg-zinc-700 p-2 rounded-md cursor-pointer hover:bg-zinc-600 transition-colors duration-200"
-                            on:click={() => navigateToAttorney(relatedAttorney.id)}
-                            on:keydown={(e) => e.key === 'Enter' && navigateToAttorney(relatedAttorney.id)}
-                            tabindex="0"
-                            role="button"
-                        >
-                            <img src={relatedAttorney.profilePictureUrl || '/default-profile.png'} alt="{relatedAttorney.firstName} {relatedAttorney.lastName}" class="w-16 h-16 rounded-full object-cover mx-auto mb-2">
-                            <h4 class="text-cyan-400 text-sm font-semibold text-center">{relatedAttorney.firstName} {relatedAttorney.lastName}</h4>
-                            <p class="text-emerald-400 text-xs text-center">{relatedAttorney.state}</p>
-                            {#if relatedAttorney.practiceAreas && relatedAttorney.practiceAreas.length > 0}
-                                <p class="text-emerald-400 text-xs text-center mt-1">{relatedAttorney.practiceAreas[0]}</p>
-                            {/if}
-                        </div>
-                    {/each}
-                {:else}
-                    <p class="text-emerald-400 col-span-full">No related attorneys found.</p>
-                {/if}
+<main class="bg-no-repeat bg-center bg-cover min-h-screen" style="background-image: url({backgroundImage})">
+    <Navbar />
+    
+    <div class="container mx-auto px-4 py-8 mt-16">
+        {#if loading}
+            <div class="flex justify-center items-center h-64">
+                <div class="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-cyan-400"></div>
             </div>
-        </div>
+        {:else if error}
+            <div class="bg-red-500/20 text-red-400 p-4 rounded-lg text-center">
+                {error}
+            </div>
+        {:else if attorney}
+            <!-- Main Profile Section -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <!-- Left Column - Profile Info -->
+                <div class="lg:col-span-2">
+                    <div class="bg-zinc-800 bg-opacity-90 rounded-xl shadow-2xl overflow-hidden">
+                        <!-- Header Banner -->
+                        <div class="relative h-48 bg-gradient-to-r from-cyan-600 to-cyan-800">
+                            <div class="absolute -bottom-16 left-8 flex items-end space-x-6">
+                                <img 
+                                    src={attorney.profilePictureUrl || '/default-profile.png'} 
+                                    alt="{attorney.firstName} {attorney.lastName}" 
+                                    class="w-32 h-32 rounded-xl object-cover border-4 border-zinc-800 shadow-lg"
+                                >
+                                <div class="mb-4">
+                                    <h1 class="text-3xl font-bold text-white mb-1">
+                                        {attorney.firstName} {attorney.lastName}
+                                    </h1>
+                                    <p class="text-emerald-400 text-lg">
+                                        {attorney.state}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Profile Content -->
+                        <div class="pt-20 px-8 pb-8">
+                            <!-- Practice Areas -->
+                            <div class="mb-8">
+                                <h2 class="text-xl font-semibold text-custom-color-tertiary mb-4">Practice Areas</h2>
+                                <div class="flex flex-wrap gap-2">
+                                    {#each attorney.practiceAreas as area}
+                                        <span class="bg-cyan-500/20 text-cyan-400 px-3 py-1 rounded-lg text-sm">
+                                            {area}
+                                        </span>
+                                    {/each}
+                                </div>
+                            </div>
+
+                            <!-- About Section -->
+                            <div class="mb-8">
+                                <h2 class="text-xl font-semibold text-custom-color-tertiary mb-4">About</h2>
+                                <p class="text-emerald-400 leading-relaxed">
+                                    {attorney.about || 'No information provided.'}
+                                </p>
+                            </div>
+
+                            <!-- Contact Information -->
+                            <div class="bg-zinc-700/50 rounded-xl p-6">
+                                <h2 class="text-xl font-semibold text-custom-color-tertiary mb-4">Contact Information</h2>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    {#if attorney.website}
+                                        <a 
+                                            href={attorney.website}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            class="flex items-center space-x-2 bg-zinc-600/50 p-3 rounded-lg hover:bg-zinc-600 transition-colors"
+                                        >
+                                            <Link size={20} class="text-emerald-400" />
+                                            <span class="text-emerald-400 truncate">{attorney.website}</span>
+                                        </a>
+                                    {/if}
+                                    
+                                    {#if attorney && user && attorney.id !== user.uid}
+                                        <button
+                                            on:click={startChat}
+                                            class="flex items-center justify-center space-x-2 bg-custom-color-tertiary text-blue-950 p-3 rounded-lg hover:bg-blue-900 hover:text-custom-color-tertiary transition-all transform active:scale-95"
+                                        >
+                                            <span class="font-semibold">Message Attorney</span>
+                                        </button>
+                                    {/if}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Column - Related Attorneys -->
+                <div class="lg:col-span-1">
+                    <div class="bg-zinc-800 bg-opacity-90 rounded-xl shadow-2xl p-6">
+                        <h2 class="text-xl font-semibold text-custom-color-tertiary mb-6">Related Attorneys</h2>
+                        
+                        {#if relatedAttorneys.length > 0}
+                            <div class="space-y-4">
+                                {#each relatedAttorneys as relatedAttorney}
+                                    <div 
+                                        class="group bg-zinc-700/50 rounded-lg p-4 cursor-pointer hover:bg-zinc-700 transition-all duration-300 transform hover:-translate-y-1"
+                                        on:click={() => navigateToAttorney(relatedAttorney.id)}
+                                        on:keydown={(e) => e.key === 'Enter' && navigateToAttorney(relatedAttorney.id)}
+                                        tabindex="0"
+                                        role="button"
+                                    >
+                                        <div class="flex items-center space-x-4">
+                                            <img 
+                                                src={relatedAttorney.profilePictureUrl || '/default-profile.png'} 
+                                                alt="{relatedAttorney.firstName} {relatedAttorney.lastName}" 
+                                                class="w-16 h-16 rounded-lg object-cover"
+                                            >
+                                            <div>
+                                                <h3 class="text-cyan-400 font-semibold group-hover:text-cyan-300 transition-colors">
+                                                    {relatedAttorney.firstName} {relatedAttorney.lastName}
+                                                </h3>
+                                                <p class="text-emerald-400/70 text-sm">{relatedAttorney.state}</p>
+                                                {#if relatedAttorney.practiceAreas?.[0]}
+                                                    <p class="text-emerald-400/70 text-sm mt-1">
+                                                        {relatedAttorney.practiceAreas[0]}
+                                                    </p>
+                                                {/if}
+                                            </div>
+                                        </div>
+                                    </div>
+                                {/each}
+                            </div>
+                        {:else}
+                            <div class="text-center py-8 text-emerald-400/70">
+                                <p>No related attorneys found</p>
+                            </div>
+                        {/if}
+                    </div>
+                </div>
+            </div>
+        {/if}
     </div>
 </main>
 

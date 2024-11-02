@@ -3,7 +3,7 @@
     import { goto } from '$app/navigation';
     import { db, auth, functions } from '$lib/firebase';
     import { collection, query, getDocs, doc, updateDoc, deleteDoc, where } from 'firebase/firestore';
-    import { ChevronDown, ChevronUp, Trash2 } from 'lucide-svelte';
+    import { ChevronDown, ChevronUp, Trash2, Loader2 } from 'lucide-svelte';
     import { httpsCallable } from 'firebase/functions';
     import Navbar from './Navbar.svelte';
     import Button from '$lib/components/ui/Button.svelte';
@@ -29,6 +29,7 @@
     let lastScrollTop = 0;
     let isSearchExpanded = false;
     let innerHeight;
+    let isSidePanelOpen = !isMobile;
 
     const statusOptions = [
         { value: 'all', label: 'All Statuses' },
@@ -211,95 +212,113 @@
 
 <main class="bg-no-repeat bg-center bg-cover flex flex-col min-h-screen" style="background-image: url({backgroundImage})">
     <Navbar bind:visible={showNavbar} />
-    <div class="flex-grow flex flex-col overflow-hidden {showNavbar ? 'mt-16' : 'mt-0'}" style="height: {innerHeight}px">
-        <div class="w-full transition-all duration-300 ease-in-out {showNavbar ? '' : 'fixed top-0 left-0 right-0 z-40 bg-zinc-800 bg-opacity-90'}">
+    <div class="flex-grow flex overflow-hidden {showNavbar ? 'mt-16' : 'mt-0'}" style="height: {innerHeight}px">
+        <!-- Side Panel -->
+        <div class="hidden md:block bg-zinc-800 bg-opacity-90 w-80 p-6 border-r border-zinc-700 transition-all duration-300 ease-in-out {isSidePanelOpen ? 'translate-x-0' : '-translate-x-full'}">
+            <h2 class="text-2xl font-bold text-cyan-400 font-inter mb-6">Filters</h2>
+            
+            <div class="space-y-4">
+                <SearchBar
+                    placeholder="Search by name or email"
+                    bind:value={searchTerm}
+                    on:search={handleSearchBarSearch}
+                    showSearchButton={false}
+                />
+                
+                <div class="space-y-3">
+                    <Select bind:value={selectedStatus} options={statusOptions} on:change={fetchUsers} />
+                    <Select bind:value={selectedRole} options={roleOptions} on:change={fetchUsers} />
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="flex-1 overflow-hidden">
+            <!-- Mobile Header -->
             {#if isMobile}
                 <MobileSearchComponent
                     headerText="Admin Dashboard"
                     filters={[
-                        {
-                            key: 'status',
-                            placeholder: 'All Statuses',
-                            options: statusOptions.filter(option => option.value !== 'all')
-                        },
-                        {
-                            key: 'role',
-                            placeholder: 'All Roles',
-                            options: roleOptions.filter(option => option.value !== 'all')
-                        }
+                        { key: 'status', placeholder: 'All Statuses', options: statusOptions.filter(option => option.value !== 'all') },
+                        { key: 'role', placeholder: 'All Roles', options: roleOptions.filter(option => option.value !== 'all') }
                     ]}
                     on:search={handleSearchBarSearch}
                 />
-            {:else}
-                <div class="max-w-4xl mx-auto bg-zinc-800 bg-opacity-90 rounded-md shadow-md p-4">
-                    <button class="flex justify-between items-center cursor-pointer w-full text-left" on:click={toggleSearchExpansion} aria-expanded={isSearchExpanded} type="button">
-                        <h2 class="text-2xl font-bold text-cyan-400 font-inter">Admin Dashboard</h2>
-                        {#if isSearchExpanded}
-                            <ChevronUp class="text-cyan-400" size={24} />
-                        {:else}
-                            <ChevronDown class="text-cyan-400" size={24} />
-                        {/if}
-                    </button>
-                    
-                    {#if isSearchExpanded}
-                        <div class="mt-4 space-y-4">
-                            <div class="w-full">
-                                <SearchBar
-                                    placeholder="Search by name or email"
-                                    bind:value={searchTerm}
-                                    on:search={handleSearchBarSearch}
-                                    showSearchButton={false}
-                                />
-                            </div>
-                            
-                            <div class="grid grid-cols-2 gap-4">
-                                <Select bind:value={selectedStatus} options={statusOptions} on:change={fetchUsers} />
-                                <Select bind:value={selectedRole} options={roleOptions} on:change={fetchUsers} />
-                            </div>
-                        </div>
-                    {/if}
-                </div>
             {/if}
-        </div>
 
-        <div id="results-container" class="flex-grow overflow-y-auto px-4 pb-16 mt-4 mb-4" style="max-height: calc(100% - {isMobile ? '120px' : '0px'});">
-            {#if filteredUsers.length === 0}
-                <p class="text-custom-color-secondary">No users found.</p>
-            {:else}
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {#each filteredUsers as user}
-                        <button class="profile-card cursor-pointer transition-all duration-300 ease-in-out transform hover:scale-105 hover:shadow-lg active:scale-95" on:click={() => handleProfileClick(user.id)} on:keydown={(event) => event.key === 'Enter' && handleProfileClick(user.id)}>
-                            <Card>
+            <!-- Results Container -->
+            <div id="results-container" class="h-full overflow-y-auto px-6 py-20">
+                {#if isLoading}
+                    <div class="flex items-center justify-center h-full">
+                        <Loader2 class="animate-spin" size={32} />
+                    </div>
+                {:else if filteredUsers.length === 0}
+                    <div class="flex flex-col items-center justify-center h-full text-center">
+                        <p class="text-xl text-custom-color-secondary mb-2">No users found</p>
+                        <p class="text-sm text-custom-color-secondary opacity-75">Try adjusting your filters or search terms</p>
+                    </div>
+                {:else}
+                    <div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+                        {#each filteredUsers as user}
+                            <Card class="hover:shadow-xl transition-all duration-300">
                                 <div class="p-6">
-                                    <h2 class="text-xl font-bold mb-2 text-custom-color-tertiary">{user.firstName} {user.lastName}</h2>
-                                    <p class="text-sm text-orange-400 mb-4">{user.email}</p>
-                                    <div class="space-y-2 mb-4">
-                                        <p><span class="font-semibold">State:</span> {user.state}</p>
-                                        <p><span class="font-semibold">Practice Areas:</span> {user.practiceAreas ? user.practiceAreas.join(', ') : 'None'}</p>
-                                        <p><span class="font-semibold">Status:</span> <span class={`font-semibold ${user.status === 'approved' ? 'text-green-500' : user.status === 'denied' ? 'text-red-500' : 'text-yellow-500'}`}>{user.status}</span></p>
-                                        <p><span class="font-semibold">Role:</span> {user.role}</p>
+                                    <!-- User Info -->
+                                    <div class="flex items-start justify-between mb-4">
+                                        <div>
+                                            <h2 class="text-xl font-bold text-custom-color-tertiary">{user.firstName} {user.lastName}</h2>
+                                            <p class="text-sm text-orange-400">{user.email}</p>
+                                        </div>
+                                        <div class="flex gap-2">
+                                            <Button 
+                                                variant="destructive" 
+                                                size="sm" 
+                                                on:click={(e) => {
+                                                    e.stopPropagation();
+                                                    deleteUserProfile(user.id);
+                                                }}>
+                                                <Trash2 size={16} />
+                                            </Button>
+                                        </div>
                                     </div>
-                                    <button class="flex flex-wrap gap-2" on:click|stopPropagation on:keydown={(event) => event.key === 'Enter' && event.target.click()}>
-                                    <Select 
-                                        value={user.status} 
-                                        options={statusOptions.filter(option => option.value !== 'all')} 
-                                        on:change={(event) => updateUserStatus(user.id, event.target.value)} 
-                                    />
-                                    <Select 
-                                        value={user.role} 
-                                        options={roleOptions.filter(option => option.value !== 'all')} 
-                                        on:change={(event) => updateUserRole(user.id, event.target.value)} 
-                                    />
-                                    <Button on:click={() => setUserAsAdmin(user.id)}>Make Admin</Button>
-                                    <Button variant="destructive" size="sm" on:click={() => deleteUserProfile(user.id)}>
-                                        <Trash2 size={16} />
-                                    </Button>
+
+                                    <!-- User Details -->
+                                    <div class="space-y-2 mb-6">
+                                        <div class="flex items-center gap-2">
+                                            <span class="text-sm font-semibold">Status:</span>
+                                            <span class={`px-2 py-1 rounded-full text-xs font-medium
+                                                ${user.status === 'approved' ? 'bg-green-500/20 text-green-400' : 
+                                                user.status === 'denied' ? 'bg-red-500/20 text-red-400' : 
+                                                'bg-yellow-500/20 text-yellow-400'}`}>
+                                                {user.status}
+                                            </span>
+                                        </div>
+                                        <p class="text-sm"><span class="font-semibold">Role:</span> {user.role}</p>
+                                        <p class="text-sm"><span class="font-semibold">State:</span> {user.state}</p>
+                                        <p class="text-sm"><span class="font-semibold">Practice Areas:</span> {user.practiceAreas ? user.practiceAreas.join(', ') : 'None'}</p>
+                                    </div>
+
+                                    <!-- Actions -->
+                                    <div class="flex flex-col gap-2">
+                                        <div class="grid grid-cols-2 gap-2">
+                                            <Select 
+                                                value={user.status} 
+                                                options={statusOptions.filter(option => option.value !== 'all')} 
+                                                on:change={(event) => updateUserStatus(user.id, event.target.value)} 
+                                            />
+                                            <Select 
+                                                value={user.role} 
+                                                options={roleOptions.filter(option => option.value !== 'all')} 
+                                                on:change={(event) => updateUserRole(user.id, event.target.value)} 
+                                            />
+                                        </div>
+                                        <Button class="w-full" on:click={() => setUserAsAdmin(user.id)}>Make Admin</Button>
+                                    </div>
                                 </div>
                             </Card>
-                        </button>
-                    {/each}
-                </div>
-            {/if}
+                        {/each}
+                    </div>
+                {/if}
+            </div>
         </div>
     </div>
 </main>
@@ -319,5 +338,15 @@
 
     .profile-card:active {
         transform: scale(0.95);
+    }
+
+    :global(.card) {
+        background-color: rgba(39, 39, 42, 0.9);
+        border: 1px solid rgb(63, 63, 70);
+    }
+    
+    :global(.select) {
+        background-color: rgb(63, 63, 70);
+        border-color: rgb(82, 82, 91);
     }
 </style>

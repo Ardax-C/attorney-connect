@@ -10,6 +10,7 @@
     import { searchAttorneys } from '$lib/vertexAI';
 
     let searchTerm = '';
+    let keywords = '';
     let searchResults = [];
     let extractedInfo = null;
     let isLoading = false;
@@ -26,7 +27,7 @@
 
     $: isSearchPage = true;
 
-    onMount(async () => {
+    onMount(() => {
         const unsubscribe = auth.onAuthStateChanged(async (user) => {
             if (!user) goto('/login');
         });
@@ -35,15 +36,13 @@
         const incomingSearchTerm = urlSearchParams.get('q');
         if (incomingSearchTerm) {
             searchTerm = incomingSearchTerm;
-            await handleSearch();
+            handleSearch();
         }
 
         return unsubscribe;
     });
 
     async function handleSearch(page = 1) {
-        if (!searchTerm.trim()) return;
-
         isLoading = true;
         errorMessage = '';
         currentPage = page;
@@ -105,106 +104,127 @@
     function toggleInfoBox() {
         isInfoExpanded = !isInfoExpanded;
     }
+
+    function applyFilters() {
+        searchTerm = keywords;
+        handleSearch(1);
+    }
+
+    function changePage(direction) {
+        const newPage = currentPage + direction;
+        if (newPage >= 1 && newPage <= totalPages) {
+            handlePageChange(newPage);
+        }
+    }
+
+    function handleKeyPress(event) {
+        if (event.key === 'Enter') {
+            applyFilters();
+        }
+    }
 </script>
 
-<Navbar 
-    {isSearchPage}
-    {currentPage}
-    {totalPages}
-    onPageChange={handlePageChange}
-/>
-
-<main class="bg-no-repeat bg-center bg-cover min-h-screen pt-10 flex" style="background-image: url({backgroundImage})">
-    <!-- Left Sidebar for Search Information -->
-    {#if hasSearched}
-        <div class="fixed left-0 top-16 bottom-0 w-64 bg-zinc-800 bg-opacity-90 overflow-y-auto transition-all duration-300 ease-in-out"
-             class:w-64={isInfoExpanded} class:w-12={!isInfoExpanded}>
-            <button on:click={toggleInfoBox} class="absolute top-2 right-2 text-cyan-400 hover:text-cyan-300">
-                {#if isInfoExpanded}
-                    <ChevronLeft size={24} />
-                {:else}
-                    <Info size={24} />
-                {/if}
-            </button>
-            
-            {#if isInfoExpanded && extractedInfo}
-                <div class="p-4">
-                    <h3 class="text-cyan-400 font-semibold mb-2 text-lg">Search Information:</h3>
-                    <p class="text-emerald-400 text-base mb-1">Keywords: {extractedInfo.keywords.join(', ')}</p>
-                    <p class="text-emerald-400 text-base mb-1">Practice Areas: {extractedInfo.practiceAreas.join(', ')}</p>
-                    <p class="text-emerald-400 text-base mb-1">Locations: {extractedInfo.locations.join(', ')}</p>
-                    
-                    {#if getFuzzyMatchFeedback().length > 0}
-                        <div class="mt-2">
-                            <h4 class="text-yellow-400 font-semibold text-base">Search Corrections:</h4>
-                            <ul class="list-disc list-inside text-sm">
-                                {#each getFuzzyMatchFeedback() as feedback}
-                                    <li class="text-yellow-400">{feedback}</li>
-                                {/each}
-                            </ul>
-                        </div>
-                    {/if}
-                </div>
-            {/if}
-        </div>
-    {/if}
-
-    <!-- Main Content Area -->
-    <div class="flex-grow" class:ml-64={hasSearched && isInfoExpanded} class:ml-12={hasSearched && !isInfoExpanded}>
-        <div class="max-w-4xl mx-auto px-4 py-4">
-            <div class="bg-zinc-900 rounded-md mb-4 py-4 px-4">
-                <div class="flex justify-between items-center mb-2">
-                    <h2 class="text-2xl font-bold text-cyan-400">Search Attorneys</h2>
-                    <button on:click={toggleSearchBar} class="text-cyan-400 hover:text-cyan-300">
-                        {#if isSearchExpanded}
-                            <ChevronUp size={24} />
-                        {:else}
-                            <ChevronDown size={24} />
-                        {/if}
+<main class="bg-no-repeat bg-center bg-cover h-screen fixed w-full" style="background-image: url({backgroundImage})">
+    <Navbar />
+    
+    <div class="container mx-auto px-4 py-8 mt-16 h-[calc(100vh-6rem)]">
+        <!-- Search Header -->
+        <div class="flex flex-col md:flex-row justify-between items-center mb-8">
+            <h1 class="text-3xl font-bold text-custom-color-tertiary mb-4 md:mb-0">Search Attorneys</h1>
+            <div class="flex items-center space-x-2">
+                <span class="text-emerald-400">Page {currentPage} of {totalPages}</span>
+                <div class="flex space-x-2">
+                    <button 
+                        on:click={() => changePage(-1)}
+                        disabled={currentPage === 1}
+                        class="p-2 rounded-lg bg-zinc-700/50 hover:bg-zinc-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                        <svg class="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                        </svg>
+                    </button>
+                    <button 
+                        on:click={() => changePage(1)}
+                        disabled={currentPage === totalPages}
+                        class="p-2 rounded-lg bg-zinc-700/50 hover:bg-zinc-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                        <svg class="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                        </svg>
                     </button>
                 </div>
-                {#if isSearchExpanded}
-                    <div class="relative">
-                        <input
-                            type="text"
-                            placeholder="Search for attorneys (e.g., 'divorce lawyer in New York')"
-                            bind:value={searchTerm}
-                            on:keydown={(e) => e.key === 'Enter' && handleSearch()}
-                            class="w-full bg-zinc-700 text-white px-4 py-2 pr-10 rounded-md focus:outline-none focus:ring-2 focus:ring-cyan-500"
-                        />
-                        <button 
-                            on:click={() => handleSearch()}
-                            class="absolute right-2 top-1/2 transform -translate-y-1/2 text-cyan-400 hover:text-cyan-300"
+            </div>
+        </div>
+
+        <!-- Search Grid Layout -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 h-[calc(100%-5rem)]">
+            <!-- Search Filters Panel -->
+            <div class="lg:col-span-1">
+                <div class="bg-zinc-800 bg-opacity-90 rounded-xl shadow-2xl p-6">
+                    <h2 class="text-xl font-semibold text-custom-color-tertiary mb-6">Search</h2>
+                    
+                    <div class="mb-6">
+                        <input 
+                            id="keywords"
+                            type="text" 
+                            bind:value={keywords}
+                            on:keypress={handleKeyPress}
+                            placeholder="Search by name or keyword"
+                            class="w-full bg-zinc-700 text-white px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
                         >
-                            <Search size={20} />
-                        </button>
                     </div>
-                {/if}
+
+                    <button 
+                        on:click={applyFilters}
+                        class="w-full bg-custom-color-tertiary text-blue-950 py-2 px-4 rounded-lg hover:bg-blue-900 hover:text-custom-color-tertiary transition-all transform active:scale-95"
+                    >
+                        Search
+                    </button>
+                </div>
             </div>
 
-            <div class="overflow-y-auto" style="max-height: calc(100vh - 12rem);">
-                {#if isLoading}
-                    <div class="text-center">
-                        <p class="text-cyan-400">Searching for attorneys...</p>
-                    </div>
-                {:else if errorMessage}
-                    <div class="bg-red-500 bg-opacity-75 text-white p-4 rounded-md">
-                        <p>{errorMessage}</p>
-                    </div>
-                {:else if searchResults.length > 0}
-                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                        {#each searchResults as result}
-                            <button class="w-full text-left" on:click={() => handleProfileClick(result.id)}>
-                                <UserProfileCard user={result} />
-                            </button>
-                        {/each}
-                    </div>
-
-                    <div class="mt-4 text-center text-emerald-400">
-                        Showing {(currentPage - 1) * resultsPerPage + 1} - {Math.min(currentPage * resultsPerPage, totalResults)} of {totalResults} results
-                    </div>
-
-                {/if}
+            <!-- Results Grid - Add overflow -->
+            <div class="lg:col-span-2 overflow-y-auto pr-2 scrollbar-hide">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {#each searchResults as attorney}
+                        <div 
+                            class="bg-zinc-800 bg-opacity-90 rounded-xl shadow-2xl overflow-hidden hover:transform hover:scale-105 transition-all duration-300 cursor-pointer"
+                            on:click={() => handleProfileClick(attorney.id)}
+                            on:keydown={(e) => e.key === 'Enter' && handleProfileClick(attorney.id)}
+                            tabindex="0"
+                            role="button"
+                        >
+                            <div class="relative h-36 bg-gradient-to-r from-cyan-600 to-cyan-800">
+                                <img 
+                                    src={attorney.profilePictureUrl || '/default-profile.png'} 
+                                    alt={attorney.firstName} 
+                                    class="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-1/2 w-20 h-20 rounded-xl object-cover border-4 border-zinc-800"
+                                >
+                            </div>
+                            
+                            <div class="pt-12 p-4 text-center">
+                                <h3 class="text-lg font-semibold text-cyan-400 mb-1">
+                                    {attorney.firstName} {attorney.lastName}
+                                </h3>
+                                <p class="text-emerald-400 text-xs mb-2">
+                                    {attorney.city}, {attorney.state}
+                                </p>
+                                <div class="flex flex-wrap justify-center gap-1">
+                                    {#each attorney.practiceAreas.slice(0, 3) as area}
+                                        <span class="bg-cyan-500/20 text-cyan-400 px-2 py-0.5 rounded-lg text-xs">
+                                            {area}
+                                        </span>
+                                    {/each}
+                                    {#if attorney.practiceAreas.length > 3}
+                                        <span class="text-emerald-400/70 text-xs">
+                                            +{attorney.practiceAreas.length - 3} more
+                                        </span>
+                                    {/if}
+                                </div>
+                            </div>
+                        </div>
+                    {/each}
+                </div>
             </div>
         </div>
     </div>
@@ -212,6 +232,15 @@
 
 <style>
     :global(body) {
-        background-color: #18181b; /* Equivalent to bg-zinc-900 */
+        overflow: hidden;
+    }
+
+    /* Add custom scrollbar hiding */
+    :global(.scrollbar-hide) {
+        -ms-overflow-style: none;  /* IE and Edge */
+        scrollbar-width: none;     /* Firefox */
+    }
+    :global(.scrollbar-hide::-webkit-scrollbar) {
+        display: none;            /* Chrome, Safari and Opera */
     }
 </style>
