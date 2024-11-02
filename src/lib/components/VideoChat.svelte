@@ -418,8 +418,8 @@
                 </div>
             </div>
 
-            <!-- Local Video -->
-            <div class="absolute top-4 right-4 w-[180px] aspect-video rounded-lg overflow-hidden bg-black/20 shadow-lg">
+            <!-- Local Video - Updated positioning -->
+            <div class="absolute top-[64px] right-4 w-[300px] aspect-video rounded-lg overflow-hidden bg-black/20 shadow-lg">
                 <video 
                     bind:this={localVideo} 
                     autoplay 
