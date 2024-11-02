@@ -35,6 +35,14 @@
     let isUploading = false;
     const maxFileSize = 10 * 1024 * 1024; // 10MB limit
 
+    let typingUsersSubscription;
+    let typingMessage = '';
+
+    // Move the reactive declaration up
+    $: typingMessage = Array.from(typingUsers)
+        .filter(id => id !== user?.uid)
+        .length > 0 ? `${otherParticipantName} is typing...` : '';
+
     // Function to check if scrolled near bottom
     function checkIfNearBottom() {
         if (!chatContainer) return true;
@@ -112,6 +120,13 @@
         }
 
         const chatRef = doc(db, 'chats', chatId);
+        
+        // Add typing users subscription
+        typingUsersSubscription = onSnapshot(chatRef, (doc) => {
+            const data = doc.data();
+            typingUsers = new Set(data?.typingUsers || []);
+        });
+
         const messagesRef = collection(chatRef, 'messages');
         const messagesQuery = query(messagesRef, orderBy('timestamp', 'asc'));
 
@@ -144,13 +159,18 @@
                         senderId: data.senderId,
                         timestamp: data.timestamp?.toDate?.() || new Date(),
                         attachments: data.attachments || [],
-                        readBy: data.readBy || []
+                        readBy: data.readBy || [],
+                        delivered: data.delivered || false  // Include delivered status
                     };
                 })
             );
 
             messages = decryptedMessages;
             loading = false;
+
+            // Mark messages as delivered first, then as read
+            await markMessagesAsDelivered();
+            await markMessagesAsRead();
         }, (err) => {
             console.error('Error in message subscription:', err);
             error = 'Error loading messages. Please try again later.';
@@ -185,6 +205,7 @@
                 senderId: user.uid,
                 timestamp: messageTimestamp,
                 readBy: [],
+                delivered: false,  // Add delivered field
                 attachments: []
             });
 
@@ -225,6 +246,10 @@
         if (unsubscribe) {
             unsubscribe();
         }
+        if (typingUsersSubscription) typingUsersSubscription();
+        if (typingTimeout) clearTimeout(typingTimeout);
+        // Clean up typing status when leaving
+        if (user) updateTypingStatus(false);
     });
 
     // Add this helper function to format timestamps in the template
@@ -290,6 +315,20 @@
         }
     }
 
+    // Add this function to mark messages as delivered
+    async function markMessagesAsDelivered() {
+        const undeliveredMessages = messages.filter(
+            msg => msg.senderId !== user.uid && !msg.delivered
+        );
+
+        for (const msg of undeliveredMessages) {
+            const messageRef = doc(db, 'chats', chatId, 'messages', msg.id);
+            await updateDoc(messageRef, {
+                delivered: true
+            });
+        }
+    }
+
     // Handle file selection
     async function handleFileUpload(event) {
         const file = event.target.files[0];
@@ -344,7 +383,6 @@
     }
 </script>
 
-
 <main class="bg-no-repeat bg-center bg-cover fixed inset-0 flex flex-col" style="background-image: url({backgroundImage})">
     <Navbar />
     <div class="flex-grow container mx-auto p-4 flex flex-col overflow-hidden">
@@ -398,12 +436,16 @@
                                                 {#each message.attachments as attachment}
                                                     {#if attachment.type === 'image'}
                                                         <div class="mb-2">
-                                                            <img 
-                                                                src={attachment.url} 
-                                                                alt="Attached image"
-                                                                class="max-w-full rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
+                                                            <button
+                                                                class="block w-full p-0 border-0"
                                                                 on:click={() => window.open(attachment.url, '_blank')}
-                                                            />
+                                                            >
+                                                                <img 
+                                                                    src={attachment.url} 
+                                                                    alt=""
+                                                                    class="max-w-full rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
+                                                                />
+                                                            </button>
                                                         </div>
                                                     {:else}
                                                         <a 
@@ -435,12 +477,19 @@
                                         {#if message.senderId === user.uid}
                                             <span class="ml-2">
                                                 {#if message.readBy?.includes(otherParticipantId)}
+                                                    <!-- Double check for read -->
                                                     <svg class="w-4 h-4 text-blue-500" viewBox="0 0 24 24">
+                                                        <path fill="currentColor" d="M18 7l-1.41-1.41-6.34 6.34 1.41 1.41L18 7zm4.24-1.41L11.66 16.17 7.48 12l-1.41 1.41L11.66 19l12-12-1.42-1.41zM.41 13.41L6 19l1.41-1.41L1.83 12 .41 13.41z"/>
+                                                    </svg>
+                                                {:else if message.delivered}
+                                                    <!-- Single check for delivered -->
+                                                    <svg class="w-4 h-4 text-gray-400" viewBox="0 0 24 24">
                                                         <path fill="currentColor" d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/>
                                                     </svg>
                                                 {:else}
+                                                    <!-- Pending delivery -->
                                                     <svg class="w-4 h-4 text-gray-400" viewBox="0 0 24 24">
-                                                        <path fill="currentColor" d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/>
+                                                        <path fill="currentColor" d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm0 18c-4.4 0-8-3.6-8-8s3.6-8 8-8 8 3.6 8 8-3.6 8-8 8z"/>
                                                     </svg>
                                                 {/if}
                                             </span>
@@ -449,6 +498,13 @@
                                 </div>
                             {/each}
                         </div>
+
+                        <!-- Typing Indicator -->
+                        {#if typingMessage}
+                            <div class="px-4 py-2 text-sm text-gray-400 italic">
+                                {typingMessage}
+                            </div>
+                        {/if}
 
                         <!-- Scroll to Bottom Button -->
                         {#if showScrollButton}
@@ -536,6 +592,6 @@
     }
 
     main {
-        padding-top: 64px; /* Adjust this value based on your Navbar height */
+        padding-top: 64px;
     }
 </style>
