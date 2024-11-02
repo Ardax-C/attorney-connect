@@ -130,41 +130,53 @@
         try {
             console.log('Handling call update:', videoCallData);
             
-            // Don't override current call data if we're the caller and call is active
-            if (!(isCallActive && videoCallData.caller === userId)) {
-                currentCallData = videoCallData;
-            }
-
-            // Caller: Handle recipient's answer
-            if (videoCallData.caller === userId) {
-                if (videoCallData.status === 'active' && videoCallData.answer) {
-                    console.log('Caller: Processing answer');
-                    isCallActive = true;
-                    isCallPending = false;
-                    if (peerConnection) {
-                        await peerConnection.setRemoteDescription(
-                            new RTCSessionDescription(videoCallData.answer)
-                        );
-                    }
-                }
-            }
-            // Recipient: Handle incoming call
-            else if (videoCallData.recipient === userId) {
-                if (videoCallData.status === 'pending') {
-                    console.log('Recipient: Showing incoming call dialog');
-                    showIncomingCallDialog = true;
-                } else if (videoCallData.status === 'active') {
-                    console.log('Recipient: Call is active');
-                    isCallActive = true;
-                    isCallPending = false;
-                }
-            }
-
-            // Handle call termination for both parties
-            if (videoCallData.status === 'rejected' || videoCallData.status === 'ended') {
-                console.log('Call ended or rejected');
-                await cleanupCall();
+            // Don't process old call data
+            if (currentCallData?.timestamp && videoCallData.timestamp < currentCallData.timestamp) {
+                console.log('Ignoring older call state update');
                 return;
+            }
+
+            // Store the current call data
+            currentCallData = videoCallData;
+
+            // Handle call states
+            switch (videoCallData.status) {
+                case 'pending':
+                    // For recipient: Show incoming call dialog
+                    if (videoCallData.recipient === userId) {
+                        console.log('Recipient: Showing incoming call dialog');
+                        showIncomingCallDialog = true;
+                    }
+                    // For caller: Maintain call state
+                    else if (videoCallData.caller === userId) {
+                        console.log('Caller: Maintaining pending state');
+                        isCallPending = true;
+                        isCallActive = true;
+                    }
+                    break;
+
+                case 'active':
+                    console.log('Call is active');
+                    showIncomingCallDialog = false;
+                    isCallActive = true;
+                    isCallPending = false;
+
+                    // For caller: Handle answer
+                    if (videoCallData.caller === userId && videoCallData.answer) {
+                        console.log('Caller: Processing answer');
+                        if (peerConnection) {
+                            await peerConnection.setRemoteDescription(
+                                new RTCSessionDescription(videoCallData.answer)
+                            );
+                        }
+                    }
+                    break;
+
+                case 'rejected':
+                case 'ended':
+                    console.log('Call ended or rejected');
+                    await cleanupCall();
+                    return;
             }
 
             // Handle ICE candidates
@@ -181,7 +193,7 @@
                     }
                 }
             }
-            
+
             logCallState('handleIncomingCall-end');
         } catch (error) {
             console.error('Error handling incoming call:', error);
@@ -199,6 +211,7 @@
                 return;
             }
 
+            // Set states before media setup
             isCallActive = true;
             isCallPending = false;
             
@@ -218,6 +231,7 @@
             const answer = await peerConnection.createAnswer();
             await peerConnection.setLocalDescription(answer);
 
+            // Keep all existing call data when updating
             const updatedCallData = {
                 ...currentCallData,
                 answer: {
@@ -228,6 +242,7 @@
                 timestamp: Date.now()
             };
 
+            // Update Firestore with the complete call data
             await updateDoc(doc(db, 'chats', chatId), {
                 videoCall: updatedCallData
             });
@@ -252,6 +267,13 @@
 
     async function cleanupCall() {
         console.log('Cleaning up call');
+        
+        // Only cleanup if we're not in an active call
+        if (isCallActive && currentCallData?.status === 'active') {
+            console.log('Skipping cleanup for active call');
+            return;
+        }
+
         if (localStream) {
             localStream.getTracks().forEach(track => {
                 track.stop();
