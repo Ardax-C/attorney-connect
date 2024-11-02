@@ -285,8 +285,6 @@ export async function analyzeLegalIssue(legalIssueText) {
   }
 }
 
-export { fuzzyMatchLocations, fuzzyMatchPracticeAreas };
-
 // Helper function to convert strings to Title Case
 function toTitleCase(str) {
   return str.replace(
