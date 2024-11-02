@@ -405,7 +405,7 @@
     onMount(() => {
         const unsubscribe = onSnapshot(doc(db, 'chats', chatId), (doc) => {
             const data = doc.data();
-            if (data?.videoCall) {
+            if (data?.videoCall) {  // Only handle videoCall updates
                 handleIncomingCall(data.videoCall);
             }
         });
@@ -415,6 +415,7 @@
             cleanupCall();
         };
     });
+
 </script>
 
 {#if showIncomingCallDialog}

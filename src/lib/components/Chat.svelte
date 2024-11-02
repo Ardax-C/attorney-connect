@@ -42,7 +42,6 @@
 
     let videoChatComponent;
 
-    // Move the reactive declaration up
     $: typingMessage = Array.from(typingUsers)
         .filter(id => id !== user?.uid)
         .length > 0 ? `${otherParticipantName} is typing...` : '';
@@ -125,22 +124,24 @@
 
         const chatRef = doc(db, 'chats', chatId);
         
-        // Add typing users subscription with error handling
-        typingUsersSubscription = onSnapshot(chatRef, (doc) => {
+        // Create separate subscription for chat metadata (typing, etc.)
+        const chatMetadataUnsubscribe = onSnapshot(chatRef, (doc) => {
             if (doc.exists()) {
                 chatData = doc.data();
-                typingUsers = new Set(chatData?.typingUsers || []);
-                // Force Svelte to react to the Set update
-                typingUsers = new Set(typingUsers);
+                // Only update typing users if it exists in the data
+                if ('typingUsers' in chatData) {
+                    typingUsers = new Set(chatData.typingUsers || []);
+                }
             }
         }, (error) => {
-            console.error('Error in typing users subscription:', error);
+            console.error('Error in chat metadata subscription:', error);
         });
 
+        // Create separate subscription for messages
         const messagesRef = collection(chatRef, 'messages');
         const messagesQuery = query(messagesRef, orderBy('timestamp', 'asc'));
 
-        unsubscribe = onSnapshot(messagesQuery, async (snapshot) => {
+        const messagesUnsubscribe = onSnapshot(messagesQuery, async (snapshot) => {
             const decryptedMessages = await Promise.all(
                 snapshot.docs.map(async (doc) => {
                     const data = doc.data();
@@ -181,6 +182,12 @@
             error = 'Error loading messages. Please try again later.';
             loading = false;
         });
+
+        // Update unsubscribe to cleanup both subscriptions
+        unsubscribe = () => {
+            chatMetadataUnsubscribe();
+            messagesUnsubscribe();
+        };
     }
 
     async function sendMessage() {
@@ -241,10 +248,7 @@
 
     onDestroy(() => {
         if (unsubscribe) {
-            unsubscribe();
-        }
-        if (typingUsersSubscription) {
-            typingUsersSubscription();
+            unsubscribe(); // This will now clean up both subscriptions
         }
         if (typingTimeout) {
             clearTimeout(typingTimeout);
@@ -533,6 +537,12 @@
 
                         <!-- Message Input -->
                         <div class="w-full bg-gray-900/95 border-t border-gray-800/50">
+                            <!-- Add typing indicator here -->
+                            {#if typingMessage}
+                                <div class="text-sm text-gray-400 italic px-4 py-2 border-b border-gray-800/50">
+                                    {typingMessage}
+                                </div>
+                            {/if}
                             <div class="p-3 md:p-4">
                                 <div class="relative">
                                     <input 
