@@ -125,12 +125,16 @@
 
         const chatRef = doc(db, 'chats', chatId);
         
-        // Add typing users subscription
+        // Add typing users subscription with error handling
         typingUsersSubscription = onSnapshot(chatRef, (doc) => {
             if (doc.exists()) {
                 chatData = doc.data();
                 typingUsers = new Set(chatData?.typingUsers || []);
+                // Force Svelte to react to the Set update
+                typingUsers = new Set(typingUsers);
             }
+        }, (error) => {
+            console.error('Error in typing users subscription:', error);
         });
 
         const messagesRef = collection(chatRef, 'messages');
@@ -239,10 +243,16 @@
         if (unsubscribe) {
             unsubscribe();
         }
-        if (typingUsersSubscription) typingUsersSubscription();
-        if (typingTimeout) clearTimeout(typingTimeout);
+        if (typingUsersSubscription) {
+            typingUsersSubscription();
+        }
+        if (typingTimeout) {
+            clearTimeout(typingTimeout);
+        }
         // Clean up typing status when leaving
-        if (user) updateTypingStatus(false);
+        if (user) {
+            updateTypingStatus(false).catch(console.error);
+        }
     });
 
     // Add this function to format message timestamps
@@ -287,7 +297,8 @@
             updateTypingStatus(true);
         }
         
-        clearTimeout(typingTimeout);
+        // Reset the timeout
+        if (typingTimeout) clearTimeout(typingTimeout);
         typingTimeout = setTimeout(() => {
             isTyping = false;
             updateTypingStatus(false);
@@ -296,29 +307,47 @@
 
     // Update typing status in Firestore
     async function updateTypingStatus(typing) {
+        if (!chatId || !user?.uid) return; // Add guard clause
+        
         const chatRef = doc(db, 'chats', chatId);
-        if (typing) {
-            await updateDoc(chatRef, {
-                typingUsers: arrayUnion(user.uid)
-            });
-        } else {
-            await updateDoc(chatRef, {
-                typingUsers: arrayRemove(user.uid)
-            });
+        try {
+            if (typing) {
+                await updateDoc(chatRef, {
+                    typingUsers: arrayUnion(user.uid)
+                });
+            } else {
+                await updateDoc(chatRef, {
+                    typingUsers: arrayRemove(user.uid)
+                });
+            }
+        } catch (error) {
+            console.error('Error updating typing status:', error);
         }
     }
 
     // Mark messages as read
     async function markMessagesAsRead() {
+        if (!user?.uid) return; // Add guard clause
+        
         const unreadMessages = messages.filter(
             msg => msg.senderId !== user.uid && !msg.readBy?.includes(user.uid)
         );
 
         for (const msg of unreadMessages) {
-            const messageRef = doc(db, 'chats', chatId, 'messages', msg.id);
-            await updateDoc(messageRef, {
-                readBy: arrayUnion(user.uid)
-            });
+            try {
+                const messageRef = doc(db, 'chats', chatId, 'messages', msg.id);
+                await updateDoc(messageRef, {
+                    readBy: arrayUnion(user.uid)
+                });
+                
+                // Also update the unread count in the chat document
+                const chatRef = doc(db, 'chats', chatId);
+                await updateDoc(chatRef, {
+                    [`unreadCount.${user.uid}`]: 0
+                });
+            } catch (error) {
+                console.error('Error marking message as read:', error);
+            }
         }
     }
 
