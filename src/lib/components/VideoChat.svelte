@@ -380,12 +380,12 @@
     </div>
 {/if}
 
-<div class="fixed right-4 bottom-4 flex flex-col gap-4 z-50 {isCallActive ? 'desktop:right-8 desktop:bottom-8' : ''}">
+<div class="fixed inset-0 flex items-center justify-center z-50 {isCallActive ? '' : 'pointer-events-none'}">
     {#if isCallActive}
-        <!-- Main call container for desktop -->
-        <div class="flex flex-col desktop:flex-row gap-4">
+        <!-- Main call container -->
+        <div class="flex flex-col gap-4 w-full max-w-4xl px-4">
             <!-- Remote Video -->
-            <div class="relative w-[300px] desktop:w-[480px] aspect-video rounded-lg overflow-hidden bg-black/20 shadow-lg">
+            <div class="relative w-full aspect-video rounded-lg overflow-hidden bg-black/20 shadow-lg">
                 <video 
                     bind:this={remoteVideo} 
                     autoplay 
@@ -395,7 +395,7 @@
                     <track kind="captions">
                 </video>
                 
-                <!-- Video Controls - Moved inside remote video container -->
+                <!-- Video Controls -->
                 <div class="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 bg-black/50 px-4 py-2 rounded-full">
                     <button 
                         on:click={toggleMute}
@@ -419,7 +419,7 @@
             </div>
 
             <!-- Local Video -->
-            <div class="relative w-[120px] aspect-video rounded-lg overflow-hidden bg-black/20 shadow-lg desktop:self-start">
+            <div class="absolute top-4 right-4 w-[180px] aspect-video rounded-lg overflow-hidden bg-black/20 shadow-lg">
                 <video 
                     bind:this={localVideo} 
                     autoplay 
@@ -435,22 +435,5 @@
 </div>
 
 <style>
-    /* Add these styles to ensure proper desktop layout */
-    @media (min-width: 1024px) {
-        :global(.desktop\:right-8) {
-            right: 2rem;
-        }
-        :global(.desktop\:bottom-8) {
-            bottom: 2rem;
-        }
-        :global(.desktop\:w-\[480px\]) {
-            width: 480px;
-        }
-        :global(.desktop\:flex-row) {
-            flex-direction: row;
-        }
-        :global(.desktop\:self-start) {
-            align-self: flex-start;
-        }
-    }
+    /* Add any additional styles here */
 </style>
