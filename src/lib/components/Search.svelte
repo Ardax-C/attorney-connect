@@ -27,6 +27,11 @@
 
     $: isSearchPage = true;
 
+    let touchStartY = 0;
+    let touchEndY = 0;
+    let showMobileSearch = true;
+    let lastScrollTop = 0;
+
     onMount(() => {
         const unsubscribe = auth.onAuthStateChanged(async (user) => {
             if (!user) goto('/login');
@@ -119,14 +124,38 @@
             applyFilters();
         }
     }
+
+    function handleTouchStart(e) {
+        touchStartY = e.touches[0].clientY;
+    }
+
+    function handleTouchEnd(e) {
+        touchEndY = e.changedTouches[0].clientY;
+        const swipeDistance = touchEndY - touchStartY;
+        
+        if (swipeDistance > 50 && !showMobileSearch) { // Swipe down
+            showMobileSearch = true;
+        } else if (swipeDistance < -50 && showMobileSearch) { // Swipe up
+            showMobileSearch = false;
+        }
+    }
+
+    function handleScroll(e) {
+        const st = e.target.scrollTop;
+        if (st > lastScrollTop && showMobileSearch) {
+            // Scrolling down
+            showMobileSearch = false;
+        }
+        lastScrollTop = st;
+    }
 </script>
 
 <main class="bg-no-repeat bg-center bg-cover h-screen fixed w-full" style="background-image: url({backgroundImage})">
     <Navbar />
     
     <div class="container mx-auto px-4 py-8 mt-16 h-[calc(100vh-6rem)]">
-        <!-- Search Header -->
-        <div class="flex flex-col md:flex-row justify-between items-center mb-8">
+        <!-- Search Header - Update visibility -->
+        <div class="flex flex-col md:flex-row justify-between items-center mb-8 md:block hidden">
             <h1 class="text-3xl font-bold text-custom-color-tertiary mb-4 md:mb-0">Search Attorneys</h1>
             <div class="flex items-center space-x-2">
                 <span class="text-emerald-400">Page {currentPage} of {totalPages}</span>
@@ -155,8 +184,8 @@
 
         <!-- Search Grid Layout -->
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 h-[calc(100%-5rem)]">
-            <!-- Search Filters Panel -->
-            <div class="lg:col-span-1">
+            <!-- Search Filters Panel - Update visibility -->
+            <div class="lg:col-span-1 {showMobileSearch ? '' : 'hidden'} md:block">
                 <div class="bg-zinc-800 bg-opacity-90 rounded-xl shadow-2xl p-6">
                     <h2 class="text-xl font-semibold text-custom-color-tertiary mb-6">Search</h2>
                     
@@ -180,8 +209,13 @@
                 </div>
             </div>
 
-            <!-- Results Grid - Add overflow -->
-            <div class="lg:col-span-2 overflow-y-auto pr-2 scrollbar-hide">
+            <!-- Results Grid - Add touch handlers -->
+            <div 
+                class="lg:col-span-2 overflow-y-auto pr-2 scrollbar-hide"
+                on:touchstart={handleTouchStart}
+                on:touchend={handleTouchEnd}
+                on:scroll={handleScroll}
+            >
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {#each searchResults as attorney}
                         <div 
