@@ -18,6 +18,13 @@
     let currentCallData = null;
     let isMuted = false;
     let isVideoEnabled = true;
+    let callDuration = 0;
+    let callTimer;
+    let connectionState = 'new';
+    
+    // Add reconnection variables
+    let reconnectAttempts = 0;
+    const MAX_RECONNECT_ATTEMPTS = 3;
     
     const servers = {
         iceServers: [
@@ -29,6 +36,9 @@
             }
         ]
     };
+
+    // Add loading state
+    let isLoading = false;
 
     async function setupMediaDevices() {
         try {
@@ -69,8 +79,11 @@
 
             // Handle connection state changes
             peerConnection.onconnectionstatechange = () => {
-                if (peerConnection.connectionState === 'disconnected') {
-                    endCall();
+                connectionState = peerConnection.connectionState;
+                if (connectionState === 'disconnected') {
+                    attemptReconnection();
+                } else if (connectionState === 'connected') {
+                    reconnectAttempts = 0; // Reset attempts on successful connection
                 }
             };
 
@@ -101,6 +114,7 @@
 
     // Rename the existing startCall to handleStartCall
     async function handleStartCall() {
+        isLoading = true;
         try {
             console.log('Starting call as caller');
             isCallPending = true;
@@ -131,6 +145,8 @@
         } catch (error) {
             console.error('Error starting call:', error);
             await cleanupCall();
+        } finally {
+            isLoading = false;
         }
     }
 
@@ -182,6 +198,10 @@
                                 throw error;
                             }
                         }
+                    }
+
+                    if (!callTimer) {
+                        startCallTimer();
                     }
                     break;
 
@@ -316,6 +336,12 @@
             }
         }
         
+        if (callTimer) {
+            clearInterval(callTimer);
+            callTimer = null;
+            callDuration = 0;
+        }
+        
         logCallState('cleanupCall-end');
     }
 
@@ -341,6 +367,44 @@
         localStream?.getVideoTracks().forEach(track => {
             track.enabled = isVideoEnabled;
         });
+    }
+
+    function startCallTimer() {
+        callDuration = 0;
+        callTimer = setInterval(() => {
+            callDuration++;
+        }, 1000);
+    }
+
+    function formatDuration(seconds) {
+        const hours = Math.floor(seconds / 3600);
+        const minutes = Math.floor((seconds % 3600) / 60);
+        const secs = seconds % 60;
+        
+        if (hours > 0) {
+            return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        }
+        return `${minutes}:${secs.toString().padStart(2, '0')}`;
+    }
+
+    // Add reconnection function
+    async function attemptReconnection() {
+        if (reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
+            console.log('Max reconnection attempts reached');
+            await endCall();
+            return;
+        }
+        
+        reconnectAttempts++;
+        console.log(`Attempting reconnection (${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS})`);
+        
+        try {
+            await cleanupCall(false);
+            await handleStartCall();
+        } catch (error) {
+            console.error('Reconnection attempt failed:', error);
+            setTimeout(attemptReconnection, 2000); // Try again in 2 seconds
+        }
     }
 
     onMount(() => {
@@ -396,24 +460,41 @@
                 </video>
                 
                 <!-- Video Controls -->
-                <div class="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 bg-black/50 px-4 py-2 rounded-full">
+                <div class="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-4 bg-black/70 px-6 py-3 rounded-full backdrop-blur-sm">
                     <button 
                         on:click={toggleMute}
-                        class="bg-transparent border-none text-white cursor-pointer p-2 hover:bg-black/30 rounded-full transition-colors"
+                        class="flex flex-col items-center gap-1 group"
                     >
-                        {isMuted ? '🔇' : '🔊'}
+                        <div class="p-3 rounded-full {isMuted ? 'bg-red-500/20' : 'bg-gray-700/50'} group-hover:bg-gray-600/50 transition-colors">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 {isMuted ? 'text-red-500' : 'text-white'}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d={isMuted ? "M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" : "M15.536 8.464a5 5 0 010 7.072M18.364 5.636a9 9 0 010 12.728M12 18.364l-4.243 4.243-1.414-1.414L12 15.414l4.243 4.243-1.414 1.414L12 18.364z"} />
+                            </svg>
+                        </div>
+                        <span class="text-xs text-white/80">{isMuted ? 'Unmute' : 'Mute'}</span>
                     </button>
+
                     <button 
                         on:click={toggleVideo}
-                        class="bg-transparent border-none text-white cursor-pointer p-2 hover:bg-black/30 rounded-full transition-colors"
+                        class="flex flex-col items-center gap-1 group"
                     >
-                        {isVideoEnabled ? '📹' : '🚫'}
+                        <div class="p-3 rounded-full {!isVideoEnabled ? 'bg-red-500/20' : 'bg-gray-700/50'} group-hover:bg-gray-600/50 transition-colors">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 {!isVideoEnabled ? 'text-red-500' : 'text-white'}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d={!isVideoEnabled ? "M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z M3 3l18 18" : "M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"} />
+                            </svg>
+                        </div>
+                        <span class="text-xs text-white/80">{isVideoEnabled ? 'Stop Video' : 'Start Video'}</span>
                     </button>
+
                     <button 
                         on:click={endCall}
-                        class="bg-transparent border-none cursor-pointer p-2 hover:bg-black/30 rounded-full text-red-500 transition-colors"
+                        class="flex flex-col items-center gap-1 group"
                     >
-                        📞
+                        <div class="p-3 rounded-full bg-red-500/20 group-hover:bg-red-600/30 transition-colors">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 8l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2M5 3a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V5a2 2 0 00-2-2H5z" />
+                            </svg>
+                        </div>
+                        <span class="text-xs text-red-500">End Call</span>
                     </button>
                 </div>
             </div>
@@ -437,3 +518,28 @@
 <style>
     /* Add any additional styles here */
 </style>
+
+<!-- Add call duration display -->
+<div class="absolute top-4 left-1/2 -translate-x-1/2 bg-black/70 px-4 py-2 rounded-full backdrop-blur-sm">
+    <span class="text-white/90 text-sm font-medium">{formatDuration(callDuration)}</span>
+</div>
+
+<!-- Add connection status indicator -->
+<div class="absolute top-4 right-4 flex items-center gap-2 bg-black/70 px-3 py-1.5 rounded-full backdrop-blur-sm">
+    <div class="w-2 h-2 rounded-full {
+        connectionState === 'connected' ? 'bg-green-500' :
+        connectionState === 'connecting' ? 'bg-yellow-500 animate-pulse' :
+        'bg-red-500'
+    }"></div>
+    <span class="text-white/90 text-xs capitalize">{connectionState}</span>
+</div>
+
+<!-- Add loading overlay -->
+{#if isLoading}
+    <div class="absolute inset-0 bg-black/50 flex items-center justify-center backdrop-blur-sm z-50">
+        <div class="flex flex-col items-center gap-4">
+            <div class="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+            <span class="text-white/90">Connecting...</span>
+        </div>
+    </div>
+{/if}
