@@ -304,16 +304,19 @@
             </div>
         </div>
 
-        <!-- Mobile Results View - Updated margins -->
-        <div class="md:hidden h-[calc(100vh-16rem)] overflow-y-auto mb-8 pr-2 scrollbar-hide"
+        <!-- Mobile Results View - Updated height calculation -->
+        <div class="md:hidden h-[calc(100vh-8rem)] overflow-y-auto mb-4 pr-2 scrollbar-hide"
              on:touchstart={handleTouchStart}
              on:touchend={handleTouchEnd}
              on:scroll={handleScroll}>
-            <div class="grid grid-cols-1 gap-4">
+            <div class="grid grid-cols-1 gap-4 pb-4">
                 {#each searchResults as attorney}
                     <div 
                         class="bg-zinc-800 bg-opacity-90 rounded-xl shadow-2xl overflow-hidden"
                         on:click={() => handleProfileClick(attorney.id)}
+                        role="button"
+                        tabindex="0"
+                        on:keydown={(e) => e.key === 'Enter' && handleProfileClick(attorney.id)}
                     >
                         <div class="relative h-36 bg-gradient-to-r from-cyan-600 to-cyan-800">
                             <img 
