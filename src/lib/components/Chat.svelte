@@ -477,7 +477,7 @@
                             class="flex-1 overflow-y-auto px-3 md:px-6 py-4 scrollbar-thin scrollbar-thumb-gray-800 scrollbar-track-transparent"
                         >
                             {#each messages as message (message.id)}
-                                <div class="flex flex-col mb-4 max-w-[85%] md:max-w-[75%] {message.senderId === user.uid ? 'ml-auto' : ''}">
+                                <div class="flex flex-col mb-4 {message.senderId === user.uid ? 'items-end' : 'items-start'} max-w-[85%] md:max-w-[75%] {message.senderId === user.uid ? 'ml-auto' : ''}">
                                     <!-- Message Content -->
                                     <div class="{message.senderId === user.uid 
                                         ? 'bg-blue-500 text-white' 
@@ -512,10 +512,10 @@
                                     </div>
 
                                     <!-- Message Meta -->
-                                    <div class="flex items-center text-xs mt-1 text-gray-500 {message.senderId === user.uid ? 'justify-end' : ''}">
+                                    <div class="flex items-center text-xs mt-1 text-gray-500 gap-2">
                                         <span>{formatMessageTime(message.timestamp)}</span>
                                         {#if message.senderId === user.uid}
-                                            <span class="ml-2">
+                                            <span>
                                                 {#if message.readBy?.includes(otherParticipantId)}
                                                     <svg class="w-4 h-4 text-blue-500" viewBox="0 0 24 24">
                                                         <path fill="currentColor" d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/>
