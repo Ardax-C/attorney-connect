@@ -8,6 +8,7 @@
     import { cubicOut } from 'svelte/easing';
     import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
     import { faClock } from '@fortawesome/free-solid-svg-icons';
+    import { browser } from '$app/environment';
 
     const features = [
         {
@@ -58,15 +59,18 @@
         }, 500);
     });
 
-    // Add a small delay before showing first items
+    // Modify the timeout to wait longer before showing first items
     setTimeout(() => {
+        // Wait for 2500ms (allowing stats animations to mostly complete)
         visibleFeatures[0] = true;
         visibleFeatures[1] = true;
         visibleFeatures = visibleFeatures; // trigger reactivity
-    }, 500);
+    }, 2500); // Changed from 500 to 2500
 
     // Set up scroll handler
     const handleScroll = () => {
+        if (!browser) return; // Skip if not in browser
+        
         features.forEach((_, index) => {
             const element = document.getElementById(`feature-${index}`);
             if (!element) return;
@@ -81,11 +85,15 @@
         });
     };
 
-    // Initial check
-    handleScroll();
-
-    // Add scroll listener
-    window.addEventListener('scroll', handleScroll);
+    // Initial check and event listener only in browser
+    onMount(() => {
+        handleScroll();
+        window.addEventListener('scroll', handleScroll);
+        
+        return () => {
+            window.removeEventListener('scroll', handleScroll);
+        };
+    });
 </script>
 
 <style>
