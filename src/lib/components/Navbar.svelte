@@ -125,6 +125,7 @@
                     {:else}
                         <a href="/login" class="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Login</a>
                         <a href="/signup" class="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Sign Up</a>
+                        <a href="/about" class="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors">About</a>
                     {/if}
                 </div>
             </div>
@@ -168,6 +169,14 @@
                     >
                         Court Opinions
                     </a>
+                    {#if !user}
+                        <a 
+                            href="/about" 
+                            class="text-gray-300 hover:text-white block px-3 py-2 rounded-md text-base font-medium"
+                        >
+                            About
+                        </a>
+                    {/if}
                     <button on:click={handleLogout} class="text-gray-300 hover:bg-gray-700 hover:text-white block px-3 py-2 rounded-md text-base font-medium w-full text-left">Logout</button>
                 {:else if user && userStatus === 'pending'}
                     <a href="/registration-pending" class="text-gray-300 hover:bg-gray-700 hover:text-white block px-3 py-2 rounded-md text-base font-medium">Registration Pending</a>
