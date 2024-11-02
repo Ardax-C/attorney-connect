@@ -221,13 +221,6 @@
         }
     }
 
-    function handleKeyPress(event) {
-        if (event.key === 'Enter' && !event.shiftKey) {
-            event.preventDefault();
-            sendMessage();
-        }
-    }
-
     onMount(async () => {
         if (!user) {
             const unsubscribe = auth.onAuthStateChanged(async (firebaseUser) => {
@@ -252,25 +245,39 @@
         if (user) updateTypingStatus(false);
     });
 
-    // Add this helper function to format timestamps in the template
-    function formatTimestamp(timestamp) {
+    // Add this function to format message timestamps
+    function formatMessageTime(timestamp) {
         if (!timestamp) return '';
-        const date = timestamp instanceof Date ? timestamp : new Date(timestamp);
+        
+        const date = timestamp instanceof Date ? timestamp : timestamp.toDate();
         const now = new Date();
         const diff = now.getTime() - date.getTime();
-        const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+        const minutes = Math.floor(diff / 60000);
+        const hours = Math.floor(minutes / 60);
+        const days = Math.floor(hours / 24);
 
-        if (days === 0) {
-            return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        if (minutes < 1) {
+            return 'Just now';
+        } else if (minutes < 60) {
+            return `${minutes}m ago`;
+        } else if (hours < 24) {
+            return `${hours}h ago`;
         } else if (days === 1) {
-            return 'Yesterday ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            return 'Yesterday';
         } else if (days < 7) {
-            return date.toLocaleDateString([], { weekday: 'short' }) + ' ' + 
-                   date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            return date.toLocaleDateString([], { weekday: 'short' });
         } else {
-            return date.toLocaleDateString([], { month: 'short', day: 'numeric' }) + ' ' + 
-                   date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            return date.toLocaleDateString([], { 
+                month: 'short', 
+                day: 'numeric',
+                year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined
+            });
         }
+    }
+
+    // Update the existing formatTimestamp function to use the new formatMessageTime
+    function formatTimestamp(timestamp) {
+        return formatMessageTime(timestamp);
     }
 
     // Handle typing status
@@ -441,12 +448,18 @@
                                         {#if message.attachments?.length > 0}
                                             {#each message.attachments as attachment}
                                                 <div class="mb-2">
-                                                    <img 
-                                                        src={attachment.url} 
-                                                        alt=""
-                                                        class="max-w-full rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
-                                                        on:click={() => window.open(attachment.url, '_blank')}
-                                                    />
+                                                    {#if attachment.type === 'file'}
+                                                        <div class="text-sm">
+                                                            {attachment.name} ({formatFileSize(attachment.size)})
+                                                        </div>
+                                                    {:else}
+                                                        <img 
+                                                            src={attachment.url} 
+                                                            alt=""
+                                                            class="max-w-full rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
+                                                            on:click={() => window.open(attachment.url, '_blank')}
+                                                        />
+                                                    {/if}
                                                 </div>
                                             {/each}
                                         {/if}
