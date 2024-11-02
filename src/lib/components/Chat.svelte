@@ -385,6 +385,18 @@
         if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
         return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
     }
+
+    // Add this function to handle voice calls
+    function startCall() {
+        // Get reference to VideoChat component
+        const videoChat = document.querySelector('VideoChat');
+        if (videoChat) {
+            // Call the startCall method from VideoChat component
+            videoChat.startCall();
+        } else {
+            console.error('VideoChat component not found');
+        }
+    }
 </script>
 
 <main class="bg-no-repeat bg-center bg-cover fixed inset-0 flex flex-col" style="background-image: url({backgroundImage})">
@@ -414,13 +426,23 @@
                                     <span class="text-sm text-gray-400">Active Now</span>
                                 </div>
                             </div>
-                            
-                            <!-- Add VideoChat component here -->
-                            <VideoChat 
-                                {chatId}
-                                userId={user?.uid}
-                                {otherParticipantId}
-                            />
+
+                            <!-- Add call controls -->
+                            <div class="flex items-center gap-4">
+                                <button 
+                                    class="p-2 rounded-full hover:bg-gray-800 transition-colors text-gray-400 hover:text-gray-300"
+                                    on:click={() => startCall()}
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                        <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
+                                    </svg>
+                                </button>
+                                <VideoChat 
+                                    {chatId}
+                                    userId={user?.uid}
+                                    {otherParticipantId}
+                                />
+                            </div>
                         </div>
 
                         <!-- Messages Container -->
