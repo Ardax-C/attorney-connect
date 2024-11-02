@@ -79,8 +79,22 @@
         }
     }
 
+    // Add debug logging
+    function logCallState(location) {
+        console.log(`[${location}] Call State:`, {
+            isCallActive,
+            isCallPending,
+            showIncomingCallDialog,
+            hasLocalStream: !!localStream,
+            hasPeerConnection: !!peerConnection,
+            userId,
+            isCaller: currentCallData?.caller === userId
+        });
+    }
+
     async function startCall() {
         try {
+            console.log('Starting call as caller');
             isCallPending = true;
             isCallActive = true;
             await setupMediaDevices();
@@ -101,9 +115,11 @@
                     },
                     caller: userId,
                     recipient: otherParticipantId,
-                    status: 'pending'
+                    status: 'pending',
+                    timestamp: Date.now() // Add timestamp to ensure state freshness
                 }
             });
+            logCallState('startCall-end');
         } catch (error) {
             console.error('Error starting call:', error);
             await cleanupCall();
@@ -112,24 +128,46 @@
 
     async function handleIncomingCall(videoCallData) {
         try {
-            currentCallData = videoCallData;
+            console.log('Handling call update:', videoCallData);
             
-            if (videoCallData.caller === userId && videoCallData.status === 'active') {
-                isCallActive = true;
-                isCallPending = false;
-                if (videoCallData.answer) {
-                    await peerConnection.setRemoteDescription(new RTCSessionDescription(videoCallData.answer));
-                }
-            }
-            else if (videoCallData.status === 'pending' && 
-                videoCallData.caller !== userId && 
-                videoCallData.recipient === userId) {
-                showIncomingCallDialog = true;
-            }
-            else if (videoCallData.status === 'rejected' || videoCallData.status === 'ended') {
-                await cleanupCall();
+            // Don't override current call data if we're the caller and call is active
+            if (!(isCallActive && videoCallData.caller === userId)) {
+                currentCallData = videoCallData;
             }
 
+            // Caller: Handle recipient's answer
+            if (videoCallData.caller === userId) {
+                if (videoCallData.status === 'active' && videoCallData.answer) {
+                    console.log('Caller: Processing answer');
+                    isCallActive = true;
+                    isCallPending = false;
+                    if (peerConnection) {
+                        await peerConnection.setRemoteDescription(
+                            new RTCSessionDescription(videoCallData.answer)
+                        );
+                    }
+                }
+            }
+            // Recipient: Handle incoming call
+            else if (videoCallData.recipient === userId) {
+                if (videoCallData.status === 'pending') {
+                    console.log('Recipient: Showing incoming call dialog');
+                    showIncomingCallDialog = true;
+                } else if (videoCallData.status === 'active') {
+                    console.log('Recipient: Call is active');
+                    isCallActive = true;
+                    isCallPending = false;
+                }
+            }
+
+            // Handle call termination for both parties
+            if (videoCallData.status === 'rejected' || videoCallData.status === 'ended') {
+                console.log('Call ended or rejected');
+                await cleanupCall();
+                return;
+            }
+
+            // Handle ICE candidates
             if (videoCallData.candidates) {
                 const otherParty = userId === videoCallData.caller ? videoCallData.recipient : videoCallData.caller;
                 const candidates = videoCallData.candidates[otherParty];
@@ -143,6 +181,8 @@
                     }
                 }
             }
+            
+            logCallState('handleIncomingCall-end');
         } catch (error) {
             console.error('Error handling incoming call:', error);
             await cleanupCall();
@@ -151,13 +191,14 @@
 
     async function acceptCall() {
         try {
+            console.log('Accepting call as recipient');
             showIncomingCallDialog = false;
             
             if (!currentCallData?.offer) {
                 console.error('No offer found in current call data');
                 return;
             }
-            
+
             isCallActive = true;
             isCallPending = false;
             
@@ -170,21 +211,28 @@
                 });
             }
 
-            await peerConnection.setRemoteDescription(new RTCSessionDescription(currentCallData.offer));
+            await peerConnection.setRemoteDescription(
+                new RTCSessionDescription(currentCallData.offer)
+            );
             
             const answer = await peerConnection.createAnswer();
             await peerConnection.setLocalDescription(answer);
 
+            const updatedCallData = {
+                ...currentCallData,
+                answer: {
+                    type: answer.type,
+                    sdp: answer.sdp
+                },
+                status: 'active',
+                timestamp: Date.now()
+            };
+
             await updateDoc(doc(db, 'chats', chatId), {
-                videoCall: {
-                    ...currentCallData,
-                    answer: {
-                        type: answer.type,
-                        sdp: answer.sdp
-                    },
-                    status: 'active'
-                }
+                videoCall: updatedCallData
             });
+            
+            logCallState('acceptCall-end');
         } catch (error) {
             console.error('Error accepting call:', error);
             await cleanupCall();
@@ -203,8 +251,12 @@
     }
 
     async function cleanupCall() {
+        console.log('Cleaning up call');
         if (localStream) {
-            localStream.getTracks().forEach(track => track.stop());
+            localStream.getTracks().forEach(track => {
+                track.stop();
+                localStream.removeTrack(track);
+            });
         }
         if (peerConnection) {
             peerConnection.close();
@@ -217,6 +269,8 @@
         isCallPending = false;
         showIncomingCallDialog = false;
         currentCallData = null;
+        
+        logCallState('cleanupCall-end');
     }
 
     async function endCall() {
