@@ -356,67 +356,6 @@
             cleanupCall();
         };
     });
-
-    // Add resize functionality
-    let isResizing = false;
-    let currentResizeTarget = null;
-    let initialSize = { width: 0, height: 0 };
-    let initialPosition = { x: 0, y: 0 };
-
-    onMount(() => {
-        // Add resize event listeners
-        const resizeHandles = document.querySelectorAll('.resize-handle');
-        
-        resizeHandles.forEach(handle => {
-            handle.addEventListener('mousedown', startResize);
-        });
-
-        document.addEventListener('mousemove', handleResize);
-        document.addEventListener('mouseup', stopResize);
-
-        return () => {
-            document.removeEventListener('mousemove', handleResize);
-            document.removeEventListener('mouseup', stopResize);
-        };
-    });
-
-    function startResize(e) {
-        isResizing = true;
-        currentResizeTarget = e.target.parentElement;
-        initialSize = {
-            width: currentResizeTarget.offsetWidth,
-            height: currentResizeTarget.offsetHeight
-        };
-        initialPosition = { x: e.clientX, y: e.clientY };
-        e.preventDefault();
-    }
-
-    function handleResize(e) {
-        if (!isResizing) return;
-
-        const dx = e.clientX - initialPosition.x;
-        const dy = e.clientY - initialPosition.y;
-
-        if (currentResizeTarget) {
-            const newWidth = initialSize.width + dx;
-            const newHeight = initialSize.height + dy;
-            
-            // Maintain minimum sizes
-            const minWidth = currentResizeTarget.classList.contains('local-video') ? 160 : 320;
-            const maxWidth = currentResizeTarget.classList.contains('local-video') ? 240 : 800;
-            
-            if (newWidth >= minWidth && newWidth <= maxWidth) {
-                currentResizeTarget.style.width = `${newWidth}px`;
-                // Maintain aspect ratio (16:9)
-                currentResizeTarget.style.height = `${newWidth * 0.5625}px`;
-            }
-        }
-    }
-
-    function stopResize() {
-        isResizing = false;
-        currentResizeTarget = null;
-    }
 </script>
 
 {#if showIncomingCallDialog}
@@ -441,83 +380,53 @@
     </div>
 {/if}
 
-<div class="absolute right-1/2 top-1/2 transform translate-x-1/2 -translate-y-1/2 flex flex-col gap-4 z-50 {isCallActive ? 'desktop:static desktop:transform-none desktop:flex desktop:justify-center' : ''}">
+<div class="fixed right-4 bottom-20 w-full max-w-[300px] z-50 flex flex-col gap-4 md:right-4 md:bottom-20 sm:right-2 sm:bottom-16 sm:max-w-[160px]">
     {#if isCallActive}
-        <!-- Main call container for desktop -->
-        <div class="flex flex-col desktop:flex-row gap-4 desktop:resizable">
-            <!-- Remote Video -->
-            <div class="relative w-[300px] desktop:w-[480px] desktop:min-w-[320px] desktop:max-w-[800px] aspect-video rounded-lg overflow-hidden bg-black/20 shadow-lg desktop:resize">
-                <div class="resize-handle absolute bottom-0 right-0 w-4 h-4 cursor-se-resize"></div>
-                <video 
-                    bind:this={remoteVideo} 
-                    autoplay 
-                    playsinline 
-                    class="w-full h-full object-cover"
-                >
-                    <track kind="captions">
-                </video>
-                
-                <!-- Video Controls -->
-                <div class="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 bg-black/50 px-4 py-2 rounded-full">
-                    <button 
-                        on:click={toggleMute}
-                        class="bg-transparent border-none text-white cursor-pointer p-2 hover:bg-black/30 rounded-full transition-colors"
-                    >
-                        {isMuted ? '🔇' : '🔊'}
-                    </button>
-                    <button 
-                        on:click={toggleVideo}
-                        class="bg-transparent border-none text-white cursor-pointer p-2 hover:bg-black/30 rounded-full transition-colors"
-                    >
-                        {isVideoEnabled ? '📹' : '🚫'}
-                    </button>
-                    <button 
-                        on:click={endCall}
-                        class="bg-transparent border-none cursor-pointer p-2 hover:bg-black/30 rounded-full text-red-500 transition-colors"
-                    >
-                        📞
-                    </button>
-                </div>
-            </div>
+        <!-- Remote Video -->
+        <div class="relative w-full aspect-video sm:aspect-[3/4] rounded-lg overflow-hidden bg-black/20">
+            <video 
+                bind:this={remoteVideo} 
+                autoplay 
+                playsinline 
+                class="w-full h-full object-cover"
+            >
+                <track kind="captions">
+            </video>
+        </div>
 
-            <!-- Local Video -->
-            <div class="relative w-[120px] desktop:min-w-[160px] desktop:max-w-[240px] aspect-video rounded-lg overflow-hidden bg-black/20 shadow-lg desktop:self-start desktop:resize">
-                <div class="resize-handle absolute bottom-0 right-0 w-4 h-4 cursor-se-resize"></div>
-                <video 
-                    bind:this={localVideo} 
-                    autoplay 
-                    playsinline 
-                    muted
-                    class="w-full h-full object-cover"
-                >
-                    <track kind="captions">
-                </video>
-            </div>
+        <!-- Local Video -->
+        <div class="relative w-full aspect-video sm:aspect-[3/4] sm:w-20 sm:absolute sm:bottom-4 sm:right-4 rounded-lg overflow-hidden bg-black/20">
+            <video 
+                bind:this={localVideo} 
+                autoplay 
+                playsinline 
+                muted
+                class="w-full h-full object-cover"
+            >
+                <track kind="captions">
+            </video>
+        </div>
+
+        <!-- Video Controls -->
+        <div class="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-2 bg-black/50 px-2 py-1 rounded-full z-[51]">
+            <button 
+                on:click={toggleMute}
+                class="bg-transparent border-none text-white cursor-pointer p-1 hover:bg-black/30 rounded-full"
+            >
+                {isMuted ? '🔇' : '🔊'}
+            </button>
+            <button 
+                on:click={toggleVideo}
+                class="bg-transparent border-none text-white cursor-pointer p-1 hover:bg-black/30 rounded-full"
+            >
+                {isVideoEnabled ? '📹' : '🚫'}
+            </button>
+            <button 
+                on:click={endCall}
+                class="bg-transparent border-none cursor-pointer p-1 hover:bg-black/30 rounded-full text-red-500"
+            >
+                📞
+            </button>
         </div>
     {/if}
 </div>
-
-<style>
-    /* Add resize styling */
-    @media (min-width: 1024px) {
-        .desktop\:resize {
-            resize: both;
-            overflow: hidden;
-        }
-
-        .resize-handle {
-            background: linear-gradient(135deg, transparent 50%, rgba(255,255,255,0.3) 50%);
-            z-index: 10;
-        }
-
-        /* Maintain aspect ratio while resizing */
-        video {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-    }
-</style>
