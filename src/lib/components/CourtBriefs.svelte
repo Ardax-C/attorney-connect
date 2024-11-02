@@ -1,8 +1,7 @@
 <script>
     import { onMount } from 'svelte';
     import { fetchRecentBriefs } from '$lib/services/courtListener';
-    import backgroundImage from '$lib/images/dark_lattice.png';
-    import SearchBar from './SearchBar.svelte';
+
 
     const PAGE_SIZE = 5;
 
@@ -89,7 +88,7 @@
         }
     }
 
-    async function loadBriefs(cursor = null, direction = null) {
+    async function loadBriefs(cursor = null, direction = null, query = null) {
         loading = true;
         error = null;
         
@@ -97,7 +96,7 @@
             const data = await fetchRecentBriefs({ 
                 cursor, 
                 pageSize: PAGE_SIZE,
-                query: searchQuery
+                query: query || searchQuery
             });
             
             briefs = data.results;
@@ -128,9 +127,27 @@
         loading = true;
         try {
             const cursor = direction === 'next' ? nextCursor : previousCursor;
-            await loadBriefs(cursor, direction);
+            
+            // Build the query with current filters
+            let fullQuery = [];
+            
+            // Add search query if it exists
+            if (searchQuery.trim()) {
+                fullQuery.push(`(${searchQuery.trim()})`); // Wrap in parentheses to ensure proper AND operation
+            }
+            
+            // Add date range filter
+            fullQuery.push(`dateFiled:[${formatDateForApi(dateRange.start)} TO ${formatDateForApi(dateRange.end)}]`);
+            
+            // Join all filters with AND
+            const finalQuery = fullQuery.join(' AND ').trim();
+            console.log('Query being sent:', finalQuery); // For debugging
+            
+            // Pass both cursor and query to loadBriefs
+            await loadBriefs(cursor, direction, finalQuery);
         } catch (err) {
             error = 'Error loading court briefs';
+            console.error('Error:', err); // For debugging
         } finally {
             loading = false;
         }

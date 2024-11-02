@@ -9,7 +9,13 @@ export async function fetchRecentBriefs({ cursor = null, pageSize = DEFAULT_PAGE
     });
     
     if (cursor) {
-        params.append('cursor', cursor);
+        try {
+            const cursorUrl = new URL(cursor);
+            const cursorValue = cursorUrl.searchParams.get('cursor');
+            params.append('cursor', cursorValue || cursor);
+        } catch {
+            params.append('cursor', cursor);
+        }
     }
     
     if (query) {
