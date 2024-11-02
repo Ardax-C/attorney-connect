@@ -390,50 +390,37 @@
 </script>
 
 <main class="bg-no-repeat bg-center bg-cover fixed inset-0 flex flex-col" style="background-image: url({backgroundImage})">
-    <Navbar />
-    <div class="flex-grow container mx-auto p-4 flex flex-col overflow-hidden">
-        <div class="bg-gray-900 rounded-md flex flex-col h-full">
-            <h1 class="text-custom-color-tertiary text-2xl font-bold p-4">Chat with {otherParticipantName}</h1>
+    <div class="flex-grow container mx-auto p-2 md:p-4 flex flex-col overflow-hidden">
+        <div class="bg-gray-900/95 backdrop-blur-sm rounded-xl flex flex-col h-full shadow-2xl">
             {#if loading}
-                <p class="text-emerald-400 p-4">Loading chat...</p>
-            {:else if error}
-                <p class="text-red-500 p-4">{error}</p>
+                <!-- Loading state -->
             {:else}
-                <!-- Outer container aligned directly under navbar -->
-                <div class="fixed inset-x-0 top-[64px] bottom-0 flex bg-gray-950">
-                    <!-- Chat container -->
-                    <div class="w-full flex flex-col bg-gray-900">
-                        <!-- Header -->
-                        <div class="h-16 bg-gray-900 border-b border-gray-800/50 flex items-center justify-between px-4 md:px-6">
+                <div class="fixed inset-x-0 top-[64px] bottom-0 flex bg-gray-950/50 backdrop-blur-sm">
+                    <!-- Chat Container -->
+                    <div class="w-full flex flex-col bg-gray-900/90">
+                        <!-- Chat Header -->
+                        <div class="h-16 bg-gray-900/95 border-b border-gray-800/50 flex items-center justify-between px-3 md:px-6">
                             <div class="flex items-center gap-3">
-                                <div class="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center">
-                                    <span class="text-blue-400 font-medium">
-                                        {otherParticipantName.charAt(0)}
-                                    </span>
+                                <div class="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center text-white font-medium">
+                                    {otherParticipantName[0]}
                                 </div>
                                 <div>
-                                    <h2 class="text-lg font-medium text-gray-100">{otherParticipantName}</h2>
-                                    <span class="text-sm text-gray-400">Active Now</span>
+                                    <h2 class="text-white font-medium">{otherParticipantName}</h2>
+                                    <p class="text-xs text-gray-400">Active Now</p>
                                 </div>
                             </div>
-
-                            <!-- Add call controls -->
+                            
+                            <!-- Call Button -->
                             <div class="flex items-center gap-4">
                                 <button 
-                                    class="p-2 rounded-full hover:bg-gray-800 transition-colors text-gray-400 hover:text-gray-300"
+                                    class="p-2.5 rounded-full bg-blue-500/10 hover:bg-blue-500/20 transition-colors {!otherParticipantId ? 'opacity-50 cursor-not-allowed' : ''}"
                                     on:click={startCall}
                                     disabled={!otherParticipantId}
                                 >
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-500" viewBox="0 0 20 20" fill="currentColor">
                                         <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
                                     </svg>
                                 </button>
-                                <VideoChat 
-                                    {chatId}
-                                    userId={user?.uid}
-                                    {otherParticipantId}
-                                    bind:this={videoChatComponent}
-                                />
                             </div>
                         </div>
 
@@ -441,78 +428,45 @@
                         <div 
                             bind:this={chatContainer}
                             on:scroll={handleScroll}
-                            class="flex-1 overflow-y-auto px-4 md:px-6 py-4 scrollbar-thin scrollbar-thumb-gray-800 scrollbar-track-transparent">
+                            class="flex-1 overflow-y-auto px-3 md:px-6 py-4 scrollbar-thin scrollbar-thumb-gray-800 scrollbar-track-transparent"
+                        >
                             {#each messages as message (message.id)}
-                                <div class="flex flex-col mb-4 max-w-[85%] {message.senderId === user.uid ? 'ml-auto' : ''}">
-                                    <div class="flex items-end gap-2 {message.senderId === user.uid ? 'flex-row-reverse' : ''}">
-                                        <!-- Avatar -->
-                                        <div class="w-6 h-6 rounded-full bg-gray-800 flex-shrink-0 flex items-center justify-center">
-                                            <span class="text-xs text-gray-400">
-                                                {message.senderId === user.uid ? 'You'.charAt(0) : otherParticipantName.charAt(0)}
-                                            </span>
-                                        </div>
-                                        
-                                        <!-- Message Bubble -->
-                                        <div class="{message.senderId === user.uid 
-                                            ? 'bg-blue-500 text-white' 
-                                            : 'bg-gray-800 text-gray-100'} 
-                                            py-2.5 px-4 rounded-2xl rounded-br-sm max-w-full break-words shadow-sm">
-                                            {#if message.attachments && message.attachments.length > 0}
-                                                {#each message.attachments as attachment}
-                                                    {#if attachment.type === 'image'}
-                                                        <div class="mb-2">
-                                                            <button
-                                                                class="block w-full p-0 border-0"
-                                                                on:click={() => window.open(attachment.url, '_blank')}
-                                                            >
-                                                                <img 
-                                                                    src={attachment.url} 
-                                                                    alt=""
-                                                                    class="max-w-full rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
-                                                                />
-                                                            </button>
-                                                        </div>
-                                                    {:else}
-                                                        <a 
-                                                            href={attachment.url}
-                                                            target="_blank"
-                                                            rel="noopener noreferrer"
-                                                            class="flex items-center gap-2 p-2 rounded bg-gray-700/50 hover:bg-gray-600/50 transition-colors mb-2"
-                                                        >
-                                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                                                <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd" />
-                                                            </svg>
-                                                            <div class="flex-1 truncate">
-                                                                <div class="text-sm font-medium">{attachment.name}</div>
-                                                                <div class="text-xs opacity-75">{formatFileSize(attachment.size)}</div>
-                                                            </div>
-                                                        </a>
-                                                    {/if}
-                                                {/each}
-                                            {/if}
-                                            
-                                            {message.content}
-                                        </div>
+                                <div class="flex flex-col mb-4 max-w-[85%] md:max-w-[75%] {message.senderId === user.uid ? 'ml-auto' : ''}">
+                                    <!-- Message Content -->
+                                    <div class="{message.senderId === user.uid 
+                                        ? 'bg-blue-500 text-white' 
+                                        : 'bg-gray-800 text-gray-100'} 
+                                        py-2.5 px-4 rounded-2xl {message.senderId === user.uid ? 'rounded-br-sm' : 'rounded-bl-sm'} max-w-full break-words shadow-sm"
+                                    >
+                                        {#if message.attachments?.length > 0}
+                                            {#each message.attachments as attachment}
+                                                <div class="mb-2">
+                                                    <img 
+                                                        src={attachment.url} 
+                                                        alt=""
+                                                        class="max-w-full rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
+                                                        on:click={() => window.open(attachment.url, '_blank')}
+                                                    />
+                                                </div>
+                                            {/each}
+                                        {/if}
+                                        {message.content}
                                     </div>
-                                    
-                                    <!-- Timestamp -->
-                                    <div class="flex items-center text-xs mt-1 text-gray-500 
-                                        {message.senderId === user.uid ? 'justify-end mr-8' : 'justify-start ml-8'}">
-                                        <span>{formatTimestamp(message.timestamp)}</span>
+
+                                    <!-- Message Meta -->
+                                    <div class="flex items-center text-xs mt-1 text-gray-500 {message.senderId === user.uid ? 'justify-end' : ''}">
+                                        <span>{formatMessageTime(message.timestamp)}</span>
                                         {#if message.senderId === user.uid}
                                             <span class="ml-2">
                                                 {#if message.readBy?.includes(otherParticipantId)}
-                                                    <!-- Double check for read -->
                                                     <svg class="w-4 h-4 text-blue-500" viewBox="0 0 24 24">
-                                                        <path fill="currentColor" d="M18 7l-1.41-1.41-6.34 6.34 1.41 1.41L18 7zm4.24-1.41L11.66 16.17 7.48 12l-1.41 1.41L11.66 19l12-12-1.42-1.41zM.41 13.41L6 19l1.41-1.41L1.83 12 .41 13.41z"/>
+                                                        <path fill="currentColor" d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/>
                                                     </svg>
                                                 {:else if message.delivered}
-                                                    <!-- Single check for delivered -->
                                                     <svg class="w-4 h-4 text-gray-400" viewBox="0 0 24 24">
                                                         <path fill="currentColor" d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/>
                                                     </svg>
                                                 {:else}
-                                                    <!-- Pending delivery -->
                                                     <svg class="w-4 h-4 text-gray-400" viewBox="0 0 24 24">
                                                         <path fill="currentColor" d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm0 18c-4.4 0-8-3.6-8-8s3.6-8 8-8 8 3.6 8 8-3.6 8-8 8z"/>
                                                     </svg>
@@ -524,47 +478,18 @@
                             {/each}
                         </div>
 
-                        <!-- Typing Indicator -->
-                        {#if typingMessage}
-                            <div class="px-4 py-2 text-sm text-gray-400 italic">
-                                {typingMessage}
-                            </div>
-                        {/if}
-
-                        <!-- Scroll to Bottom Button -->
-                        {#if showScrollButton}
-                            <button
-                                on:click={scrollToBottom}
-                                class="absolute bottom-28 md:bottom-32 right-4 md:right-6 bg-gray-800/90 hover:bg-gray-700/90 text-white p-2.5 rounded-full shadow-lg backdrop-blur-sm transition-all transform hover:scale-105 flex items-center justify-center group">
-                                <svg 
-                                    xmlns="http://www.w3.org/2000/svg" 
-                                    class="h-5 w-5 text-gray-300 group-hover:text-white transition-colors" 
-                                    fill="none" 
-                                    viewBox="0 0 24 24" 
-                                    stroke="currentColor">
-                                    <path 
-                                        stroke-linecap="round" 
-                                        stroke-linejoin="round" 
-                                        stroke-width="2" 
-                                        d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-                                </svg>
-                            </button>
-                        {/if}
-
-                        <!-- Input Container -->
-                        <div class="w-full bg-gray-900/50 border-t border-gray-800/50">
-                            <div class="p-4">
+                        <!-- Message Input -->
+                        <div class="w-full bg-gray-900/95 border-t border-gray-800/50">
+                            <div class="p-3 md:p-4">
                                 <div class="relative">
-                                    <!-- File input (hidden) -->
-                                    <input
-                                        type="file"
+                                    <input 
                                         bind:this={fileInput}
+                                        type="file"
                                         on:change={handleFileUpload}
                                         class="hidden"
                                         accept="image/*,.pdf,.doc,.docx,.txt"
                                     />
 
-                                    <!-- Message input -->
                                     <textarea
                                         bind:value={newMessage}
                                         on:input={handleTyping}
@@ -575,10 +500,9 @@
                                             }
                                         }}
                                         placeholder="Type your message... (Shift + Enter to send)"
-                                        class="w-full py-3 px-4 pr-24 rounded-xl border border-gray-700/50 bg-gray-800/50 text-gray-100 placeholder-gray-500 resize-none min-h-[45px] max-h-32 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent transition-all"
+                                        class="w-full py-2.5 px-4 pr-24 rounded-xl border border-gray-700/50 bg-gray-800/50 text-gray-100 placeholder-gray-500 resize-none min-h-[45px] max-h-32 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent transition-all text-sm"
                                     />
 
-                                    <!-- Attachment and Send buttons -->
                                     <div class="absolute right-2 bottom-2 flex items-center gap-2">
                                         <button
                                             on:click={() => fileInput.click()}
@@ -591,7 +515,7 @@
                                         </button>
                                         <button 
                                             on:click={sendMessage}
-                                            class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-1.5 rounded-lg transition-colors flex items-center gap-2 text-sm font-medium"
+                                            class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1.5 rounded-lg transition-colors flex items-center gap-2 text-sm font-medium"
                                             disabled={isUploading}
                                         >
                                             {#if isUploading}
