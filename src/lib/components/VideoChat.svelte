@@ -149,9 +149,12 @@
 
             switch (videoCallData.status) {
                 case 'pending':
-                    if (videoCallData.recipient === userId) {
+                    if (videoCallData.recipient === userId && !isCallActive) {
                         console.log('Recipient: Showing incoming call dialog');
                         showIncomingCallDialog = true;
+                        // Ensure these are set correctly for the recipient
+                        isCallPending = true;
+                        isCallActive = false;
                     } else if (videoCallData.caller === userId) {
                         console.log('Caller: Maintaining pending state');
                         isCallPending = true;
@@ -207,9 +210,7 @@
             logCallState('handleIncomingCall-end');
         } catch (error) {
             console.error('Error handling incoming call:', error);
-            if (!isCallActive) {
-                await cleanupCall(true);
-            }
+            await cleanupCall();
         }
     }
 
@@ -303,6 +304,18 @@
         showIncomingCallDialog = false;
         currentCallData = null;
         
+        if (force) {
+            try {
+                await updateDoc(doc(db, 'chats', chatId), {
+                    videoCall: {
+                        status: 'ended'
+                    }
+                });
+            } catch (error) {
+                console.error('Error updating call status during cleanup:', error);
+            }
+        }
+        
         logCallState('cleanupCall-end');
     }
 
@@ -344,6 +357,28 @@
         };
     });
 </script>
+
+{#if showIncomingCallDialog}
+    <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60]">
+        <div class="bg-gray-800 p-6 rounded-lg shadow-xl max-w-sm w-full mx-4">
+            <h3 class="text-xl font-semibold text-white mb-4">Incoming Call</h3>
+            <div class="flex justify-center gap-4">
+                <button
+                    on:click={acceptCall}
+                    class="px-4 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors"
+                >
+                    Accept
+                </button>
+                <button
+                    on:click={rejectCall}
+                    class="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+                >
+                    Decline
+                </button>
+            </div>
+        </div>
+    </div>
+{/if}
 
 <div class="fixed right-4 bottom-20 w-full max-w-[300px] z-50 flex flex-col gap-4 md:right-4 md:bottom-20 sm:right-2 sm:bottom-16 sm:max-w-[160px]">
     {#if isCallActive}
