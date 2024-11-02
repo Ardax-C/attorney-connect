@@ -482,7 +482,8 @@
                                     <div class="{message.senderId === user.uid 
                                         ? 'bg-blue-500 text-white' 
                                         : 'bg-gray-800 text-gray-100'} 
-                                        py-2.5 px-4 rounded-2xl {message.senderId === user.uid ? 'rounded-br-sm' : 'rounded-bl-sm'} max-w-full break-words shadow-sm"
+                                        py-2.5 px-4 rounded-2xl {message.senderId === user.uid ? 'rounded-br-sm' : 'rounded-bl-sm'} 
+                                        inline-block max-w-[200px] break-words shadow-sm"
                                     >
                                         {#if message.attachments?.length > 0}
                                             {#each message.attachments as attachment}
