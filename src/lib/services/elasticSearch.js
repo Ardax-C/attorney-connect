@@ -1,35 +1,34 @@
 import { Client } from '@elastic/elasticsearch';
-import { getStorage } from 'firebase/storage';
-import { extractInfoWithGemini } from '../vertexAI';
+import { analyzeSearchTerm } from './searchUtils';
 
-export const ElasticSearchService = {
-    client: new Client({
-        cloud: {
-            id: import.meta.env.VITE_ELASTIC_CLOUD_ID
-        },
-        auth: {
-            apiKey: import.meta.env.VITE_ELASTIC_API_KEY
-        },
-        maxRetries: 3,
-        requestTimeout: 30000
-    }),
+export class ElasticSearchService {
+    constructor() {
+        if (!process.env.VITE_ELASTIC_CLOUD_ID || !process.env.VITE_ELASTIC_API_KEY) {
+            throw new Error('Elastic Cloud configuration missing');
+        }
 
-    storage: getStorage(),
+        this.client = new Client({
+            cloud: {
+                id: process.env.VITE_ELASTIC_CLOUD_ID
+            },
+            auth: {
+                apiKey: process.env.VITE_ELASTIC_API_KEY
+            }
+        });
+        this.index = 'attorneys';
+    }
 
     async searchAttorneys({ searchTerm = '', page = 1, limit = 10 }) {
         try {
             let query = { match_all: {} };
 
             if (searchTerm?.trim()) {
-                // First, analyze the search term with VertexAI
-                const extractedInfo = await extractInfoWithGemini(searchTerm);
+                const extractedInfo = await analyzeSearchTerm(searchTerm);
                 console.log('Extracted search info:', extractedInfo);
 
-                // Build compound query based on extracted information
                 query = {
                     bool: {
                         should: [
-                            // Practice area matches (highest priority)
                             ...extractedInfo.practiceAreas.map(area => ({
                                 match: {
                                     practiceAreas: {
@@ -39,7 +38,6 @@ export const ElasticSearchService = {
                                 }
                             })),
 
-                            // Location matches
                             ...extractedInfo.locations.map(location => ([
                                 {
                                     term: {
@@ -59,7 +57,6 @@ export const ElasticSearchService = {
                                 }
                             ])).flat(),
 
-                            // Keyword matches
                             ...extractedInfo.keywords.map(keyword => ({
                                 match: {
                                     'keywords.keywords': {
@@ -69,7 +66,6 @@ export const ElasticSearchService = {
                                 }
                             })),
 
-                            // Original query as fallback
                             {
                                 multi_match: {
                                     query: searchTerm,
@@ -83,11 +79,9 @@ export const ElasticSearchService = {
                     }
                 };
 
-                // If it's a general search, adjust minimum_should_match
                 if (extractedInfo.isGeneralSearch) {
                     query.bool.minimum_should_match = 1;
                 } else {
-                    // Require more matches for specific searches
                     query.bool.minimum_should_match = Math.ceil(
                         (extractedInfo.practiceAreas.length + 
                          extractedInfo.locations.length + 
@@ -97,7 +91,7 @@ export const ElasticSearchService = {
             }
 
             const response = await this.client.search({
-                index: 'attorneys',
+                index: this.index,
                 body: {
                     query,
                     from: (page - 1) * limit,
@@ -123,9 +117,8 @@ export const ElasticSearchService = {
             console.error('Elasticsearch error:', error);
             throw error;
         }
-    },
+    }
 
-    // Helper method to analyze why a document matched
     analyzeMatch(hit, query) {
         const matches = [];
         const source = hit._source;
