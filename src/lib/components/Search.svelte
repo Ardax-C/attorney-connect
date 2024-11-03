@@ -48,16 +48,17 @@
             });
             
             if (!response.ok) {
-                console.error('[Search Component] Search request failed:', response.status);
+                const errorData = await response.json();
+                console.error('[Search Component] Search failed:', {
+                    status: response.status,
+                    statusText: response.statusText,
+                    error: errorData
+                });
                 throw new Error('Search failed');
             }
             
             const data = await response.json();
-            console.log('[Search Component] Search response:', {
-                resultCount: data.results?.length,
-                totalPages: data.totalPages,
-                currentPage
-            });
+            console.log('[Search Component] Raw search response:', data);
             searchResults = transformSearchResults(data);
         } catch (error) {
             console.error('[Search Component] Search error:', error);

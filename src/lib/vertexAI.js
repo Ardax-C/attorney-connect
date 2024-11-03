@@ -16,6 +16,7 @@ const vertexAI = getVertexAI(firebaseApp);
 const model = getGenerativeModel(vertexAI, { model: "gemini-1.5-flash" });
 
 export async function extractInfoWithGemini(searchTerm) {
+  console.log('[VertexAI] Input search term:', searchTerm);
   const prompt = `
       Analyze the following natural language search query for attorneys:
       "${searchTerm}"
@@ -58,17 +59,20 @@ export async function extractInfoWithGemini(searchTerm) {
       const result = await model.generateContent(prompt);
       const response = result.response;
       const textResponse = response.text();
-
+      console.log('[VertexAI] Raw response:', textResponse);
+      
       try {
           const jsonMatch = textResponse.match(/\{[\s\S]*\}/);
           if (jsonMatch) {
               const parsed = JSON.parse(jsonMatch[0]);
-              return {
+              const extractedInfo = {
                   keywords: parsed.keywords || [],
                   practiceAreas: parsed.practiceAreas || [],
                   locations: parsed.locations || [],
                   isGeneralSearch: parsed.isGeneralSearch || false
               };
+              console.log('[VertexAI] Extracted info:', extractedInfo);
+              return extractedInfo;
           }
       } catch (parseError) {
           console.error('Error parsing Gemini response:', parseError);
@@ -82,13 +86,8 @@ export async function extractInfoWithGemini(searchTerm) {
           isGeneralSearch: true
       };
   } catch (error) {
-      console.error('Error calling Gemini:', error);
-      return {
-          keywords: [searchTerm],
-          practiceAreas: [],
-          locations: [],
-          isGeneralSearch: true
-      };
+      console.error('[VertexAI] Error:', error);
+      throw error; // Let the error propagate
   }
 }
 

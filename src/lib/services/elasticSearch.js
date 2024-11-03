@@ -19,13 +19,17 @@ export class ElasticSearchService {
     }
 
     async searchAttorneys({ searchTerm = '', page = 1, limit = 10 }) {
-        console.log('[ElasticSearch] Constructing query:', { searchTerm, page, limit });
+        console.log('[ElasticSearch] Search parameters:', { searchTerm, page, limit });
         try {
             let query = { match_all: {} };
 
             if (searchTerm?.trim()) {
                 const extractedInfo = await analyzeSearchTerm(searchTerm);
-                console.log('[ElasticSearch] Extracted search info:', extractedInfo);
+                console.log('[ElasticSearch] Query construction:', {
+                    extractedInfo,
+                    searchTerm,
+                    query: JSON.stringify(query, null, 2)
+                });
 
                 query = {
                     bool: {
@@ -91,25 +95,28 @@ export class ElasticSearchService {
                 }
             }
 
-            console.log('[ElasticSearch] Query object:', JSON.stringify(query, null, 2));
+            console.log('[ElasticSearch] Final query:', JSON.stringify(query, null, 2));
+
+            const searchBody = {
+                query,
+                from: (page - 1) * limit,
+                size: limit,
+                sort: [
+                    { _score: 'desc' },
+                    { 'lastName.keyword': 'asc' }
+                ]
+            };
+            console.log('[ElasticSearch] Search body:', JSON.stringify(searchBody, null, 2));
 
             const response = await this.client.search({
                 index: this.index,
-                body: {
-                    query,
-                    from: (page - 1) * limit,
-                    size: limit,
-                    sort: [
-                        { _score: 'desc' },
-                        { 'lastName.keyword': 'asc' }
-                    ]
-                }
+                body: searchBody
             });
 
             console.log('[ElasticSearch] Raw response:', {
                 total: response.hits.total.value,
-                hits: response.hits.hits.length,
-                maxScore: response.hits.max_score
+                maxScore: response.hits.max_score,
+                hits: response.hits.hits.length
             });
 
             return {
@@ -123,7 +130,7 @@ export class ElasticSearchService {
                 totalPages: Math.ceil(response.hits.total.value / limit)
             };
         } catch (error) {
-            console.error('[ElasticSearch] Query error:', error);
+            console.error('[ElasticSearch] Error:', error);
             throw error;
         }
     }
