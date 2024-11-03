@@ -1,12 +1,12 @@
 import { json } from '@sveltejs/kit';
-import { elasticSearchService } from '$lib/services/elasticSearch';
+import { ElasticSearchService } from '$lib/services/elasticSearch';
 
 /** @type {import('./$types').RequestHandler} */
 export async function POST({ request }) {
     try {
         const { searchTerm = '', page = 1, limit = 10 } = await request.json();
         
-        const results = await elasticSearchService.searchAttorneys({
+        const results = await ElasticSearchService.searchAttorneys({
             searchTerm,
             page: parseInt(page),
             limit: parseInt(limit)
