@@ -32,6 +32,7 @@
     let isLoading = false;
     let signupContainer;
     let submitContainer;
+    let confirmPassword = '';
 
     const states = [
         'Alabama', 'Alaska', 'Arizona', 'Arkansas', 'California', 'Colorado', 'Connecticut', 'Delaware', 'Florida', 'Georgia',
@@ -274,7 +275,7 @@
                 <p class="text-emerald-400 text-base md:text-lg">Join our Attorney Directory Network</p>
             </div>
 
-            <form on:submit|preventDefault={handleSubmit} class="space-y-6">
+            <form id="signup-form" on:submit|preventDefault={handleSubmit} class="space-y-6">
                 <div class="bg-zinc-900/30 rounded-xl p-4 md:p-6 space-y-4">
                     <h3 class="text-lg md:text-xl font-semibold text-white mb-3">Personal Information</h3>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -326,9 +327,30 @@
                                 required
                             />
                         </div>
+
+                        <div class="space-y-2">
+                            <label for="password" class="block text-sm font-medium text-zinc-300">Password *</label>
+                            <input
+                                type="password"
+                                id="password"
+                                bind:value={password}
+                                class="w-full rounded-lg border-0 bg-zinc-700/50 py-2.5 px-4 text-white placeholder:text-zinc-400 focus:ring-2 focus:ring-emerald-500"
+                                required
+                            />
+                        </div>
+
+                        <div class="space-y-2">
+                            <label for="confirmPassword" class="block text-sm font-medium text-zinc-300">Confirm Password *</label>
+                            <input
+                                type="password"
+                                id="confirmPassword"
+                                bind:value={confirmPassword}
+                                class="w-full rounded-lg border-0 bg-zinc-700/50 py-2.5 px-4 text-white placeholder:text-zinc-400 focus:ring-2 focus:ring-emerald-500"
+                                required
+                            />
+                        </div>
                     </div>
                 </div>
-
                 <div class="bg-zinc-900/30 rounded-xl p-6 space-y-6">
                     <h3 class="text-xl font-semibold text-white mb-4">Professional Information</h3>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
