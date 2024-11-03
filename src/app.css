@@ -4,9 +4,4 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Optional: Add custom styles for the about page */
-.prose-invert {
-    --tw-prose-invert-body: theme('colors.gray.300');
-    --tw-prose-invert-headings: theme('colors.cyan.400');
-    --tw-prose-invert-links: theme('colors.cyan.400');
-}
+/* Add any custom styles here */

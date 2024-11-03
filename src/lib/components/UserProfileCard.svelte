@@ -1,25 +1,44 @@
 <script>
-    export let user;
-
-    function formatPracticeAreas(areas) {
-        if (!areas || areas.length === 0) return "Not specified";
-        if (areas.length === 1) return areas[0];
-        return `${areas[0]} +${areas.length - 1} more`;
-    }
+    /** @type {import('$lib/types').Attorney} */
+    export let attorney;
 </script>
 
-<div class="bg-zinc-700 p-4 rounded-sm w-full h-full flex flex-col overflow-hidden hover:bg-zinc-500">
-    <div class="flex items-center justify-center mb-3">
-        <img src={user.profilePictureUrl || '/default-profile.png'} alt={`${user.firstName} ${user.lastName}`} class="w-24 h-24 rounded-full object-cover" />
+<div class="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow">
+    <div class="flex items-start justify-between">
+        <div>
+            <h3 class="text-xl font-semibold text-gray-900">{attorney.name}</h3>
+            <p class="text-gray-600 mt-1">{attorney.state}</p>
+        </div>
     </div>
-    <div class="text-center flex-grow">
-        <h3 class="text-lg font-bold text-custom-color-tertiary truncate mb-1">{user.firstName} {user.lastName}</h3>
-        <p class="text-emerald-400 text-sm mb-2">{user.city || ''}, {user.state}</p>
-    </div>
-    <div class="mt-2">
-        <p class="text-emerald-400 text-xs mb-1">Practice Areas:</p>
-        <p class="text-emerald-400 text-sm truncate">
-            {formatPracticeAreas(user.practiceAreas)}
+
+    {#if attorney.practiceAreas && attorney.practiceAreas.length > 0}
+        <div class="mt-4">
+            <div class="flex flex-wrap gap-2">
+                {#each attorney.practiceAreas as area}
+                    <span class="px-3 py-1 bg-indigo-100 text-indigo-800 text-sm rounded-full">
+                        {area}
+                    </span>
+                {/each}
+            </div>
+        </div>
+    {/if}
+
+    {#if attorney.bio}
+        <p class="mt-4 text-gray-700 line-clamp-3">
+            {attorney.bio}
         </p>
+    {/if}
+
+    <div class="mt-6 flex justify-end">
+        <a
+            href="/attorney/{attorney.id}"
+            class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+        >
+            View Profile
+        </a>
     </div>
 </div>
+
+<style>
+    /* Keep your existing styles */
+</style>

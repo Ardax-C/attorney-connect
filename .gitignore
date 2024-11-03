@@ -23,3 +23,8 @@ vite.config.ts.timestamp-*
 .vercel
 
 *.rules
+
+*.json
+
+# Firebase
+serviceAccountKey.json
