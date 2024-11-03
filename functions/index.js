@@ -1,6 +1,8 @@
 // small change to trigger vercel build
 const functions = require('firebase-functions');
 const admin = require('firebase-admin');
+const elasticSync = require('./elasticSync');
+const initElastic = require('./initElastic');
 admin.initializeApp();
 
 exports.deleteUser = functions.https.onCall(async (data, context) => {
@@ -69,3 +71,7 @@ exports.setAdminClaim = functions.https.onCall(async (data, context) => {
       throw new functions.https.HttpsError('internal', 'Error setting admin claim');
     }
   });
+
+// Export Elasticsearch sync function
+exports.syncAttorneyToElastic = elasticSync.syncAttorneyToElastic;
+exports.initializeElasticsearchIndex = initElastic.initializeElasticsearchIndex;
