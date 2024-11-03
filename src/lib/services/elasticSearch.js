@@ -19,12 +19,13 @@ export class ElasticSearchService {
     }
 
     async searchAttorneys({ searchTerm = '', page = 1, limit = 10 }) {
+        console.log('[ElasticSearch] Constructing query:', { searchTerm, page, limit });
         try {
             let query = { match_all: {} };
 
             if (searchTerm?.trim()) {
                 const extractedInfo = await analyzeSearchTerm(searchTerm);
-                console.log('Extracted search info:', extractedInfo);
+                console.log('[ElasticSearch] Extracted search info:', extractedInfo);
 
                 query = {
                     bool: {
@@ -90,6 +91,8 @@ export class ElasticSearchService {
                 }
             }
 
+            console.log('[ElasticSearch] Query object:', JSON.stringify(query, null, 2));
+
             const response = await this.client.search({
                 index: this.index,
                 body: {
@@ -103,6 +106,12 @@ export class ElasticSearchService {
                 }
             });
 
+            console.log('[ElasticSearch] Raw response:', {
+                total: response.hits.total.value,
+                hits: response.hits.hits.length,
+                maxScore: response.hits.max_score
+            });
+
             return {
                 results: response.hits.hits.map(hit => ({
                     ...hit._source,
@@ -114,7 +123,7 @@ export class ElasticSearchService {
                 totalPages: Math.ceil(response.hits.total.value / limit)
             };
         } catch (error) {
-            console.error('Elasticsearch error:', error);
+            console.error('[ElasticSearch] Query error:', error);
             throw error;
         }
     }

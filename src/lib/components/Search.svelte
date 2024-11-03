@@ -30,6 +30,10 @@
 
     // Common fetch function for both search and pagination
     async function fetchResults() {
+        console.log('[Search Component] Initiating search:', { 
+            searchTerm: searchTerm.trim(), 
+            page: currentPage 
+        });
         isLoading = true;
         try {
             const response = await fetch('/api/search', {
@@ -44,13 +48,19 @@
             });
             
             if (!response.ok) {
+                console.error('[Search Component] Search request failed:', response.status);
                 throw new Error('Search failed');
             }
             
             const data = await response.json();
+            console.log('[Search Component] Search response:', {
+                resultCount: data.results?.length,
+                totalPages: data.totalPages,
+                currentPage
+            });
             searchResults = transformSearchResults(data);
         } catch (error) {
-            console.error('Search error:', error);
+            console.error('[Search Component] Search error:', error);
             searchResults = [];
         } finally {
             isLoading = false;

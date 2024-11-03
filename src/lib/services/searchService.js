@@ -4,13 +4,14 @@ import { extractInfoWithGemini } from '../vertexAI';
 const es = new ElasticSearchService();
 
 export async function searchAttorneys({ searchTerm = '', page = 1, limit = 10 }) {
+    console.log('[SearchService] Starting search with term:', searchTerm);
     try {
-        // Extract search parameters using Vertex AI
         const extractedInfo = searchTerm ? 
             await extractInfoWithGemini(searchTerm) : 
             { locations: [], practiceAreas: [], keywords: [] };
+            
+        console.log('[SearchService] Extracted search info:', extractedInfo);
 
-        // Search using Elasticsearch
         const searchResults = await es.searchAttorneys({
             query: searchTerm,
             state: extractedInfo.locations?.[0],
@@ -19,18 +20,19 @@ export async function searchAttorneys({ searchTerm = '', page = 1, limit = 10 })
             limit: limit
         });
 
+        console.log('[SearchService] ElasticSearch results:', {
+            total: searchResults.total,
+            resultCount: searchResults.results.length,
+            page: page,
+            totalPages: searchResults.totalPages
+        });
+
         return {
             extractedInfo,
             ...searchResults
         };
     } catch (error) {
-        console.error('Search error:', error);
-        return { 
-            extractedInfo: null, 
-            results: [], 
-            total: 0, 
-            page: 1, 
-            totalPages: 0 
-        };
+        console.error('[SearchService] Search error:', error);
+        throw error;
     }
 } 
