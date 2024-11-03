@@ -173,14 +173,9 @@
                         </div>
                     {/if}
 
-                    <div class="flex items-center justify-between">
-                        <button
-                            type="button"
-                            on:click={() => showResetPassword = true}
-                            class="text-sm font-medium text-custom-color-secondary hover:text-custom-color-primary transition-colors"
-                        >
-                            Forgot your password?
-                        </button>
+                    <div class="flex justify-between items-center text-sm">
+                        <a href="/forgot-password" class="text-emerald-400 hover:text-emerald-300">Forgot Password?</a>
+                        <a href="/signup" class="text-emerald-400 hover:text-emerald-300">Sign Up</a>
                     </div>
 
                     <button
