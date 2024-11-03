@@ -1,5 +1,4 @@
 import { Client } from '@elastic/elasticsearch';
-import { analyzeSearchTerm } from './searchUtils';
 
 export class ElasticSearchService {
     constructor() {
@@ -18,119 +17,84 @@ export class ElasticSearchService {
         this.index = 'attorneys';
     }
 
-    async searchAttorneys({ searchTerm = '', page = 1, limit = 10 }) {
-        console.log('[ElasticSearch] Search parameters:', { searchTerm, page, limit });
+    async searchAttorneys({ query, state, practiceAreas, page = 1, limit = 10 }) {
+        console.log('[ElasticSearch] Building query with:', {
+            query,
+            state,
+            practiceAreas,
+            page,
+            limit
+        });
+
         try {
-            let query = { match_all: {} };
+            let esQuery = { match_all: {} };
 
-            if (searchTerm?.trim()) {
-                const extractedInfo = await analyzeSearchTerm(searchTerm);
-                console.log('[ElasticSearch] Query construction:', {
-                    extractedInfo,
-                    searchTerm,
-                    query: JSON.stringify(query, null, 2)
-                });
-
-                query = {
+            if (query?.trim() || state || (practiceAreas && practiceAreas.length > 0)) {
+                esQuery = {
                     bool: {
-                        should: [
-                            ...extractedInfo.practiceAreas.map(area => ({
-                                match: {
-                                    practiceAreas: {
-                                        query: area,
-                                        boost: 4
-                                    }
-                                }
-                            })),
-
-                            ...extractedInfo.locations.map(location => ([
-                                {
-                                    term: {
-                                        state: {
-                                            value: location,
-                                            boost: 3
-                                        }
-                                    }
-                                },
-                                {
-                                    term: {
-                                        city: {
-                                            value: location,
-                                            boost: 3
-                                        }
-                                    }
-                                }
-                            ])).flat(),
-
-                            ...extractedInfo.keywords.map(keyword => ({
-                                match: {
-                                    'keywords.keywords': {
-                                        query: keyword,
-                                        boost: 2
-                                    }
-                                }
-                            })),
-
-                            {
-                                multi_match: {
-                                    query: searchTerm,
-                                    fields: ['firstName^2', 'lastName^2', 'practiceAreas', 'city', 'state'],
-                                    type: 'best_fields',
-                                    boost: 1
-                                }
-                            }
-                        ],
-                        minimum_should_match: 1
+                        must: [],
+                        should: []
                     }
                 };
 
-                if (extractedInfo.isGeneralSearch) {
-                    query.bool.minimum_should_match = 1;
-                } else {
-                    query.bool.minimum_should_match = Math.ceil(
-                        (extractedInfo.practiceAreas.length + 
-                         extractedInfo.locations.length + 
-                         extractedInfo.keywords.length) * 0.3
-                    );
+                // Log each query component as it's built
+                if (query?.trim()) {
+                    const textQuery = {
+                        multi_match: {
+                            query: query.trim(),
+                            fields: ['firstName^2', 'lastName^2', 'practiceAreas', 'city', 'state'],
+                            type: 'best_fields'
+                        }
+                    };
+                    console.log('[ElasticSearch] Adding text query:', JSON.stringify(textQuery, null, 2));
+                    esQuery.bool.must.push(textQuery);
+                }
+
+                if (state) {
+                    const stateQuery = {
+                        match: { state: state }
+                    };
+                    console.log('[ElasticSearch] Adding state filter:', JSON.stringify(stateQuery, null, 2));
+                    esQuery.bool.must.push(stateQuery);
+                }
+
+                if (practiceAreas && practiceAreas.length > 0) {
+                    const practiceAreaQuery = {
+                        terms: { practiceAreas: practiceAreas }
+                    };
+                    console.log('[ElasticSearch] Adding practice areas filter:', JSON.stringify(practiceAreaQuery, null, 2));
+                    esQuery.bool.must.push(practiceAreaQuery);
                 }
             }
 
-            console.log('[ElasticSearch] Final query:', JSON.stringify(query, null, 2));
-
-            const searchBody = {
-                query,
-                from: (page - 1) * limit,
-                size: limit,
-                sort: [
-                    { _score: 'desc' },
-                    { 'lastName.keyword': 'asc' }
-                ]
-            };
-            console.log('[ElasticSearch] Search body:', JSON.stringify(searchBody, null, 2));
+            console.log('[ElasticSearch] Final query:', JSON.stringify(esQuery, null, 2));
 
             const response = await this.client.search({
                 index: this.index,
-                body: searchBody
+                body: {
+                    query: esQuery,
+                    from: (page - 1) * limit,
+                    size: limit
+                }
             });
 
-            console.log('[ElasticSearch] Raw response:', {
+            console.log('[ElasticSearch] Response summary:', {
                 total: response.hits.total.value,
-                maxScore: response.hits.max_score,
-                hits: response.hits.hits.length
+                hits: response.hits.hits.length,
+                maxScore: response.hits.max_score
             });
 
             return {
                 results: response.hits.hits.map(hit => ({
                     ...hit._source,
                     id: hit._id,
-                    score: hit._score,
-                    matchedOn: this.analyzeMatch(hit, query)
+                    score: hit._score
                 })),
                 total: response.hits.total.value,
                 totalPages: Math.ceil(response.hits.total.value / limit)
             };
         } catch (error) {
-            console.error('[ElasticSearch] Error:', error);
+            console.error('[ElasticSearch] Search error:', error);
             throw error;
         }
     }
