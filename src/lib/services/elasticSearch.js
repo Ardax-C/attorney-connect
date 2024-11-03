@@ -2,7 +2,7 @@ import { Client } from '@elastic/elasticsearch';
 import { getStorage } from 'firebase/storage';
 import { extractInfoWithGemini } from '../vertexAI';
 
-export const elasticSearchService = {
+export const ElasticSearchService = {
     client: new Client({
         cloud: {
             id: import.meta.env.VITE_ELASTIC_CLOUD_ID
