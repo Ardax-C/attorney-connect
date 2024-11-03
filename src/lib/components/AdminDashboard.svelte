@@ -243,6 +243,13 @@
                     <Select bind:value={selectedStatus} options={statusOptions} on:change={fetchUsers} />
                     <Select bind:value={selectedRole} options={roleOptions} on:change={fetchUsers} />
                 </div>
+
+                <button 
+                    on:click={initializeElasticsearch}
+                    class="bg-cyan-600 text-white px-4 py-2 rounded hover:bg-cyan-700"
+                >
+                    Initialize Elasticsearch Index
+                </button>
             </div>
         </div>
 
@@ -364,10 +371,3 @@
         border-color: rgb(82, 82, 91);
     }
 </style>
-
-<button 
-    on:click={initializeElasticsearch}
-    class="bg-cyan-600 text-white px-4 py-2 rounded hover:bg-cyan-700"
->
-    Initialize Elasticsearch Index
-</button>
