@@ -213,10 +213,10 @@
         try {
             const initIndex = httpsCallable(functions, 'initializeElasticsearchIndex');
             const result = await initIndex();
-            console.log('Index initialized:', result.data);
-            alert(`Successfully synced ${result.data.documentsProcessed} documents to Elasticsearch`);
+            console.log('Sync result:', result.data);
+            alert(`Elasticsearch sync completed:\n\nProcessed: ${result.data.documentsProcessed} documents\nTotal attorneys: ${result.data.totalDocuments}`);
         } catch (error) {
-            console.error('Error initializing index:', error);
+            console.error('Error syncing to Elasticsearch:', error);
             alert('Error syncing to Elasticsearch: ' + error.message);
         }
     }
@@ -248,7 +248,7 @@
                     on:click={initializeElasticsearch}
                     class="bg-cyan-600 text-white px-4 py-2 rounded hover:bg-cyan-700"
                 >
-                    Sync Data to Elasticsearch
+                    Sync Firestore to Elasticsearch
                 </button>
             </div>
         </div>
