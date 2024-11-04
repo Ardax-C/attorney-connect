@@ -3,15 +3,16 @@ import { defineConfig } from 'vite';
 
 export default defineConfig({
   plugins: [sveltekit()],
-  optimizeDeps: {
-    include: ['fuse.js']
-  },
-  build: {
-    commonjsOptions: {
-      include: [/node_modules/]
+  server: {
+    fs: {
+      allow: ['.']
     }
   },
-  ssr: {
-    noExternal: ['fuse.js']
+  define: {
+    // Make env vars available to server-side code
+    'process.env.VITE_ELASTICSEARCH_CLOUD_ID': 
+      JSON.stringify(process.env.VITE_ELASTICSEARCH_CLOUD_ID),
+    'process.env.VITE_ELASTICSEARCH_API_KEY': 
+      JSON.stringify(process.env.VITE_ELASTICSEARCH_API_KEY)
   }
 });
