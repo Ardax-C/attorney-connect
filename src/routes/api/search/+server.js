@@ -12,52 +12,51 @@ export async function POST({ request }) {
         console.log('[Search API] Search parameters:', searchParams);
         
         // Initialize Elasticsearch client
-        console.log('[Search API] Initializing Elasticsearch');
+        console.log('[Search API] Initializing Elasticsearch client');
         const client = await initializeElasticSearch();
-        console.log('[Search API] Elasticsearch initialized successfully');
         
+        if (!client) {
+            console.error('[Search API] Failed to initialize Elasticsearch client');
+            throw new Error('Search service unavailable');
+        }
+
+        console.log('[Search API] Building search query');
         const query = buildSearchQuery(searchParams);
-        console.log('[Search API] Built search query:', JSON.stringify(query, null, 2));
+        console.log('[Search API] Search query:', JSON.stringify(query, null, 2));
 
-        const searchResponse = await client.search({
-            index: SEARCH_CONFIG.indices.attorneys,
-            body: {
-                ...query,
-                from: ((searchParams.page || 1) - 1) * (searchParams.limit || SEARCH_CONFIG.resultsPerPage),
-                size: searchParams.limit || SEARCH_CONFIG.resultsPerPage,
-                track_total_hits: true
-            }
+        // Execute search
+        console.log('[Search API] Executing search');
+        const result = await client.search({
+            index: SEARCH_CONFIG.index,
+            ...query
+        });
+        
+        console.log('[Search API] Search completed successfully');
+        console.log('[Search API] Total hits:', result.hits.total);
+
+        return json({
+            results: result.hits.hits.map(hit => hit._source),
+            total: result.hits.total.value
         });
 
-        console.log('[Search API] Search response received:', {
-            totalHits: searchResponse.hits.total.value,
-            resultCount: searchResponse.hits.hits.length
-        });
-
-        const response = {
-            results: searchResponse.hits.hits.map(hit => ({
-                ...hit._source,
-                score: hit._score,
-                id: hit._id
-            })),
-            total: searchResponse.hits.total.value,
-            page: parseInt(searchParams.page || 1),
-            totalPages: Math.ceil(searchResponse.hits.total.value / (searchParams.limit || SEARCH_CONFIG.resultsPerPage))
-        };
-
-        console.log('[Search API] Sending response:', {
-            resultCount: response.results.length,
-            totalPages: response.totalPages,
-            currentPage: response.page
-        });
-
-        return json(response);
     } catch (error) {
-        console.error('[Search API] Error:', {
+        console.error('[Search API] Error details:', {
             message: error.message,
             stack: error.stack,
             code: error.code,
-            status: error.status
+            name: error.name,
+            meta: error.meta
+        });
+
+        // Check for specific Elasticsearch errors
+        if (error.meta?.body?.error) {
+            console.error('[Search API] Elasticsearch error:', error.meta.body.error);
+        }
+
+        // Check environment variables
+        console.log('[Search API] Environment check:', {
+            hasCloudId: !!process.env.VITE_ELASTICSEARCH_CLOUD_ID,
+            hasApiKey: !!process.env.VITE_ELASTICSEARCH_API_KEY
         });
 
         return json({ 
