@@ -2,7 +2,7 @@ export async function searchAttorneys({ searchTerm = '', page = 1 }) {
   try {
     console.log('[Search Service] Initializing search with:', { searchTerm, page });
 
-    const response = await fetch('http://localhost:5173/api/search', {
+    const response = await fetch('/api/search', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
