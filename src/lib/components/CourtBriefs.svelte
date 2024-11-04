@@ -32,7 +32,7 @@
     let dateRange = {
         minYear: 1791,
         maxYear: new Date().getFullYear(),
-        fromYear: new Date().getFullYear() - 1,
+        fromYear: 1791,
         toYear: new Date().getFullYear(),
         fromMonth: 0, // January
         toMonth: 11  // December
@@ -77,15 +77,6 @@
     function checkMobile() {
         isMobile = window.innerWidth < 1024;
         if (!isMobile) isSidebarOpen = false;
-    }
-
-    function toggleSidebar() {
-        isSidebarOpen = !isSidebarOpen;
-        if (isSidebarOpen) {
-            document.body.style.overflow = 'hidden';
-        } else {
-            document.body.style.overflow = 'auto';
-        }
     }
 
     async function loadBriefs(cursor = null, direction = null, query = null) {
