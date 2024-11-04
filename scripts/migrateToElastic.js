@@ -9,8 +9,17 @@ dotenv.config({ path: join(__dirname, '..', '.env') });
 
 class ElasticSearchService {
   constructor() {
-    if (!process.env.VITE_ELASTIC_CLOUD_ID || !process.env.VITE_ELASTIC_API_KEY) {
+    console.log('Environment variables:', {
+      cloudId: process.env.VITE_ELASTIC_CLOUD_ID,
+      apiKey: process.env.VITE_ELASTICSEARCH_API_KEY
+    });
+
+    if (!process.env.VITE_ELASTIC_CLOUD_ID) {
       throw new Error('Elastic Cloud configuration missing');
+    }
+
+    if (!process.env.VITE_ELASTICSEARCH_API_KEY) {
+      throw new Error('Elasticsearch API key missing');
     }
 
     this.client = new Client({
@@ -18,7 +27,7 @@ class ElasticSearchService {
         id: process.env.VITE_ELASTIC_CLOUD_ID
       },
       auth: {
-        apiKey: process.env.VITE_ELASTIC_API_KEY
+        apiKey: process.env.VITE_ELASTICSEARCH_API_KEY
       }
     });
     this.index = 'attorneys';

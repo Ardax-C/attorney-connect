@@ -214,10 +214,10 @@
             const initIndex = httpsCallable(functions, 'initializeElasticsearchIndex');
             const result = await initIndex();
             console.log('Index initialized:', result.data);
-            // Show success message
+            alert(`Successfully synced ${result.data.documentsProcessed} documents to Elasticsearch`);
         } catch (error) {
             console.error('Error initializing index:', error);
-            // Show error message
+            alert('Error syncing to Elasticsearch: ' + error.message);
         }
     }
 </script>
@@ -248,7 +248,7 @@
                     on:click={initializeElasticsearch}
                     class="bg-cyan-600 text-white px-4 py-2 rounded hover:bg-cyan-700"
                 >
-                    Initialize Elasticsearch Index
+                    Sync Data to Elasticsearch
                 </button>
             </div>
         </div>
