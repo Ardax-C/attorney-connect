@@ -2,18 +2,51 @@ import { Client } from '@elastic/elasticsearch';
 
 let client = null;
 
+function decodeCloudId(cloudId) {
+	console.log('[Elasticsearch Service] Decoding Cloud ID');
+	
+	try {
+		const [name, data] = cloudId.split(':');
+		if (!data) {
+			throw new Error('Invalid Cloud ID format');
+		}
+
+		const decoded = Buffer.from(data, 'base64').toString('utf8');
+		const [cloud, region, host] = decoded.split('$');
+
+		if (!cloud || !region || !host) {
+			throw new Error('Invalid Cloud ID data');
+		}
+
+		console.log('[Elasticsearch Service] Decoded Cloud ID:', {
+			name,
+			cloud,
+			region,
+			hostPrefix: host.substring(0, 10) + '...'
+		});
+
+		return {
+			name,
+			cloud,
+			region,
+			host
+		};
+	} catch (error) {
+		console.error('[Elasticsearch Service] Cloud ID decode error:', error);
+		throw new Error('Failed to decode Cloud ID');
+	}
+}
+
 export async function initializeElasticSearch() {
 	console.log('[Elasticsearch Service] Starting initialization');
 	
 	try {
-		// Return existing client if it's healthy
 		if (client) {
 			try {
-				console.log('[Elasticsearch Service] Existing client is healthy');
+				await client.ping();
 				return client;
 			// eslint-disable-next-line no-unused-vars
 			} catch (e) {
-				console.log('[Elasticsearch Service] Existing client failed health check');
 				client = null;
 			}
 		}
@@ -32,37 +65,37 @@ export async function initializeElasticSearch() {
 			throw new Error('Missing Elasticsearch configuration');
 		}
 
-		// Create minimal client configuration
-		client = new Client({
-			cloud: {
-				id: cloudId
-			},
-			auth: {
-				apiKey: apiKey
-			},
-			tl: {
-				rejectUnauthorized: false
-			}
+		// Decode and validate Cloud ID
+		const decodedCloud = decodeCloudId(cloudId);
+		
+		// Construct the node URL
+		const node = `https://${decodedCloud.host}:443`;
+		
+		console.log('[Elasticsearch Service] Creating client with node:', {
+			node,
+			cloudName: decodedCloud.name
 		});
 
-		// Test connection and get cluster info
+		// Create client with explicit node configuration
+		client = new Client({
+			node,
+			auth: {
+				apiKey
+			},
+			tls: {
+				rejectUnauthorized: false
+			},
+			compression: true
+		});
+
+		// Test connection
 		console.log('[Elasticsearch Service] Testing connection');
 		const info = await client.info();
 		
 		console.log('[Elasticsearch Service] Connected successfully:', {
+			name: info.name,
 			clusterName: info.cluster_name,
-			nodeVersion: info.version.number,
-			distribution: info.version.distribution
-		});
-
-		// Verify search functionality
-		const testSearch = await client.search({
-			index: '_all',
-			size: 0
-		});
-
-		console.log('[Elasticsearch Service] Search test successful:', {
-			totalIndices: Object.keys(testSearch.aggregations?.indices || {}).length
+			version: info.version.number
 		});
 
 		return client;
@@ -72,21 +105,15 @@ export async function initializeElasticSearch() {
 			message: error.message,
 			name: error.name,
 			code: error.code,
-			meta: {
-				statusCode: error.meta?.statusCode,
-				headers: error.meta?.headers,
-				body: JSON.stringify(error.meta?.body, null, 2)
-			}
+			stack: error.stack?.split('\n'),
+			meta: error.meta ? {
+				statusCode: error.meta.statusCode,
+				headers: error.meta.headers,
+				body: error.meta.body
+			} : 'No meta data'
 		});
 
-		if (error.meta?.body?.error?.type === 'security_exception') {
-			console.error('[Elasticsearch Service] Security exception details:', 
-				error.meta.body.error);
-		}
-
-		// Reset client on error
 		client = null;
-		
 		throw new Error('Unable to connect to search service', { cause: error });
 	}
 }
