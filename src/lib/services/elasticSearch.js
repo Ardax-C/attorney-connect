@@ -2,6 +2,8 @@ import { Client } from '@elastic/elasticsearch';
 
 let client = null;
 
+const ES_NODE = process.env.VITE_ELASTICSEARCH_NODE;
+
 export async function initializeElasticSearch() {
 	console.log('[Elasticsearch Service] Starting initialization');
 	
@@ -19,27 +21,23 @@ export async function initializeElasticSearch() {
 			}
 		}
 
-		const cloudId = process.env.VITE_ELASTICSEARCH_CLOUD_ID;
 		const apiKey = process.env.VITE_ELASTICSEARCH_API_KEY;
 
 		console.log('[Elasticsearch Service] Configuration check:', {
-			hasCloudId: !!cloudId,
-			cloudIdLength: cloudId?.length || 0,
+			node: ES_NODE,
 			hasApiKey: !!apiKey,
 			apiKeyLength: apiKey?.length || 0
 		});
 
-		if (!cloudId || !apiKey) {
-			throw new Error('Missing required Elasticsearch configuration');
+		if (!apiKey) {
+			throw new Error('Missing required API key');
 		}
 
-		// Create client with simple configuration
+		// Create client with direct node configuration
 		const config = {
-			cloud: {
-				id: cloudId
-			},
+			node: ES_NODE,
 			auth: {
-				apiKey
+				apiKey: apiKey
 			},
 			tls: {
 				rejectUnauthorized: false
