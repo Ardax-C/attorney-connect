@@ -7,6 +7,7 @@
     import LoadingSpinner from './LoadingSpinner.svelte';
     import MobileSearchComponent from './MobileSearchComponent.svelte';
     import { browser } from '$app/environment';
+    import { ChevronUp } from 'lucide-svelte';
 
     let isMobile = browser ? window.innerWidth < 1024 : false;
     let showMobileFilters = false;
@@ -32,6 +33,8 @@
 
     let currentPage = 1;
     let totalPages = 0;
+
+    let showScrollTop = false;
 
     async function performSearch(page = 1) {
         try {
@@ -149,8 +152,26 @@
     onMount(() => {
         performSearch();
         window.addEventListener('resize', handleResize);
-        return () => window.removeEventListener('resize', handleResize);
+        
+        // Listen to the main window scroll instead of a specific container
+        window.addEventListener('scroll', () => {
+            showScrollTop = window.scrollY > 200;
+        }, { passive: true });
+
+        return () => {
+            window.removeEventListener('resize', handleResize);
+            window.removeEventListener('scroll', () => {
+                showScrollTop = window.scrollY > 200;
+            });
+        };
     });
+
+    function scrollToTop() {
+        window.scrollTo({
+            top: 0,
+            behavior: 'smooth'
+        });
+    }
 </script>
 
 <div class="min-h-screen bg-[#1a2632] bg-dark-lattice bg-fixed bg-center bg-cover py-8 lg:py-20">
@@ -273,10 +294,35 @@
             on:search={handleMobileSearch}
         />
     {/if}
+
+    {#if showScrollTop}
+        <button
+            on:click={scrollToTop}
+            class="fixed bottom-6 right-6 p-2 rounded-full bg-[#243442] text-[#00e6e6]
+                   hover:bg-[#2d4456] transition-all transform hover:scale-110
+                   shadow-lg border border-cyan-500/20 z-[100]"
+            aria-label="Scroll to top"
+        >
+            <ChevronUp size={20} />
+        </button>
+    {/if}
 </div>
 
 <style>
     .bg-dark-lattice {
         background-image: url('../images/dark_lattice.png');
+    }
+
+    button {
+        opacity: 0.8;
+        transition: opacity 0.3s, transform 0.3s;
+    }
+
+    button:hover {
+        opacity: 1;
+    }
+
+    :global(body) {
+        position: relative; /* Ensure fixed positioning works correctly */
     }
 </style>
