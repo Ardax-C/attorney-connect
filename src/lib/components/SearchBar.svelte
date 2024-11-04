@@ -6,9 +6,27 @@
     
     const dispatch = createEventDispatcher();
     
+    // Debounce function
+    function debounce(func, wait) {
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
+                clearTimeout(timeout);
+                func(...args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+        };
+    }
+    
+    // Debounced input handler
+    const debouncedInput = debounce((value) => {
+        dispatch('input', value);
+    }, 300);
+    
     function handleInput(event) {
         value = event.target.value;
-        dispatch('input', value);
+        debouncedInput(value);
     }
     
     function handleSubmit() {
