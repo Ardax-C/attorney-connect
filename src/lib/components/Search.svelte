@@ -172,6 +172,16 @@
             behavior: 'smooth'
         });
     }
+
+    $: {
+        if (searchResults.facets) {
+            searchResults.facets = {
+                practiceAreas: [...searchResults.facets.practiceAreas].sort(),
+                states: [...searchResults.facets.states].sort(),
+                cities: [...searchResults.facets.cities].sort()
+            };
+        }
+    }
 </script>
 
 <div class="min-h-screen bg-[#1a2632] bg-dark-lattice bg-fixed bg-center bg-cover py-8 lg:py-20">
