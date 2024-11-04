@@ -13,12 +13,12 @@ export const SEARCH_CONFIG = {
   resultsPerPage: 12,
   elasticSearch: {
     cloud: {
-      id: import.meta.env.VITE_ELASTIC_CLOUD_ID
+      id: import.meta.env.VITE_ELASTIC_CLOUD_ID || ''
     },
     auth: {
-      apiKey: import.meta.env.VITE_ELASTICSEARCH_API_KEY
+      apiKey: import.meta.env.VITE_ELASTICSEARCH_API_KEY || ''
     },
-    node: import.meta.env.VITE_ELASTICSEARCH_NODE,
+    node: import.meta.env.VITE_ELASTICSEARCH_NODE || '',
     tls: {
       rejectUnauthorized: true
     }

@@ -35,13 +35,14 @@
             });
 
             if (!response.ok) {
-                throw new Error('Search failed');
+                const errorData = await response.json();
+                throw new Error(errorData.details || 'Search failed');
             }
 
             searchResults = await response.json();
         } catch (err) {
             console.error('Search error:', err);
-            error = 'An error occurred while searching';
+            error = err.message || 'An error occurred while searching';
         } finally {
             loading = false;
         }

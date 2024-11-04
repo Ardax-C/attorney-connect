@@ -5,7 +5,32 @@ import { elasticSearchService } from '$lib/services/elasticSearch';
 export async function POST({ request }) {
     try {
         const { searchTerm = '', currentPage = 1 } = await request.json();
-        await elasticSearchService.initialize();
+        
+        // Add connection verification
+        const elasticClient = await elasticSearchService.initialize();
+        if (!elasticClient) {
+            console.error('[Search API] Failed to initialize Elasticsearch client');
+            return new Response(JSON.stringify({ 
+                error: 'Search service unavailable',
+                details: 'Failed to connect to Elasticsearch'
+            }), {
+                status: 503,
+                headers: { 'Content-Type': 'application/json' }
+            });
+        }
+
+        // Test connection explicitly
+        const isHealthy = await elasticSearchService.testConnection();
+        if (!isHealthy) {
+            console.error('[Search API] Elasticsearch health check failed');
+            return new Response(JSON.stringify({ 
+                error: 'Search service unhealthy',
+                details: 'Elasticsearch cluster is not healthy'
+            }), {
+                status: 503,
+                headers: { 'Content-Type': 'application/json' }
+            });
+        }
 
         let searchQuery;
 
@@ -172,8 +197,14 @@ export async function POST({ request }) {
         });
     } catch (error) {
         console.error('[Search API] Error:', error);
-        return new Response(JSON.stringify({ error: 'Search failed' }), {
-            status: 500,
+        
+        // More detailed error response
+        return new Response(JSON.stringify({ 
+            error: 'Search failed',
+            details: error.message,
+            code: error.code || 'UNKNOWN'
+        }), {
+            status: error.status || 500,
             headers: { 'Content-Type': 'application/json' }
         });
     }
