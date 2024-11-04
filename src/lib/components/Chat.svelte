@@ -13,6 +13,8 @@
     import { addChatSubscription, removeChatSubscription } from '$lib/stores/auth';
     import GifPicker from './GifPicker.svelte';
     import { fade } from 'svelte/transition';
+    import { SuperGif } from '$lib/utils/libgif';
+    import { GifController } from '$lib/utils/GifController';
 
     export let chatId;
 
@@ -491,7 +493,6 @@
                 }]
             };
 
-            console.log('Sending GIF message:', messageData);
             await addDoc(messagesRef, messageData);
 
             // Update chat metadata
@@ -543,6 +544,56 @@
             scrollToLatest();
         }
     });
+
+    // Map to store GIF controllers
+    const gifControllers = new Map();
+
+    function handleGifLoad(node) {
+        let controller;
+        
+        const initGif = () => {
+            console.log('Initializing GIF:', node.src);
+            controller = new GifController();
+            controller.init(node);
+        };
+
+        // Initialize when image loads
+        if (node.complete) {
+            console.log('Image already loaded, initializing immediately');
+            initGif();
+        } else {
+            console.log('Setting up load handler');
+            node.onload = initGif;
+        }
+
+        return {
+            destroy() {
+                console.log('Cleaning up GIF controller');
+                if (controller) {
+                    controller.destroy();
+                }
+            }
+        };
+    }
+
+    function handleGifClick(event) {
+        const container = event.target.closest('.gif-container');
+        const gifInstance = event.target.gifInstance;
+        if (gifInstance) {
+            if (gifInstance.get_playing()) {
+                gifInstance.pause();
+                container.classList.add('gif-paused');
+            } else {
+                gifInstance.play();
+                container.classList.remove('gif-paused');
+                // Stop after one loop
+                setTimeout(() => {
+                    gifInstance.pause();
+                    container.classList.add('gif-paused');
+                }, gifInstance.get_duration() * 1000);
+            }
+        }
+    }
 </script>
 
 <main class="bg-no-repeat bg-center bg-cover fixed inset-0 flex flex-col" style="background-image: url({backgroundImage})">
@@ -632,12 +683,20 @@
                                         py-2.5 px-4 break-words shadow-sm"
                                     >
                                         {#if message.attachments?.length > 0 && message.attachments[0].type === 'gif'}
-                                            <img
-                                                src={message.attachments[0].url}
-                                                alt="GIF"
-                                                loading="lazy"
-                                                class="rounded-lg w-full h-auto max-w-[300px]"
-                                            />
+                                            <div class="gif-container">
+                                                <img
+                                                    src={message.attachments[0].url}
+                                                    alt="GIF"
+                                                    loading="lazy"
+                                                    class="rounded-lg w-full h-auto max-w-[300px] cursor-pointer"
+                                                    use:handleGifLoad
+                                                />
+                                                <div class="play-indicator">
+                                                    <svg class="w-12 h-12 text-white opacity-80" viewBox="0 0 24 24">
+                                                        <path fill="currentColor" d="M8 5v14l11-7z"/>
+                                                    </svg>
+                                                </div>
+                                            </div>
                                         {:else if message.attachments?.length > 0}
                                             {#each message.attachments as attachment}
                                                 <div class="mb-2">
@@ -829,5 +888,75 @@
     .custom-scrollbar::-webkit-scrollbar-thumb {
         background-color: rgba(156, 163, 175, 0.5);
         border-radius: 3px;
+    }
+
+    .gif-container {
+        position: relative;
+        display: inline-block;
+    }
+
+    .gif-image {
+        animation-play-state: var(--animation-play-state, running);
+    }
+
+    .gif-image.paused {
+        opacity: 0.8;
+    }
+
+    .play-indicator {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        display: none;
+        pointer-events: none;
+        background-color: rgba(255, 255, 255, 0.5);
+        border-radius: 50%;
+        padding: 8px;
+    }
+
+    .gif-image.paused + .play-indicator {
+        display: block;
+    }
+
+    :global(.gif-wrapper) {
+        position: relative;
+        display: inline-block;
+        cursor: pointer;
+    }
+
+    :global(.gif-wrapper .gif-image) {
+        display: block;
+        width: 100%;
+        height: auto;
+    }
+
+    :global(.gif-wrapper .static-frame) {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        visibility: hidden;
+    }
+
+    :global(.gif-wrapper.paused .static-frame) {
+        visibility: visible;
+    }
+
+    :global(.play-indicator) {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        display: none;
+        pointer-events: none;
+        background-color: rgba(255, 255, 255, 0.5);
+        border-radius: 50%;
+        padding: 8px;
+    }
+
+    :global(.gif-wrapper.paused .play-indicator) {
+        display: block;
     }
 </style>
