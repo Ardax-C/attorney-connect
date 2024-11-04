@@ -4,7 +4,7 @@
     import { db, auth, functions } from '$lib/firebase';
     import { collection, query, getDocs, doc, updateDoc, deleteDoc, where } from 'firebase/firestore';
     import { ChevronDown, ChevronUp, Trash2, Loader2, RefreshCw } from 'lucide-svelte';
-    import { httpsCallable } from 'firebase/functions';
+    import { httpsCallable, getFunctions } from 'firebase/functions';
     import Navbar from './Navbar.svelte';
     import Button from '$lib/components/ui/Button.svelte';
     import Card from '$lib/components/ui/Card.svelte';
@@ -212,14 +212,18 @@
     }
 
     async function syncToElasticsearch() {
+        isSyncing = true;
         try {
-            isSyncing = true;
+            const functions = getFunctions();
             const initIndex = httpsCallable(functions, 'initializeElasticsearchIndex');
             const result = await initIndex();
-            alert(`Elasticsearch sync completed:\n\nProcessed: ${result.data.documentsProcessed} documents\nTotal attorneys: ${result.data.totalDocuments}`);
+            
+            // Show completion message with proper counts
+            const message = `Elasticsearch sync completed:\n\nProcessed: ${result.data.documentsProcessed} documents\nTotal attorneys: ${result.data.documentsProcessed}`;
+            alert(message);
         } catch (error) {
-            console.error('Error syncing to Elasticsearch:', error);
-            alert('Error syncing to Elasticsearch. Please try again.');
+            console.error('Sync failed:', error);
+            alert('Sync failed. Please check console for details.');
         } finally {
             isSyncing = false;
         }
