@@ -1,5 +1,5 @@
 import { json } from '@sveltejs/kit';
-import { searchAttorneys } from '$lib/services/searchService';
+import { initializeElasticSearch } from '$lib/services/elasticSearch';
 import { buildSearchQuery } from '$lib/utils/searchUtils';
 import { SEARCH_CONFIG } from '$lib/config/searchConfig';
 
@@ -14,23 +14,35 @@ export async function POST({ request }) {
             }, { status: 400 });
         }
 
+        const client = await initializeElasticSearch();
+        if (!client) {
+            throw new Error('Search service unavailable');
+        }
+
         const query = buildSearchQuery(searchParams);
         
         console.log('Search query:', JSON.stringify(query, null, 2));
 
-        const results = await searchAttorneys({
-            query,
-            page: parseInt(searchParams.page || 1),
-            limit: parseInt(searchParams.limit || SEARCH_CONFIG.resultsPerPage)
+        const searchResponse = await client.search({
+            index: SEARCH_CONFIG.indices.attorneys,
+            body: {
+                ...query,
+                from: ((searchParams.page || 1) - 1) * (searchParams.limit || SEARCH_CONFIG.resultsPerPage),
+                size: searchParams.limit || SEARCH_CONFIG.resultsPerPage,
+                track_total_hits: true
+            }
         });
 
-        if (!results) {
-            return json({ 
-                error: 'No results returned from search service' 
-            }, { status: 503 });
-        }
-
-        return json(results);
+        return json({
+            results: searchResponse.hits.hits.map(hit => ({
+                ...hit._source,
+                score: hit._score,
+                id: hit._id
+            })),
+            total: searchResponse.hits.total.value,
+            page: parseInt(searchParams.page || 1),
+            totalPages: Math.ceil(searchResponse.hits.total.value / (searchParams.limit || SEARCH_CONFIG.resultsPerPage))
+        });
     } catch (error) {
         console.error('[Search API] Error:', error);
         
