@@ -10,11 +10,12 @@
     let searchResults = [];
     let totalPages = 0;
     let isLoading = false;
+    let error = null;
 
     async function handleSearch(event) {
         console.log('[Search Component] Search initiated:', { searchTerm, currentPage });
         event?.preventDefault();
-        await fetchResults();
+        await performSearch();
     }
 
     function handleSearchInput(event) {
@@ -26,46 +27,44 @@
     async function handlePageChange(newPage) {
         console.log('[Search Component] Page change:', { from: currentPage, to: newPage });
         currentPage = newPage;
-        await fetchResults();
+        await performSearch();
     }
 
-    async function fetchResults() {
+    async function performSearch() {
         isLoading = true;
-        console.log('[Search Component] Fetching results:', { searchTerm, currentPage });
-        
+        error = null;
+
         try {
+            console.log('[Search Component] Fetching results:', { searchTerm, currentPage });
+            
             const response = await fetch('/api/search', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ 
-                    searchTerm: searchTerm?.trim(),
-                    page: currentPage 
-                })
+                body: JSON.stringify({ searchTerm, currentPage })
             });
-            
+
             if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
                 console.error('[Search Component] Search API error:', {
                     status: response.status,
-                    statusText: response.statusText
+                    statusText: response.statusText,
+                    error: errorData
                 });
-                throw new Error('Search failed');
+                
+                throw new Error(errorData.error || 'Search failed');
             }
-            
+
             const data = await response.json();
-            console.log('[Search Component] Search results received:', {
-                resultCount: data.results?.length,
-                totalPages: data.totalPages
-            });
-            
-            searchResults = data.results || [];
-            totalPages = data.totalPages || 0;
-        } catch (error) {
-            console.error('[Search Component] Search error:', {
-                error: error.message,
-                stack: error.stack
-            });
+            console.log('[Search Component] Search results:', data);
+
+            searchResults = data.results;
+            totalPages = Math.ceil(data.total / 10);
+
+        } catch (e) {
+            console.error('[Search Component] Search error:', e);
+            error = e.message || 'Failed to fetch results';
             searchResults = [];
             totalPages = 0;
         } finally {
@@ -80,7 +79,7 @@
 
     onMount(() => {
         console.log('[Search Component] Component mounted, initiating initial search');
-        fetchResults();
+        performSearch();
     });
 </script>
 
