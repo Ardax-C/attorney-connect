@@ -1,6 +1,6 @@
 // Import the mapping data
-import practiceAreaMappings from '../data/practiceAreaMappings.json';
-import stateMapping from '../data/stateMapping.json';
+import practiceAreaMappings from '$lib/data/practiceAreaMappings.json';
+import stateMapping from '$lib/data/stateMapping.json';
 
 export const SEARCH_CONFIG = {
   resultsPerPage: 10,
