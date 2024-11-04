@@ -63,5 +63,10 @@ class ElasticSearchService {
 	}
 }
 
-// Create and export singleton instance
+// Create a singleton instance
 export const elasticSearchService = new ElasticSearchService();
+
+// Export the initialization function
+export const initializeElasticSearch = async () => {
+	return elasticSearchService.initialize();
+};

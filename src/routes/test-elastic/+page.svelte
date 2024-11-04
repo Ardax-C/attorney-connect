@@ -7,9 +7,10 @@
     onMount(async () => {
         try {
             await initializeElasticSearch();
-            status = 'Connected';
+            status = 'Connected successfully';
         } catch (error) {
-            status = `Error: ${error.message}`;
+            status = 'Connection failed';
+            console.error('ElasticSearch connection error:', error);
         }
     });
 </script>
