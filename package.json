@@ -49,5 +49,8 @@
         "fuse.js": "^7.0.0",
         "lucide-svelte": "^0.445.0",
         "svelte-preprocess": "^6.0.2"
+    },
+    "engines": {
+        "node": "18.x"
     }
 }
