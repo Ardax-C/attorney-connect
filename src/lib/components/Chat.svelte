@@ -12,6 +12,7 @@
     import CourtBriefs from './CourtBriefs.svelte';
     import { addChatSubscription, removeChatSubscription } from '$lib/stores/auth';
     import GifPicker from './GifPicker.svelte';
+    import { fade } from 'svelte/transition';
 
     export let chatId;
 
@@ -62,12 +63,6 @@
         const threshold = 100; // pixels from bottom
         const position = chatContainer.scrollHeight - chatContainer.scrollTop - chatContainer.clientHeight;
         return position < threshold;
-    }
-
-    // Handle scroll events
-    function handleScroll() {
-        isNearBottom = checkIfNearBottom();
-        showScrollButton = !isNearBottom;
     }
 
     // Scroll to bottom function
@@ -468,30 +463,86 @@
         });
     }
 
+    // Update the handleGifSelect function
     async function handleGifSelect(gif) {
         try {
-            const messageRef = collection(db, `chats/${chatId}/messages`);
-            await addDoc(messageRef, {
-                type: 'gif',
-                content: gif.url,
-                preview: gif.preview,
-                width: gif.width,
-                height: gif.height,
-                senderId: user.uid,
-                timestamp: serverTimestamp()
-            });
+            if (!chatInitialized) {
+                const success = await initializeChat();
+                if (!success) return;
+            }
 
-            // Update last message in chat
             const chatRef = doc(db, 'chats', chatId);
+            const messagesRef = collection(chatRef, 'messages');
+            const messageTimestamp = serverTimestamp();
+            
+            // Create a message with attachments instead of using messageType
+            const messageData = {
+                content: '📱 GIF', // Plain text indicator
+                senderId: user.uid,
+                timestamp: messageTimestamp,
+                readBy: [],
+                delivered: false,
+                attachments: [{
+                    type: 'gif',
+                    url: gif.url,
+                    preview: gif.preview,
+                    width: gif.width,
+                    height: gif.height
+                }]
+            };
+
+            console.log('Sending GIF message:', messageData);
+            await addDoc(messagesRef, messageData);
+
+            // Update chat metadata
             await updateDoc(chatRef, {
+                lastMessageTimestamp: messageTimestamp,
                 lastMessage: '📱 GIF',
-                lastMessageTimestamp: serverTimestamp(),
                 [`unreadCount.${otherParticipantId}`]: increment(1)
             });
+
         } catch (error) {
             console.error('Error sending GIF:', error);
         }
     }
+
+    const SCROLL_THRESHOLD = 100; // pixels from bottom to consider "near bottom"
+
+    
+    function handleScroll() {
+        if (!chatContainer) return;
+        const { scrollTop, scrollHeight, clientHeight } = chatContainer;
+        const distanceFromBottom = scrollHeight - (scrollTop + clientHeight);
+        isNearBottom = distanceFromBottom <= SCROLL_THRESHOLD;
+        showScrollButton = !isNearBottom;
+    }
+
+    
+    function scrollToLatest() {
+        if (!chatContainer) return;
+        chatContainer.scrollTo({
+            top: chatContainer.scrollHeight,
+            behavior: 'smooth'
+        });
+    }
+
+    // Modify your existing afterUpdate
+    afterUpdate(() => {
+        if (!chatContainer) return;
+        
+        if (isNearBottom) {
+            scrollToLatest();
+        } else if (messages?.length) {
+            showScrollButton = true;
+        }
+    });
+
+    // Add onMount to initialize scroll position
+    onMount(() => {
+        if (chatContainer) {
+            scrollToLatest();
+        }
+    });
 </script>
 
 <main class="bg-no-repeat bg-center bg-cover fixed inset-0 flex flex-col" style="background-image: url({backgroundImage})">
@@ -570,18 +621,24 @@
                         <div 
                             bind:this={chatContainer}
                             on:scroll={handleScroll}
-                            class="flex-1 overflow-y-auto px-3 md:px-6 py-4 scrollbar-thin scrollbar-thumb-gray-800 scrollbar-track-transparent"
+                            class="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar relative"
                         >
-                            {#each messages as message (message.id)}
-                                <div class="flex flex-col mb-4 {message.senderId === user.uid ? 'items-end' : 'items-start'} max-w-[85%] md:max-w-[75%] {message.senderId === user.uid ? 'ml-auto' : ''}">
+                            {#each messages as message}
+                                <div class="flex flex-col mb-4 {message.senderId === user.uid ? 'items-end' : 'items-start'} {message.senderId === user.uid ? 'ml-auto' : 'mr-auto'} max-w-[85%] md:max-w-[75%]">
                                     <!-- Message Content -->
                                     <div class="{message.senderId === user.uid 
-                                        ? 'bg-blue-500 text-white' 
-                                        : 'bg-gray-800 text-gray-100'} 
-                                        py-2.5 px-4 rounded-2xl {message.senderId === user.uid ? 'rounded-br-sm' : 'rounded-bl-sm'} 
-                                        inline-block max-w-[200px] break-words shadow-sm"
+                                        ? 'bg-blue-500 text-white rounded-tl-2xl rounded-tr-2xl rounded-bl-2xl rounded-br-sm' 
+                                        : 'bg-gray-800 text-gray-100 rounded-tl-2xl rounded-tr-2xl rounded-br-2xl rounded-bl-sm'} 
+                                        py-2.5 px-4 break-words shadow-sm"
                                     >
-                                        {#if message.attachments?.length > 0}
+                                        {#if message.attachments?.length > 0 && message.attachments[0].type === 'gif'}
+                                            <img
+                                                src={message.attachments[0].url}
+                                                alt="GIF"
+                                                loading="lazy"
+                                                class="rounded-lg w-full h-auto max-w-[300px]"
+                                            />
+                                        {:else if message.attachments?.length > 0}
                                             {#each message.attachments as attachment}
                                                 <div class="mb-2">
                                                     {#if attachment.type === 'file'}
@@ -589,26 +646,29 @@
                                                             {attachment.name} ({formatFileSize(attachment.size)})
                                                         </div>
                                                     {:else}
-                                                        <button 
-                                                            on:click={() => window.open(attachment.url, '_blank')}
-                                                            on:keydown={(e) => e.key === 'Enter' && window.open(attachment.url, '_blank')}
-                                                            class="block w-full"
-                                                        >
-                                                            <img 
-                                                                src={attachment.url} 
-                                                                alt=""
-                                                                class="max-w-full rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
-                                                            />
-                                                        </button>
+                                                        <img 
+                                                            src={attachment.url} 
+                                                            alt=""
+                                                            class="rounded-lg max-w-[300px] w-full h-auto"
+                                                        />
                                                     {/if}
                                                 </div>
                                             {/each}
+                                        {:else if message.iv}
+                                            {#await decryptMessage(message.content, message.iv, chatKey)}
+                                                <div class="animate-pulse">Decrypting...</div>
+                                            {:then decryptedContent}
+                                                {decryptedContent}
+                                            {:catch error}
+                                                <div class="text-red-400">Error decrypting message</div>
+                                            {/await}
+                                        {:else}
+                                            {message.content}
                                         {/if}
-                                        {message.content}
                                     </div>
 
                                     <!-- Message Meta -->
-                                    <div class="flex items-center text-xs mt-1 text-gray-500 gap-2">
+                                    <div class="flex items-center text-xs mt-1 text-gray-500 gap-2 {message.senderId === user.uid ? 'justify-end' : 'justify-start'}">
                                         <span>{formatMessageTime(message.timestamp)}</span>
                                         {#if message.senderId === user.uid}
                                             <span>
@@ -630,52 +690,83 @@
                                     </div>
                                 </div>
                             {/each}
+
+                            <!-- Scroll button inside the messages container -->
+                            {#if showScrollButton}
+                                <button
+                                    on:click={scrollToLatest}
+                                    class="sticky right-8 bottom-0 bg-blue-500 hover:bg-blue-600 text-white rounded-full w-10 h-10 shadow-lg transition-all duration-200 flex items-center justify-center mb-4"
+                                    transition:fade
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                    </svg>
+                                </button>
+                            {/if}
                         </div>
 
                         <!-- Existing Message Input -->
                         <div class="w-full bg-gray-900/95 border-t border-gray-800/50">
-                            <!-- Add typing indicator here -->
                             {#if typingMessage}
                                 <div class="text-sm text-gray-400 italic px-4 py-2 border-b border-gray-800/50">
                                     {typingMessage}
                                 </div>
                             {/if}
                             <div class="p-3 md:p-4">
-                                <div class="relative">
-                                    <input 
-                                        bind:this={fileInput}
-                                        type="file"
-                                        on:change={handleFileUpload}
-                                        class="hidden"
-                                        accept="image/*,.pdf,.doc,.docx,.txt"
-                                    />
-
+                                <div class="flex flex-col gap-3">
+                                    <!-- Message Input -->
                                     <textarea
                                         bind:value={newMessage}
                                         on:input={handleTyping}
                                         on:keydown={(e) => {
-                                            if (e.key === 'Enter' && e.shiftKey) {
+                                            if (e.key === 'Enter' && !e.shiftKey) {
                                                 e.preventDefault();
                                                 sendMessage();
                                             }
                                         }}
-                                        placeholder="Type your message... (Shift + Enter to send)"
-                                        class="w-full py-2.5 px-4 pr-24 rounded-xl border border-gray-700/50 bg-gray-800/50 text-gray-100 placeholder-gray-500 resize-none min-h-[45px] max-h-32 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent transition-all text-sm"
+                                        placeholder="Type your message... (Enter to send, Shift + Enter for new line)"
+                                        class="w-full py-2.5 px-4 rounded-xl border border-gray-700/50 bg-gray-800/50 text-gray-100 placeholder-gray-500 resize-none min-h-[45px] max-h-32 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent transition-all text-sm"
                                     />
 
-                                    <div class="absolute right-2 bottom-2 flex items-center gap-2">
-                                        <button
-                                            on:click={() => fileInput.click()}
-                                            class="p-2 text-gray-400 hover:text-gray-300 transition-colors"
-                                            disabled={isUploading}
-                                        >
-                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                                <path fill-rule="evenodd" d="M8 4a3 3 0 00-3 3v4a5 5 0 0010 0V7a1 1 0 112 0v4a7 7 0 11-14 0V7a5 5 0 0110 0v4a3 3 0 11-6 0V7a1 1 0 012 0v4a1 1 0 102 0V7a3 3 0 00-3-3z" clip-rule="evenodd" />
-                                            </svg>
-                                        </button>
+                                    <!-- Action Buttons -->
+                                    <div class="flex items-center gap-3">
+                                        <div class="flex items-center gap-2">
+                                            <!-- GIF Button -->
+                                            <button
+                                                on:click={() => showGifPicker = true}
+                                                class="p-2 text-gray-400 hover:text-gray-300 transition-colors rounded-lg hover:bg-gray-800"
+                                                title="Send GIF"
+                                            >
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7" />
+                                                    <text x="3" y="17" font-size="8" fill="currentColor">GIF</text>
+                                                </svg>
+                                            </button>
+
+                                            <!-- File Upload Button -->
+                                            <input 
+                                                bind:this={fileInput}
+                                                type="file"
+                                                on:change={handleFileUpload}
+                                                class="hidden"
+                                                accept="image/*,.pdf,.doc,.docx,.txt"
+                                            />
+                                            <button
+                                                on:click={() => fileInput.click()}
+                                                class="p-2 text-gray-400 hover:text-gray-300 transition-colors rounded-lg hover:bg-gray-800"
+                                                disabled={isUploading}
+                                                title="Upload File"
+                                            >
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                                    <path fill-rule="evenodd" d="M8 4a3 3 0 00-3 3v4a5 5 0 0010 0V7a1 1 0 112 0v4a7 7 0 11-14 0V7a5 5 0 0110 0v4a3 3 0 11-6 0V7a1 1 0 012 0v4a1 1 0 102 0V7a3 3 0 00-3-3z" clip-rule="evenodd" />
+                                                </svg>
+                                            </button>
+                                        </div>
+
+                                        <!-- Send Button -->
                                         <button 
                                             on:click={sendMessage}
-                                            class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1.5 rounded-lg transition-colors flex items-center gap-2 text-sm font-medium"
+                                            class="ml-auto bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors flex items-center gap-2 text-sm font-medium"
                                             disabled={isUploading}
                                         >
                                             {#if isUploading}
@@ -704,6 +795,14 @@
     </div>
 </main>
 
+<!-- Add GIF Picker Modal -->
+{#if showGifPicker}
+    <GifPicker
+        onSelect={handleGifSelect}
+        onClose={() => showGifPicker = false}
+    />
+{/if}
+
 <style>
     :global(body) {
         overflow: hidden;
@@ -711,5 +810,24 @@
 
     main {
         padding-top: 64px;
+    }
+
+    /* Add to your existing styles */
+    .custom-scrollbar {
+        scrollbar-width: thin;
+        scrollbar-color: rgba(156, 163, 175, 0.5) transparent;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+        background-color: rgba(156, 163, 175, 0.5);
+        border-radius: 3px;
     }
 </style>
