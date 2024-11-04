@@ -12,59 +12,65 @@ export async function initializeElasticSearch() {
 		if (client) {
 			try {
 				await client.ping();
-				console.log('[Elasticsearch Service] Reusing existing client');
 				return client;
 			// eslint-disable-next-line no-unused-vars
 			} catch (e) {
-				console.log('[Elasticsearch Service] Existing client failed health check');
 				client = null;
 			}
 		}
 
 		const apiKey = process.env.VITE_ELASTICSEARCH_API_KEY;
 
-		console.log('[Elasticsearch Service] Configuration check:', {
-			node: ES_NODE,
-			hasApiKey: !!apiKey,
-			apiKeyLength: apiKey?.length || 0
-		});
-
 		if (!apiKey) {
-			throw new Error('Missing required API key');
+			throw new Error('Missing API key');
 		}
 
-		// Create client with direct node configuration
+		// Create client with minimal configuration matching curl
 		const config = {
 			node: ES_NODE,
 			auth: {
-				apiKey: apiKey
+				apiKey
 			},
-			tls: {
+			headers: {
+				'Content-Type': 'application/json'
+			},
+			requestTimeout: 30000,
+			ssl: {
 				rejectUnauthorized: false
 			}
 		};
 
-		console.log('[Elasticsearch Service] Creating client');
 		client = new Client(config);
 
-		// Test connection
-		console.log('[Elasticsearch Service] Testing connection');
+		// Test connection using same endpoint as curl
 		const info = await client.info();
-		
 		console.log('[Elasticsearch Service] Connected successfully:', {
 			name: info.name,
 			clusterName: info.cluster_name,
 			version: info.version.number
 		});
 
+		// Verify attorneys index
+		const indices = await client.cat.indices({ format: 'json' });
+		const attorneysIndex = indices.find(idx => idx.index === 'attorneys');
+		
+		if (!attorneysIndex) {
+			throw new Error('Attorneys index not found');
+		}
+
+		console.log('[Elasticsearch Service] Found attorneys index:', {
+			docCount: attorneysIndex.docs?.count,
+			size: attorneysIndex.store?.size
+		});
+
 		return client;
 
 	} catch (error) {
-		console.error('[Elasticsearch Service] Initialization error:', {
+		console.error('[Elasticsearch Service] Connection error:', {
 			message: error.message,
 			name: error.name,
 			code: error.code,
-			cause: error.cause?.message
+			meta: error.meta
 		});
 
 		client = null;
@@ -73,8 +79,5 @@ export async function initializeElasticSearch() {
 }
 
 export function getClient() {
-	if (!client) {
-		console.warn('[Elasticsearch Service] Client requested before initialization');
-	}
 	return client;
 }
