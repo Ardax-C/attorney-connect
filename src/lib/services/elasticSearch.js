@@ -1,24 +1,76 @@
 import { Client } from '@elastic/elasticsearch';
+import { browser } from '$app/environment';
 import { analyzeSearchTerm } from './searchUtils';
 
 export class ElasticSearchService {
     constructor() {
-        if (!process.env.VITE_ELASTIC_CLOUD_ID || !process.env.VITE_ELASTIC_API_KEY) {
-            throw new Error('Elastic Cloud configuration missing');
+        // Debug environment variables
+        console.log('Environment check:', {
+            hasCloudId: !!import.meta.env.VITE_ELASTIC_CLOUD_ID,
+            hasApiKey: !!import.meta.env.VITE_ELASTIC_API_KEY,
+            isBrowser: browser
+        });
+
+        // Skip initialization during SSR
+        if (!browser) {
+            console.log('Skipping Elasticsearch initialization (SSR)');
+            this.client = null;
+            return;
         }
 
-        this.client = new Client({
-            cloud: {
-                id: process.env.VITE_ELASTIC_CLOUD_ID
-            },
-            auth: {
-                apiKey: process.env.VITE_ELASTIC_API_KEY
-            }
-        });
-        this.index = 'attorneys';
+        if (!import.meta.env.VITE_ELASTIC_CLOUD_ID || !import.meta.env.VITE_ELASTIC_API_KEY) {
+            console.error('Missing Elasticsearch configuration:', {
+                cloudId: import.meta.env.VITE_ELASTIC_CLOUD_ID ? 'present' : 'missing',
+                apiKey: import.meta.env.VITE_ELASTIC_API_KEY ? 'present' : 'missing'
+            });
+            this.client = null;
+            return;
+        }
+
+        try {
+            this.client = new Client({
+                cloud: {
+                    id: import.meta.env.VITE_ELASTIC_CLOUD_ID
+                },
+                auth: {
+                    apiKey: import.meta.env.VITE_ELASTIC_API_KEY
+                }
+            });
+            this.index = 'attorneys';
+            console.log('Elasticsearch client initialized successfully');
+        } catch (error) {
+            console.error('Error initializing Elasticsearch client:', error);
+            this.client = null;
+        }
+    }
+
+    async testConnection() {
+        if (!this.client) {
+            console.error('No Elasticsearch client available');
+            return false;
+        }
+
+        try {
+            const response = await this.client.ping();
+            console.log('Elasticsearch connection test:', response);
+            return true;
+        } catch (error) {
+            console.error('Elasticsearch connection test failed:', error);
+            return false;
+        }
     }
 
     async searchAttorneys({ searchTerm = '', page = 1, limit = 10 }) {
+        if (!this.client) {
+            console.warn('Elasticsearch client not available for search');
+            return {
+                results: [],
+                total: 0,
+                totalPages: 0,
+                error: 'Search service unavailable'
+            };
+        }
+
         console.log('[ElasticSearch] Search parameters:', { searchTerm, page, limit });
         try {
             let query = { match_all: {} };

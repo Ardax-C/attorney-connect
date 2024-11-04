@@ -3,11 +3,31 @@ import { extractInfoWithGemini } from '../vertexAI';
 
 const es = new ElasticSearchService();
 
+// Test connection on service initialization
+(async () => {
+    if (es.client) {
+        const connected = await es.testConnection();
+        console.log('Elasticsearch connection status:', connected);
+    }
+})();
+
 export async function searchAttorneys({ 
   searchTerm = '', 
   page = 1, 
   limit = 10,
 }) {
+  if (!es.client) {
+    console.warn('Elasticsearch client not initialized');
+    return {
+      results: [],
+      total: 0,
+      totalPages: 0,
+      error: 'Search service unavailable'
+    };
+  }
+
+  console.log('Starting attorney search with params:', { searchTerm, page, limit });
+
   try {
     // Extract search information using Vertex AI
     const extractedInfo = searchTerm ? 
@@ -86,7 +106,7 @@ export async function searchAttorneys({
       totalPages: Math.ceil(results.total.value / limit)
     };
   } catch (error) {
-    console.error('Search error:', error);
+    console.error('[SearchService] Search error:', error);
     throw error;
   }
 } 

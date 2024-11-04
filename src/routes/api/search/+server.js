@@ -1,30 +1,28 @@
 import { json } from '@sveltejs/kit';
 import { searchAttorneys } from '$lib/services/searchService';
+import { buildSearchQuery } from '$lib/utils/searchUtils';
+import { SEARCH_CONFIG } from '$lib/config/searchConfig';
 
 /** @type {import('./$types').RequestHandler} */
 export async function POST({ request }) {
     console.log('[Search API] Received search request');
     try {
-        const { searchTerm = '', page = 1, limit = 10 } = await request.json();
-        console.log('[Search API] Search parameters:', { searchTerm, page, limit });
+        const searchParams = await request.json();
+        const query = buildSearchQuery(searchParams);
         
         const results = await searchAttorneys({
-            searchTerm,
-            page: parseInt(page),
-            limit: parseInt(limit)
+            query,
+            page: parseInt(searchParams.page || 1),
+            limit: parseInt(searchParams.limit || SEARCH_CONFIG.resultsPerPage)
         });
         
-        console.log('[Search API] Search completed, found results:', {
-            totalResults: results.total,
-            totalPages: results.totalPages
-        });
+        if (results.error) {
+            return json({ error: results.error }, { status: 503 });
+        }
 
         return json(results);
     } catch (error) {
-        console.error('[Search API] Search error:', error);
-        if (error.message === 'Elasticsearch client not initialized') {
-            return json({ error: 'Search service unavailable' }, { status: 503 });
-        }
+        console.error('[Search API] Error:', error);
         return json({ error: 'Search failed' }, { status: 500 });
     }
 } 
