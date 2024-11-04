@@ -1,10 +1,12 @@
 <script>
-    import { auth } from '$lib/firebase';
-    import { goto } from '$app/navigation';
+    import { logout } from '$lib/stores/auth';
 
     async function handleLogout() {
-        await auth.signOut();
-        goto('/login');
+        try {
+            await logout();
+        } catch (error) {
+            console.error('Logout failed:', error);
+        }
     }
 </script>
 

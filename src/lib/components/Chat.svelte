@@ -10,6 +10,7 @@
     import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
     import VideoChat from './VideoChat.svelte';
     import CourtBriefs from './CourtBriefs.svelte';
+    import { addChatSubscription, removeChatSubscription } from '$lib/stores/auth';
 
     export let chatId;
 
@@ -44,6 +45,9 @@
     let videoChatComponent;
 
     let showBriefs = false;
+
+    let isRecipientOnline = false;
+    let isRecipientIdle = false;
 
     $: typingMessage = Array.from(typingUsers)
         .filter(id => id !== user?.uid)
@@ -112,6 +116,15 @@
             if (attorneyDoc.exists()) {
                 const attorneyData = attorneyDoc.data();
                 otherParticipantName = `${attorneyData.firstName} ${attorneyData.lastName}`;
+                
+                // Set up online status subscription
+                const unsubscribeStatus = await subscribeToOnlineStatus();
+                // Add unsubscribeStatus to cleanup function
+                const originalUnsubscribe = unsubscribe;
+                unsubscribe = () => {
+                    if (originalUnsubscribe) originalUnsubscribe();
+                    if (unsubscribeStatus) unsubscribeStatus();
+                };
             }
         }
 
@@ -127,7 +140,7 @@
 
         const chatRef = doc(db, 'chats', chatId);
         
-        // Create separate subscription for chat metadata (typing, etc.)
+        // Create separate subscription for chat metadata
         const chatMetadataUnsubscribe = onSnapshot(chatRef, (doc) => {
             if (doc.exists()) {
                 chatData = doc.data();
@@ -186,11 +199,15 @@
             loading = false;
         });
 
-        // Update unsubscribe to cleanup both subscriptions
-        unsubscribe = () => {
+        // Combine unsubscribe functions
+        const combinedUnsubscribe = () => {
             chatMetadataUnsubscribe();
             messagesUnsubscribe();
         };
+
+        // Store the unsubscribe function
+        unsubscribe = combinedUnsubscribe;
+        addChatSubscription(chatId, combinedUnsubscribe);
     }
 
     async function sendMessage() {
@@ -236,29 +253,27 @@
     }
 
     onMount(async () => {
-        if (!user) {
-            const unsubscribe = auth.onAuthStateChanged(async (firebaseUser) => {
-                if (firebaseUser) {
-                    user = firebaseUser;
-                    await loadChat();
-                }
-                unsubscribe();
-            });
-        } else {
+        try {
+            user = await requireAuth();
             await loadChat();
+        } catch (error) {
+            // ... existing error handling ...
         }
     });
 
     onDestroy(() => {
         if (unsubscribe) {
-            unsubscribe(); // This will now clean up both subscriptions
+            unsubscribe();
+            removeChatSubscription(chatId);
         }
         if (typingTimeout) {
             clearTimeout(typingTimeout);
         }
-        // Clean up typing status when leaving
-        if (user) {
-            updateTypingStatus(false).catch(console.error);
+        // Only attempt to update typing status if still authenticated
+        if (user && auth.currentUser) {
+            updateTypingStatus(false).catch(() => {
+                // Silently ignore any errors during cleanup
+            });
         }
     });
 
@@ -314,7 +329,7 @@
 
     // Update typing status in Firestore
     async function updateTypingStatus(typing) {
-        if (!chatId || !user?.uid) return; // Add guard clause
+        if (!chatId || !user?.uid || !auth.currentUser) return; // Enhanced guard clause
         
         const chatRef = doc(db, 'chats', chatId);
         try {
@@ -328,7 +343,10 @@
                 });
             }
         } catch (error) {
-            console.error('Error updating typing status:', error);
+            // Only log error if it's not a permissions error during logout
+            if (!error.message.includes('Missing or insufficient permissions')) {
+                console.error('Error updating typing status:', error);
+            }
         }
     }
 
@@ -434,6 +452,18 @@
     function toggleBriefs() {
         showBriefs = !showBriefs;
     }
+
+    async function subscribeToOnlineStatus() {
+        if (!otherParticipantId) return;
+        
+        
+        const userStatusRef = doc(db, 'userStatus', otherParticipantId);
+        return onSnapshot(userStatusRef, (snapshot) => {
+            const data = snapshot.data();
+            isRecipientOnline = data?.online || false;
+            isRecipientIdle = data?.idle || false;
+        });
+    }
 </script>
 
 <main class="bg-no-repeat bg-center bg-cover fixed inset-0 flex flex-col" style="background-image: url({backgroundImage})">
@@ -461,7 +491,26 @@
                                 </div>
                                 <div>
                                     <h2 class="text-white font-medium">{otherParticipantName}</h2>
-                                    <p class="text-xs text-gray-400">Active Now</p>
+                                    <div class="flex items-center gap-1.5">
+                                        <div class="w-2 h-2 rounded-full {
+                                            isRecipientOnline 
+                                                ? isRecipientIdle 
+                                                    ? 'bg-yellow-500' 
+                                                    : 'bg-green-500 animate-pulse' 
+                                                : 'bg-gray-500'
+                                        }" />
+                                        <p class="text-xs text-gray-400">
+                                            {#if isRecipientOnline}
+                                                {#if isRecipientIdle}
+                                                    Idle
+                                                {:else}
+                                                    Active Now
+                                                {/if}
+                                            {:else}
+                                                Offline
+                                            {/if}
+                                        </p>
+                                    </div>
                                 </div>
                             </div>
                             

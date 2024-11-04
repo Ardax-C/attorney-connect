@@ -3,11 +3,13 @@
     import { goto } from '$app/navigation';
     import { auth, db } from '$lib/firebase';
     import { signOut } from 'firebase/auth';
-    import { doc, getDoc } from 'firebase/firestore';
+    import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
     import { ChevronLeft, ChevronRight, Menu, X } from 'lucide-svelte';
     import { notificationCount } from '$lib/stores/notificationStore';
     import brandLogo from '../images/logo-small.png';
     import { page } from '$app/stores';
+    import { logout } from '$lib/stores/auth';
+    import { cleanupPresence } from '$lib/services/presenceService';
 
     export let isSearchPage = false;
     export let currentPage = 1;
@@ -51,10 +53,9 @@
 
     async function handleLogout() {
         try {
-            await signOut(auth);
-            goto('/login');
+            await logout();
         } catch (error) {
-            console.error("Error signing out: ", error);
+            console.error('Logout failed:', error);
         }
     }
 
@@ -165,7 +166,7 @@
                     </a>
                     <a 
                         href="/briefs"
-                        class="text-emerald-400 hover:text-cyan-400 block px-3 py-2 rounded-md text-base font-medium"
+                        class="text-gray-300 hover:bg-gray-700 hover:text-white block px-3 py-2 rounded-md text-base font-medium"
                     >
                         Court Opinions
                     </a>

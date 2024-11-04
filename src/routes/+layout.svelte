@@ -10,6 +10,9 @@
     import { browser } from '$app/environment';
     import { notificationCount } from '$lib/stores/notificationStore';
     import Navbar from '$lib/components/Navbar.svelte';
+    import { onDestroy } from 'svelte';
+    import { cleanupPresence } from '$lib/services/presenceService';
+    import { initializePresence } from '$lib/services/presenceService';
     
     let user = null;
     let userRole = null;
@@ -76,6 +79,12 @@
             }
         });
 
+        // Initialize presence for already logged-in users
+        if (auth.currentUser) {
+            console.log('Initializing presence for existing user:', auth.currentUser.uid);
+            initializePresence();
+        }
+
         return () => {
             authUnsubscribe();
             if (notificationUnsubscribe) {
@@ -96,6 +105,10 @@
 
     injectSpeedInsights();
     inject();
+
+    onDestroy(async () => {
+        await cleanupPresence();
+    });
 </script>
 
 <Navbar />
