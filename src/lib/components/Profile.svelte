@@ -526,10 +526,15 @@
 
     {#if showNotesModal}
         <div 
+            role="dialog"
+            aria-modal="true"
             class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
             on:click={() => showNotesModal = false}
+            on:keydown={e => e.key === 'Escape' && (showNotesModal = false)}
+            tabindex="-1"
         >
             <div 
+                role="document"
                 class="bg-zinc-800 rounded-xl p-4 sm:p-6 w-full max-w-2xl mx-auto"
                 on:click|stopPropagation={() => {}}
             >
@@ -638,10 +643,15 @@
 
     {#if showDetailsModal}
         <div 
+            role="dialog"
+            aria-modal="true"
             class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
             on:click={() => showDetailsModal = false}
+            on:keydown={e => e.key === 'Escape' && (showDetailsModal = false)}
+            tabindex="-1"
         >
             <div 
+                role="document"
                 class="bg-zinc-800 rounded-xl p-4 sm:p-6 w-full max-w-2xl mx-auto"
                 on:click|stopPropagation={() => {}}
             >

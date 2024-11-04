@@ -1,10 +1,12 @@
 import { Client } from '@elastic/elasticsearch';
 
-let client = null;
+class ElasticSearchService {
+	constructor() {
+		this.client = null;
+	}
 
-export async function initializeElasticSearch() {
-	try {
-		if (!client) {
+	async initialize() {
+		try {
 			const cloudId = process.env.VITE_ELASTICSEARCH_CLOUD_ID;
 			const apiKey = process.env.VITE_ELASTICSEARCH_API_KEY;
 
@@ -12,26 +14,24 @@ export async function initializeElasticSearch() {
 				throw new Error('Missing Elasticsearch configuration');
 			}
 
-			client = new Client({
-				cloud: {
-					id: cloudId
-				},
-				auth: {
-					apiKey: apiKey
-				}
+			this.client = new Client({
+				cloud: { id: cloudId },
+				auth: { apiKey }
 			});
 
-			// Test connection
-			await client.ping();
+			await this.client.ping();
 			console.log('Successfully connected to Elasticsearch');
+			return true;
+		} catch (error) {
+			console.error('Failed to initialize Elasticsearch:', error);
+			return false;
 		}
-		return client;
-	} catch (error) {
-		console.error('Failed to initialize Elasticsearch:', error);
-		throw new Error('Unable to connect to search service');
+	}
+
+	getClient() {
+		return this.client;
 	}
 }
 
-export function getClient() {
-	return client;
-}
+export const elasticSearchService = new ElasticSearchService();
+export { ElasticSearchService };
