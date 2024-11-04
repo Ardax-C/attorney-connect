@@ -54,9 +54,8 @@
     <button
         type="button"
         on:click={handleSubmit}
-        class="absolute right-3 top-1/2 -translate-y-1/2 px-6 py-2 bg-[#00e6e6] hover:bg-[#00e6e6]/90 text-black font-medium rounded-full text-sm transition-all shadow-lg hover:shadow-[#00e6e6]/20"
+        class="absolute right-3 top-1/2 -translate-y-1/2 pl-3 pr-1 py-2 bg-[#00e6e6] hover:bg-[#00e6e6]/90 text-black font-medium rounded-full text-sm transition-all shadow-lg hover:shadow-[#00e6e6]/20"
     >
         <i class="fas fa-search mr-2"></i>
-        Search
     </button>
 </div>
