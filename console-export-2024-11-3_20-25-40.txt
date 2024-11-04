@@ -1,48 +1,31 @@
-TypeError: class heritage Eh.EventEmitter is not an object or null
-    <anonymous> Immutable
-app.BVQbC9jY.js:2:7539
-Partitioned cookie or storage access was provided to “https://vercel.live/_next-live/feedback/feedback.html” because it is loaded in the third-party context and dynamic state partitioning is enabled.
-Loading failed for the <script> with source “https://attorneyconnect.org/_vercel/insights/script.js”. test-elastic:1:1
-[Vercel Web Analytics] Failed to load script from /_vercel/insights/script.js. Be sure to enable Web Analytics for your project and deploy again. See https://vercel.com/docs/analytics/quickstart for more information. 0.D4xBKc7Y.js:1:3115
-<script> source URI is not allowed in this document: “https://www.googletagmanager.com/gtm.js?id=GTM-5FS9LFDZ”. test-elastic:1:1
-XHRGET
-https://vercel.live/api/feedback/team-members
-[HTTP/2 403  127ms]
-
 [Search Component] Component mounted, initiating initial search Search.BsP_Bc1R.js:1:14010
+Partitioned cookie or storage access was provided to “https://vercel.live/_next-live/feedback/feedback.html” because it is loaded in the third-party context and dynamic state partitioning is enabled.
 [Search Component] Fetching results: 
 Object { searchTerm: "", currentPage: 1 }
 Search.BsP_Bc1R.js:1:13178
 XHRPOST
 https://attorneyconnect.org/api/search
-[HTTP/2 500  110ms]
+[HTTP/2 500  312ms]
 
+Loading failed for the <script> with source “https://attorneyconnect.org/_vercel/speed-insights/script.js”. search:1:1
+[Vercel Speed Insights] Failed to load script from /_vercel/speed-insights/script.js. Please check if any content blockers are enabled and try again. 0.YX8C9r02.js:1:1523
+Loading failed for the <script> with source “https://attorneyconnect.org/_vercel/insights/script.js”. search:1:1
+[Vercel Web Analytics] Failed to load script from /_vercel/insights/script.js. Be sure to enable Web Analytics for your project and deploy again. See https://vercel.com/docs/analytics/quickstart for more information. 0.YX8C9r02.js:1:3115
+<script> source URI is not allowed in this document: “https://www.googletagmanager.com/gtm.js?id=GTM-5FS9LFDZ”. search:1:1
 [Search Component] Search API error: 
 Object { status: 500, statusText: "" }
 Search.BsP_Bc1R.js:1:13438
+    Immutable 10
+    <anonymous> https://attorneyconnect.org/search:29
+    (Async: promise callback)
+    <anonymous> https://attorneyconnect.org/search:28
 [Search Component] Search error: 
-Object { error: "Search failed", stack: "f@https://attorneyconnect.org/_app/immutable/chunks/Search.BsP_Bc1R.js:1:13526\nasync*Be/<@https://attorneyconnect.org/_app/immutable/chunks/Search.BsP_Bc1R.js:1:14081\nG@https://attorneyconnect.org/_app/immutable/chunks/scheduler.s15RgC3I.js:1:266\n_t/<@https://attorneyconnect.org/_app/immutable/chunks/index.CVd1N5wS.js:4:2553\nst@https://attorneyconnect.org/_app/immutable/chunks/scheduler.s15RgC3I.js:1:8134\npromise callback*et@https://attorneyconnect.org/_app/immutable/chunks/scheduler.s15RgC3I.js:1:7784\nht@https://attorneyconnect.org/_app/immutable/chunks/index.CVd1N5wS.js:4:2852\nPt/a.ctx<@https://attorneyconnect.org/_app/immutable/chunks/index.CVd1N5wS.js:4:3389\nie/s.$$set@https://attorneyconnect.org/_app/immutable/entry/app.BVQbC9jY.js:2:5019\n$set@https://attorneyconnect.org/_app/immutable/chunks/index.CVd1N5wS.js:4:3948\nW@https://attorneyconnect.org/_app/immutable/chunks/entry.AJUDokwC.js:1:19355\nasync*Qt/<@https://attorneyconnect.org/_app/immutable/chunks/entry.AJUDokwC.js:1:22499\nasync*Qt@https://attorneyconnect.org/_app/immutable/chunks/entry.AJUDokwC.js:1:21515\nrn@https://attorneyconnect.org/_app/immutable/chunks/entry.AJUDokwC.js:1:10337\nasync*@https://attorneyconnect.org/test-elastic:28:11\npromise callback*@https://attorneyconnect.org/test-elastic:27:9\n" }
+Object { error: "Search failed", stack: "f@https://attorneyconnect.org/_app/immutable/chunks/Search.BsP_Bc1R.js:1:13526\nasync*Be/<@https://attorneyconnect.org/_app/immutable/chunks/Search.BsP_Bc1R.js:1:14081\nG@https://attorneyconnect.org/_app/immutable/chunks/scheduler.s15RgC3I.js:1:266\n_t/<@https://attorneyconnect.org/_app/immutable/chunks/index.CVd1N5wS.js:4:2553\nst@https://attorneyconnect.org/_app/immutable/chunks/scheduler.s15RgC3I.js:1:8134\nPt@https://attorneyconnect.org/_app/immutable/chunks/index.CVd1N5wS.js:4:3643\nse@https://attorneyconnect.org/_app/immutable/entry/app.T_p3o-CG.js:2:5318\ntt@https://attorneyconnect.org/_app/immutable/chunks/entry.D1PstmrY.js:1:11354\nen@https://attorneyconnect.org/_app/immutable/chunks/entry.D1PstmrY.js:1:25001\nasync*rn@https://attorneyconnect.org/_app/immutable/chunks/entry.D1PstmrY.js:1:10294\n@https://attorneyconnect.org/search:29:11\npromise callback*@https://attorneyconnect.org/search:28:9\n" }
 Search.BsP_Bc1R.js:1:13770
-[Search Component] Search state updated: 
-Object { resultsCount: 0, totalPages: 0, isLoading: false }
-Search.BsP_Bc1R.js:1:13889
-The resource at “https://attorneyconnect.org/_app/immutable/assets/0.KBnVI28G.css” preloaded with link preload was not used within a few seconds. Make sure all attributes of the preload tag are set correctly. search
-[Search Component] Search initiated: 
-Object { searchTerm: "", currentPage: 1 }
-Search.BsP_Bc1R.js:1:12814
-[Search Component] Fetching results: 
-Object { searchTerm: "", currentPage: 1 }
-Search.BsP_Bc1R.js:1:13178
-XHRPOST
-https://attorneyconnect.org/api/search
-[HTTP/2 500  90ms]
-
-[Search Component] Search API error: 
-Object { status: 500, statusText: "" }
-Search.BsP_Bc1R.js:1:13438
-[Search Component] Search error: 
-Object { error: "Search failed", stack: "f@https://attorneyconnect.org/_app/immutable/chunks/Search.BsP_Bc1R.js:1:13526\nasync*c@https://attorneyconnect.org/_app/immutable/chunks/Search.BsP_Bc1R.js:1:12921\nXt/</<@https://attorneyconnect.org/_app/immutable/chunks/scheduler.s15RgC3I.js:1:7564\nXt/<@https://attorneyconnect.org/_app/immutable/chunks/scheduler.s15RgC3I.js:1:7550\nu@https://attorneyconnect.org/_app/immutable/chunks/Search.BsP_Bc1R.js:1:1472\nEventListener.handleEvent*Mt@https://attorneyconnect.org/_app/immutable/chunks/scheduler.s15RgC3I.js:1:3885\nm@https://attorneyconnect.org/_app/immutable/chunks/Search.BsP_Bc1R.js:1:1160\n_t@https://attorneyconnect.org/_app/immutable/chunks/index.CVd1N5wS.js:4:2517\nm@https://attorneyconnect.org/_app/immutable/chunks/Search.BsP_Bc1R.js:1:12373\n_t@https://attorneyconnect.org/_app/immutable/chunks/index.CVd1N5wS.js:4:2517\nm@https://attorneyconnect.org/_app/immutable/nodes/14.77zDYr5_.js:1:303\n_t@https://attorneyconnect.org/_app/immutable/chunks/index.CVd1N5wS.js:4:2517\np@https://attorneyconnect.org/_app/immutable/entry/app.BVQbC9jY.js:2:3003\nyt@https://attorneyconnect.org/_app/immutable/chunks/scheduler.s15RgC3I.js:1:1255\np@https://attorneyconnect.org/_app/immutable/nodes/0.D4xBKc7Y.js:1:3493\nrt@https://attorneyconnect.org/_app/immutable/chunks/scheduler.s15RgC3I.js:1:8330\nst@https://attorneyconnect.org/_app/immutable/chunks/scheduler.s15RgC3I.js:1:7983\npromise callback*et@https://attorneyconnect.org/_app/immutable/chunks/scheduler.s15RgC3I.js:1:7784\nht@https://attorneyconnect.org/_app/immutable/chunks/index.CVd1N5wS.js:4:2852\nPt/a.ctx<@https://attorneyconnect.org/_app/immutable/chunks/index.CVd1N5wS.js:4:3389\nie/s.$$set@https://attorneyconnect.org/_app/immutable/entry/app.BVQbC9jY.js:2:5019\n$set@https://attorneyconnect.org/_app/immutable/chunks/index.CVd1N5wS.js:4:3948\nW@https://attorneyconnect.org/_app/immutable/chunks/entry.AJUDokwC.js:1:19355\nasync*Qt/<@https://attorneyconnect.org/_app/immutable/chunks/entry.AJUDokwC.js:1:22499\nasync*Qt@https://attorneyconnect.org/_app/immutable/chunks/entry.AJUDokwC.js:1:21515\nrn@https://attorneyconnect.org/_app/immutable/chunks/entry.AJUDokwC.js:1:10337\nasync*@https://attorneyconnect.org/test-elastic:28:11\npromise callback*@https://attorneyconnect.org/test-elastic:27:9\n" }
-Search.BsP_Bc1R.js:1:13770
+    Immutable 10
+    <anonymous> https://attorneyconnect.org/search:29
+    (Async: promise callback)
+    <anonymous> https://attorneyconnect.org/search:28
 [Search Component] Search state updated: 
 Object { resultsCount: 0, totalPages: 0, isLoading: false }
 Search.BsP_Bc1R.js:1:13889
