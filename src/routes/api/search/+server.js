@@ -5,23 +5,19 @@ import { SEARCH_CONFIG } from '$lib/config/searchConfig';
 
 /** @type {import('./$types').RequestHandler} */
 export async function POST({ request }) {
+    console.log('[Search API] Received search request');
+    
     try {
         const searchParams = await request.json();
+        console.log('[Search API] Search parameters:', searchParams);
         
-        if (!searchParams) {
-            return json({ 
-                error: 'Invalid search parameters' 
-            }, { status: 400 });
-        }
-
+        // Initialize Elasticsearch client
+        console.log('[Search API] Initializing Elasticsearch');
         const client = await initializeElasticSearch();
-        if (!client) {
-            throw new Error('Search service unavailable');
-        }
-
-        const query = buildSearchQuery(searchParams);
+        console.log('[Search API] Elasticsearch initialized successfully');
         
-        console.log('Search query:', JSON.stringify(query, null, 2));
+        const query = buildSearchQuery(searchParams);
+        console.log('[Search API] Built search query:', JSON.stringify(query, null, 2));
 
         const searchResponse = await client.search({
             index: SEARCH_CONFIG.indices.attorneys,
@@ -33,7 +29,12 @@ export async function POST({ request }) {
             }
         });
 
-        return json({
+        console.log('[Search API] Search response received:', {
+            totalHits: searchResponse.hits.total.value,
+            resultCount: searchResponse.hits.hits.length
+        });
+
+        const response = {
             results: searchResponse.hits.hits.map(hit => ({
                 ...hit._source,
                 score: hit._score,
@@ -42,10 +43,23 @@ export async function POST({ request }) {
             total: searchResponse.hits.total.value,
             page: parseInt(searchParams.page || 1),
             totalPages: Math.ceil(searchResponse.hits.total.value / (searchParams.limit || SEARCH_CONFIG.resultsPerPage))
+        };
+
+        console.log('[Search API] Sending response:', {
+            resultCount: response.results.length,
+            totalPages: response.totalPages,
+            currentPage: response.page
         });
+
+        return json(response);
     } catch (error) {
-        console.error('[Search API] Error:', error);
-        
+        console.error('[Search API] Error:', {
+            message: error.message,
+            stack: error.stack,
+            code: error.code,
+            status: error.status
+        });
+
         return json({ 
             error: error.message || 'Search failed',
             code: error.code || 'UNKNOWN_ERROR'

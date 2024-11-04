@@ -11,26 +11,28 @@
     let totalPages = 0;
     let isLoading = false;
 
-    // Handle the search submission
     async function handleSearch(event) {
-        event?.preventDefault(); // Prevent form submission if called from form
+        console.log('[Search Component] Search initiated:', { searchTerm, currentPage });
+        event?.preventDefault();
         await fetchResults();
     }
 
-    // Handle search bar input
     function handleSearchInput(event) {
         searchTerm = event.detail;
-        currentPage = 1; // Reset to first page on new search
+        currentPage = 1;
+        console.log('[Search Component] Search input updated:', { searchTerm });
     }
 
-    // Handle pagination
     async function handlePageChange(newPage) {
+        console.log('[Search Component] Page change:', { from: currentPage, to: newPage });
         currentPage = newPage;
         await fetchResults();
     }
 
     async function fetchResults() {
         isLoading = true;
+        console.log('[Search Component] Fetching results:', { searchTerm, currentPage });
+        
         try {
             const response = await fetch('/api/search', {
                 method: 'POST',
@@ -44,23 +46,40 @@
             });
             
             if (!response.ok) {
+                console.error('[Search Component] Search API error:', {
+                    status: response.status,
+                    statusText: response.statusText
+                });
                 throw new Error('Search failed');
             }
             
             const data = await response.json();
+            console.log('[Search Component] Search results received:', {
+                resultCount: data.results?.length,
+                totalPages: data.totalPages
+            });
+            
             searchResults = data.results || [];
             totalPages = data.totalPages || 0;
         } catch (error) {
-            console.error('Search error:', error);
+            console.error('[Search Component] Search error:', {
+                error: error.message,
+                stack: error.stack
+            });
             searchResults = [];
             totalPages = 0;
         } finally {
             isLoading = false;
+            console.log('[Search Component] Search state updated:', {
+                resultsCount: searchResults.length,
+                totalPages,
+                isLoading
+            });
         }
     }
 
-    // Initial load
     onMount(() => {
+        console.log('[Search Component] Component mounted, initiating initial search');
         fetchResults();
     });
 </script>
