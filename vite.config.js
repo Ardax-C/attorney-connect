@@ -1,18 +1,14 @@
 import { sveltekit } from '@sveltejs/kit/vite';
-import { defineConfig } from 'vite';
+import { defineConfig, loadEnv } from 'vite';
 
-export default defineConfig({
-  plugins: [sveltekit()],
-  server: {
-    fs: {
-      allow: ['.']
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, process.cwd(), '');
+  
+  return {
+    plugins: [sveltekit()],
+    define: {
+      'process.env.VITE_ELASTICSEARCH_API_KEY': 
+        JSON.stringify(env.VITE_ELASTICSEARCH_API_KEY)
     }
-  },
-  define: {
-    // Make env vars available to server-side code
-    'process.env.VITE_ELASTICSEARCH_CLOUD_ID': 
-      JSON.stringify(process.env.VITE_ELASTICSEARCH_CLOUD_ID),
-    'process.env.VITE_ELASTICSEARCH_API_KEY': 
-      JSON.stringify(process.env.VITE_ELASTICSEARCH_API_KEY)
-  }
+  };
 });

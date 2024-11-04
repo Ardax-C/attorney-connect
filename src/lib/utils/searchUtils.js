@@ -1,14 +1,8 @@
 import { SEARCH_CONFIG } from '../config/searchConfig';
 
-export function buildSearchQuery(params) {
-  const {
-    searchTerm = '',
-    practiceAreas = [],
-    states = [],
-    page = 1,
-    limit = SEARCH_CONFIG.resultsPerPage
-  } = params;
-
+export function buildSearchQuery(parsedQuery) {
+  const { boostFactors } = SEARCH_CONFIG;
+  
   const query = {
     bool: {
       must: [],
@@ -19,17 +13,57 @@ export function buildSearchQuery(params) {
     }
   };
 
-  if (searchTerm) {
-    query.bool.must.push({
+  // Handle practice areas with proper operator
+  if (parsedQuery.practiceAreas.terms.length > 0) {
+    const practiceAreaQuery = {
+      bool: {
+        [parsedQuery.practiceAreas.operator === 'OR' ? 'should' : 'must']: 
+          parsedQuery.practiceAreas.terms.map(area => ({
+            match: { 
+              practiceAreas: {
+                query: area,
+                boost: boostFactors.practiceAreas
+              }
+            }
+          }))
+      }
+    };
+    query.bool.must.push(practiceAreaQuery);
+  }
+
+  // Handle locations with proper operator
+  if (parsedQuery.locations.terms.length > 0) {
+    const locationQuery = {
+      bool: {
+        [parsedQuery.locations.operator === 'OR' ? 'should' : 'must']: [
+          ...parsedQuery.locations.terms.map(location => ({
+            multi_match: {
+              query: location,
+              fields: [
+                `city^${boostFactors.location}`,
+                `state^${boostFactors.location}`
+              ],
+              type: 'best_fields'
+            }
+          }))
+        ]
+      }
+    };
+    query.bool.must.push(locationQuery);
+  }
+
+  // Handle keywords and modifiers
+  if (parsedQuery.keywords.length > 0) {
+    query.bool.should.push({
       multi_match: {
-        query: searchTerm,
+        query: parsedQuery.keywords.join(' '),
         fields: [
-          `firstName^${SEARCH_CONFIG.boostFactors.name}`,
-          `lastName^${SEARCH_CONFIG.boostFactors.name}`,
-          `practiceAreas^${SEARCH_CONFIG.boostFactors.practiceAreas}`,
-          `keywords^${SEARCH_CONFIG.boostFactors.keywords}`,
-          'city',
-          'state'
+          `firstName^${boostFactors.name}`,
+          `lastName^${boostFactors.name}`,
+          `practiceAreas^${boostFactors.practiceAreas}`,
+          `keywords^${boostFactors.keywords}`,
+          `city^${boostFactors.location}`,
+          `state^${boostFactors.location}`
         ],
         type: 'best_fields',
         operator: 'or',
@@ -38,26 +72,30 @@ export function buildSearchQuery(params) {
     });
   }
 
-  if (practiceAreas.length > 0) {
-    query.bool.filter.push({
-      terms: { practiceAreas: practiceAreas }
-    });
-  }
-
-  if (states.length > 0) {
-    query.bool.filter.push({
-      terms: { state: states }
+  // Handle modifiers
+  if (parsedQuery.modifiers.experienceLevel !== 'any') {
+    query.bool.must.push({
+      range: {
+        yearsOfExperience: {
+          gte: parsedQuery.modifiers.experienceLevel === 'expert' ? 10 : 5
+        }
+      }
     });
   }
 
   return {
     query,
-    from: (page - 1) * limit,
-    size: limit,
-    sort: [
-      { _score: 'desc' },
-      { 'lastName.keyword': 'asc' }
-    ]
+    size: SEARCH_CONFIG.resultsPerPage,
+    highlight: {
+      fields: {
+        firstName: {},
+        lastName: {},
+        practiceAreas: {},
+        city: {},
+        state: {},
+        keywords: {}
+      }
+    }
   };
 }
 

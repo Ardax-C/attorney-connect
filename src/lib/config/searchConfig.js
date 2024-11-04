@@ -1,18 +1,27 @@
 import { practiceAreaMappings, states } from './mappingData';
 
 export const SEARCH_CONFIG = {
-  resultsPerPage: 10,
-  maxKeywords: 25,
-  boostFactors: {
-    practiceAreas: 2.0,
-    location: 1.5,
-    name: 2.0,
-    keywords: 1.2
-  },
   indices: {
-    attorneys: 'attorneys',
-    practiceAreas: 'practice-areas',
-    states: 'states'
+    attorneys: 'attorneys'
+  },
+  boostFactors: {
+    name: 3,
+    practiceAreas: 2,
+    keywords: 1.5,
+    location: 1
+  },
+  resultsPerPage: 12,
+  elasticSearch: {
+    cloud: {
+      id: import.meta.env.VITE_ELASTIC_CLOUD_ID
+    },
+    auth: {
+      apiKey: import.meta.env.VITE_ELASTICSEARCH_API_KEY
+    },
+    node: import.meta.env.VITE_ELASTICSEARCH_NODE,
+    tls: {
+      rejectUnauthorized: true
+    }
   }
 };
 

@@ -1,14 +1,9 @@
-/// <reference types="@sveltejs/kit" />
+/// <reference types="vite/client" />
 
-declare global {
-  namespace App {
-    interface Platform {}
-  }
-  
-  interface ImportMetaEnv {
-    VITE_ELASTICSEARCH_CLOUD_ID: string;
-    VITE_ELASTICSEARCH_API_KEY: string;
-  }
+interface ImportMetaEnv {
+  readonly VITE_ELASTICSEARCH_API_KEY: string
 }
 
-export {}; 
+interface ImportMeta {
+  readonly env: ImportMetaEnv
+} 

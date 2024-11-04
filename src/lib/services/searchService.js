@@ -1,76 +1,24 @@
-import { ElasticSearchService } from './elasticSearch';
-import { Client } from '@elastic/elasticsearch';
-import { SEARCH_CONFIG } from '$lib/config/searchConfig';
-
-const es = new ElasticSearchService();
-
-// Test connection on service initialization
-(async () => {
-    if (es.client) {
-        const connected = await es.testConnection();
-        console.log('Elasticsearch connection status:', connected);
-    }
-})();
-
-export async function searchAttorneys({ query, page = 1, limit = 10 }) {
-  // Add connection check
-  if (!es.client) {
-    await initializeElasticSearch();
-    if (!es.client) {
-      throw new Error('Unable to connect to search service');
-    }
-  }
-
+export async function searchAttorneys({ searchTerm = '', page = 1 }) {
   try {
-    const searchResponse = await es.client.search({
-      index: SEARCH_CONFIG.indices.attorneys,
-      body: {
-        ...query,
-        from: (page - 1) * limit,
-        size: limit,
-        track_total_hits: true
-      }
+    console.log('[Search Service] Initializing search with:', { searchTerm, page });
+
+    const response = await fetch('http://localhost:5173/api/search', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ searchTerm, currentPage: page })
     });
 
-    return {
-      results: searchResponse.hits.hits.map(hit => ({
-        ...hit._source,
-        score: hit._score,
-        id: hit._id
-      })),
-      total: searchResponse.hits.total.value,
-      page,
-      totalPages: Math.ceil(searchResponse.hits.total.value / limit)
-    };
-  } catch (error) {
-    console.error('[SearchService] Error executing search:', error);
-    
-    // Throw specific errors
-    if (error.name === 'ConnectionError') {
-      throw new Error('Search service is temporarily unavailable');
+    if (!response.ok) {
+      throw new Error('Search failed');
     }
-    
-    throw error;
-  }
-}
 
-// Add initialization function
-async function initializeElasticSearch() {
-  try {
-    if (!es.client) {
-      es.client = new Client({
-        node: import.meta.env.VITE_ELASTICSEARCH_URL,
-        auth: {
-          apiKey: import.meta.env.VITE_ELASTICSEARCH_API_KEY
-        }
-      });
-      
-      // Test connection
-      await es.client.ping();
-      console.log('Successfully connected to Elasticsearch');
-    }
+    const data = await response.json();
+    console.log('[Search Service] Response:', data);
+    return data;
   } catch (error) {
-    console.error('Failed to initialize Elasticsearch:', error);
-    es.client = null;
+    console.error('[Search Service] Error:', error);
+    throw error;
   }
 } 

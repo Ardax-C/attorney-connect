@@ -1,83 +1,67 @@
 import { Client } from '@elastic/elasticsearch';
+import { SEARCH_CONFIG } from '../config/searchConfig';
 
-let client = null;
+class ElasticSearchService {
+	constructor() {
+		this.client = null;
+		this.index = SEARCH_CONFIG.indices.attorneys;
+	}
 
-const ES_NODE = process.env.VITE_ELASTICSEARCH_NODE;
-
-export async function initializeElasticSearch() {
-	console.log('[Elasticsearch Service] Starting initialization');
-	
-	try {
-		// Check existing client
-		if (client) {
+	async initialize() {
+		if (!this.client) {
 			try {
-				await client.ping();
-				return client;
-			// eslint-disable-next-line no-unused-vars
-			} catch (e) {
-				client = null;
+				this.client = new Client({
+					cloud: {
+						id: SEARCH_CONFIG.elasticSearch.cloud.id
+					},
+					auth: {
+						apiKey: SEARCH_CONFIG.elasticSearch.auth.apiKey
+					},
+					node: SEARCH_CONFIG.elasticSearch.node,
+					tls: {
+						rejectUnauthorized: true
+					}
+				});
+				
+				await this.testConnection();
+				console.log('[ElasticSearch] Successfully connected to cloud instance');
+			} catch (error) {
+				console.error('[ElasticSearch] Cloud connection failed:', error);
+				throw error;
 			}
 		}
+		return this.client;
+	}
 
-		const apiKey = process.env.VITE_ELASTICSEARCH_API_KEY;
-
-		if (!apiKey) {
-			throw new Error('Missing API key');
+	async search(query, options = {}) {
+		if (!this.client) {
+			await this.initialize();
 		}
 
-		// Create client with minimal configuration matching curl
-		const config = {
-			node: ES_NODE,
-			auth: {
-				apiKey
-			},
-			headers: {
-				'Content-Type': 'application/json'
-			},
-			requestTimeout: 30000,
-			ssl: {
-				rejectUnauthorized: false
-			}
-		};
+		try {
+			const response = await this.client.search({
+				index: this.index,
+				...options,
+				body: query
+			});
 
-		client = new Client(config);
-
-		// Test connection using same endpoint as curl
-		const info = await client.info();
-		console.log('[Elasticsearch Service] Connected successfully:', {
-			name: info.name,
-			clusterName: info.cluster_name,
-			version: info.version.number
-		});
-
-		// Verify attorneys index
-		const indices = await client.cat.indices({ format: 'json' });
-		const attorneysIndex = indices.find(idx => idx.index === 'attorneys');
-		
-		if (!attorneysIndex) {
-			throw new Error('Attorneys index not found');
+			return response;
+		} catch (error) {
+			console.error('[ElasticSearch] Search failed:', error);
+			throw error;
 		}
+	}
 
-		console.log('[Elasticsearch Service] Found attorneys index:', {
-			docCount: attorneysIndex.docs?.count,
-			size: attorneysIndex.store?.size
-		});
-
-		return client;
-
-	} catch (error) {
-		console.error('[Elasticsearch Service] Connection error:', {
-			message: error.message,
-			name: error.name,
-			code: error.code,
-			meta: error.meta
-		});
-
-		client = null;
-		throw new Error('Unable to connect to search service', { cause: error });
+	async testConnection() {
+		try {
+			const health = await this.client.cluster.health();
+			return health.status !== 'red';
+		} catch (error) {
+			console.error('[ElasticSearch] Health check failed:', error);
+			return false;
+		}
 	}
 }
 
-export function getClient() {
-	return client;
-}
+// Create and export singleton instance
+export const elasticSearchService = new ElasticSearchService();

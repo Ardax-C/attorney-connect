@@ -1,126 +1,180 @@
 import { json } from '@sveltejs/kit';
-import { initializeElasticSearch } from '$lib/services/elasticSearch';
+import { elasticSearchService } from '$lib/services/elasticSearch';
 
 /** @type {import('./$types').RequestHandler} */
 export async function POST({ request }) {
-    console.log('[Search API] Starting search request');
-    
     try {
-        // Parse request body
-        const searchParams = await request.json().catch(e => {
-            console.error('[Search API] Failed to parse request body:', e);
-            throw new Error('Invalid request body');
-        });
+        const { searchTerm = '', currentPage = 1 } = await request.json();
+        await elasticSearchService.initialize();
 
-        console.log('[Search API] Search parameters:', searchParams);
+        let searchQuery;
 
-        // Initialize Elasticsearch with retries
-        let client = null;
-        let initError = null;
-        
-        for (let attempt = 1; attempt <= 3; attempt++) {
-            try {
-                console.log(`[Search API] Elasticsearch initialization attempt ${attempt}`);
-                client = await initializeElasticSearch();
-                break;
-            } catch (error) {
-                initError = error;
-                console.error('[Search API] Initialization attempt failed:', {
-                    attempt,
-                    error: error.message,
-                    cause: error.cause?.message,
-                    meta: error.meta
-                });
-                
-                if (attempt < 3) {
-                    await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
-                }
-            }
-        }
-
-        if (!client) {
-            console.error('[Search API] All initialization attempts failed:', initError);
-            return json({
-                error: 'Search service unavailable',
-                details: initError?.message || 'Failed to initialize search client'
-            }, { status: 503 });
-        }
-
-        // Build search query
-        const query = {
-            index: 'attorneys',
-            body: {
+        if (!searchTerm.trim()) {
+            searchQuery = {
                 query: {
                     bool: {
-                        must: []
+                        must: [{ match_all: {} }],
+                        filter: [{ term: { status: "approved" } }]
                     }
-                },
-                size: 10,
-                from: ((searchParams.currentPage || 1) - 1) * 10
-            }
-        };
-
-        // Add search term if provided
-        if (searchParams.searchTerm) {
-            query.body.query.bool.must.push({
-                multi_match: {
-                    query: searchParams.searchTerm,
-                    fields: ['name^2', 'specialties', 'description', 'location'],
-                    fuzziness: 'AUTO'
                 }
-            });
+            };
+        } else {
+            const hasAndOperator = searchTerm.toLowerCase().includes(' and ');
+            const hasOrOperator = searchTerm.toLowerCase().includes(' or ');
+
+            const baseQuery = {
+                bool: {
+                    should: [
+                        // Text fields
+                        {
+                            multi_match: {
+                                query: searchTerm,
+                                fields: [
+                                    "firstName^3",
+                                    "lastName^3",
+                                    "bio"
+                                ],
+                                type: "phrase_prefix",
+                                boost: 2
+                            }
+                        },
+                        // Keyword fields
+                        {
+                            multi_match: {
+                                query: searchTerm,
+                                fields: [
+                                    "city^2",
+                                    "state^2",
+                                    "practiceAreas^2"
+                                ],
+                                type: "best_fields",
+                                operator: "or",
+                                boost: 1.5
+                            }
+                        },
+                        // Fuzzy matching
+                        {
+                            multi_match: {
+                                query: searchTerm,
+                                fields: [
+                                    "firstName^3",
+                                    "lastName^3",
+                                    "practiceAreas^2",
+                                    "city^2",
+                                    "state^2",
+                                    "bio"
+                                ],
+                                fuzziness: "AUTO",
+                                operator: "or",
+                                boost: 1
+                            }
+                        }
+                    ],
+                    minimum_should_match: 1
+                }
+            };
+
+            if (hasAndOperator || hasOrOperator) {
+                const operator = hasAndOperator ? ' and ' : ' or ';
+                const terms = searchTerm.toLowerCase().split(operator).map(term => term.trim());
+                
+                searchQuery = {
+                    query: {
+                        bool: {
+                            [hasAndOperator ? 'must' : 'should']: terms.map(term => ({
+                                bool: {
+                                    should: [
+                                        // Text fields
+                                        {
+                                            multi_match: {
+                                                query: term,
+                                                fields: [
+                                                    "firstName^3",
+                                                    "lastName^3",
+                                                    "bio"
+                                                ],
+                                                type: "phrase_prefix",
+                                                boost: 2
+                                            }
+                                        },
+                                        // Keyword fields
+                                        {
+                                            multi_match: {
+                                                query: term,
+                                                fields: [
+                                                    "city^2",
+                                                    "state^2",
+                                                    "practiceAreas^2"
+                                                ],
+                                                type: "best_fields",
+                                                operator: "or",
+                                                boost: 1.5
+                                            }
+                                        },
+                                        // Fuzzy matching
+                                        {
+                                            multi_match: {
+                                                query: term,
+                                                fields: [
+                                                    "firstName^3",
+                                                    "lastName^3",
+                                                    "practiceAreas^2",
+                                                    "city^2",
+                                                    "state^2",
+                                                    "bio"
+                                                ],
+                                                fuzziness: "AUTO",
+                                                operator: "or",
+                                                boost: 1
+                                            }
+                                        }
+                                    ],
+                                    minimum_should_match: 1
+                                }
+                            })),
+                            filter: [{ term: { status: "approved" } }],
+                            minimum_should_match: hasOrOperator ? 1 : undefined
+                        }
+                    }
+                };
+            } else {
+                searchQuery = {
+                    query: {
+                        bool: {
+                            must: [baseQuery],
+                            filter: [{ term: { status: "approved" } }]
+                        }
+                    }
+                };
+            }
         }
 
-        console.log('[Search API] Executing search with query:', JSON.stringify(query, null, 2));
+        searchQuery.sort = ["_score", { "lastName.keyword": "asc" }, { "firstName.keyword": "asc" }];
+        searchQuery.from = (currentPage - 1) * 10;
+        searchQuery.size = 10;
 
-        // Execute search with timeout
-        const searchPromise = client.search(query);
-        const timeoutPromise = new Promise((_, reject) => 
-            setTimeout(() => reject(new Error('Search timeout')), 5000)
-        );
+        const searchResponse = await elasticSearchService.search(searchQuery);
 
-        const result = await Promise.race([searchPromise, timeoutPromise]);
-
-        console.log('[Search API] Search completed successfully:', {
-            total: result.hits.total.value,
-            took: result.took,
-            timedOut: result.timed_out
-        });
+        const attorneys = searchResponse.hits.hits.map(hit => ({
+            id: hit._id,
+            name: `${hit._source.firstName} ${hit._source.lastName}`.trim(),
+            location: `${hit._source.city}, ${hit._source.state}`.trim(),
+            practiceAreas: hit._source.practiceAreas || [],
+            profilePicture: hit._source.profilePictureUrl || '',
+            website: hit._source.website || '',
+            score: hit._score
+        }));
 
         return json({
-            results: result.hits.hits.map(hit => ({
-                ...hit._source,
-                score: hit._score
-            })),
-            total: result.hits.total.value,
-            took: result.took
+            attorneys,
+            total: searchResponse.hits.total.value,
+            totalPages: Math.ceil(searchResponse.hits.total.value / 10)
         });
-
     } catch (error) {
-        console.error('[Search API] Error details:', {
-            message: error.message,
-            name: error.name,
-            code: error.code,
-            stack: error.stack,
-            meta: error.meta ? {
-                statusCode: error.meta.statusCode,
-                headers: error.meta.headers,
-                body: JSON.stringify(error.meta.body, null, 2)
-            } : 'No meta data'
-        });
-
-        // Return appropriate error response
-        const status = error.meta?.statusCode || 500;
-        const message = status === 404 ? 'No results found' :
-                       status === 503 ? 'Search service unavailable' :
-                       'Search failed';
-
-        return json({
-            error: message,
-            details: error.message,
-            code: error.code || 'UNKNOWN_ERROR'
-        }, { 
-            status: status
+        console.error('[Search API] Error:', error);
+        return new Response(JSON.stringify({ error: 'Search failed' }), {
+            status: 500,
+            headers: { 'Content-Type': 'application/json' }
         });
     }
 } 

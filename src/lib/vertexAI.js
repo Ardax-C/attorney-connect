@@ -1,5 +1,7 @@
 import { initializeApp } from "firebase/app";
 import { getVertexAI, getGenerativeModel } from "firebase/vertexai-preview";
+import { collection, getDocs } from 'firebase/firestore';
+import { db } from '$lib/firebase';
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_PUBLIC_FIREBASE_API_KEY,
@@ -15,79 +17,135 @@ const firebaseApp = initializeApp(firebaseConfig);
 const vertexAI = getVertexAI(firebaseApp);
 const model = getGenerativeModel(vertexAI, { model: "gemini-1.5-flash" });
 
+async function getPracticeAreas() {
+  try {
+    const practiceAreasQuery = collection(db, "practiceAreas");
+    const snapshot = await getDocs(practiceAreasQuery);
+    
+    return snapshot.docs
+      .map(doc => doc.data().practiceArea)
+      .filter(area => area)
+      .sort();
+  // eslint-disable-next-line no-unused-vars
+  } catch (error) {
+    return [];
+  }
+}
+
 export async function extractInfoWithGemini(searchTerm) {
-  console.log('[VertexAI] Input search term:', searchTerm);
+  const availablePracticeAreas = await getPracticeAreas();
+  console.log('[VertexAI] Available practice areas:', availablePracticeAreas);
+  
+  if (!Array.isArray(availablePracticeAreas) || availablePracticeAreas.length === 0) {
+    return {
+      practiceAreas: { terms: [], operator: 'AND' },
+      locations: { terms: [], operator: 'AND' },
+      keywords: [],
+      isGeneralSearch: true
+    };
+  }
+
+  // Helper function to normalize terms for matching
+  function normalizeForMatching(term) {
+    return term.toLowerCase()
+      .replace(/\s+(law|lawyer|attorney|legal)(\s|$)/ig, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  // Create normalized mappings
+  const practiceAreaMappings = availablePracticeAreas.reduce((acc, area) => {
+    const normalized = normalizeForMatching(area);
+    acc[normalized] = area;
+    acc[area.toLowerCase()] = area;
+    return acc;
+  }, {});
+
+  console.log('[VertexAI] Practice area mappings:', practiceAreaMappings);
+
   const prompt = `
-      Analyze the following natural language search query for attorneys:
-      "${searchTerm}"
+    Parse this legal search query: "${searchTerm}"
+    
+    Available practice areas are: ${availablePracticeAreas.join(', ')}
 
-      Extract and return the following information in JSON format:
-      {
-        "keywords": [list of relevant keywords],
-        "practiceAreas": [list of specific practice areas mentioned or implied],
-        "locations": [list of locations mentioned (cities or states)],
-        "isGeneralSearch": boolean indicating if it's a general search for attorneys
-      }
-
-      Guidelines:
-      - Keywords should be individual words or short phrases that are relevant to the query
-      - Practice areas should match standard legal practice categories (e.g., "Tax Law", "Criminal Defense", "Family Law")
-      - Locations should be valid US cities or states
-      - Set isGeneralSearch to true if the query is just looking for attorneys without specific criteria
-      - Normalize location names (e.g., "SC" -> "South Carolina")
-      - Include variations of practice areas (e.g., "Tax" -> ["Tax Law", "Tax Attorney", "Tax Litigation"])
-      - If a category is not applicable, use an empty array
-      - Correct minor spelling mistakes and interpret vague terms
-
-      Example outputs:
-      "Tax lawyer" -> {
-        "keywords": ["tax", "lawyer", "attorney", "legal"],
-        "practiceAreas": ["Tax Law"],
-        "locations": [],
-        "isGeneralSearch": false
-      }
-
-      "Criminal Defense Attorney in SC" -> {
-        "keywords": ["criminal", "defense", "attorney", "lawyer"],
-        "practiceAreas": ["Criminal Defense", "Criminal Law"],
-        "locations": ["South Carolina"],
-        "isGeneralSearch": false
-      }
+    Extract and normalize the information:
+    1. For practice areas:
+       - Match to the closest available practice area
+       - Consider both full names ("Criminal Law") and base terms ("Criminal")
+    2. Extract locations (cities, states)
+    3. Extract other relevant keywords
+    
+    Return ONLY a JSON object with this structure (no additional text):
+    {
+      "practiceAreas": {
+        "terms": ["matched practice area"],
+        "operator": "AND"
+      },
+      "locations": {
+        "terms": ["location"],
+        "operator": "AND"
+      },
+      "keywords": ["relevant keywords"],
+      "isGeneralSearch": false
+    }
   `;
 
-  try {
-      const result = await model.generateContent(prompt);
-      const response = result.response;
-      const textResponse = response.text();
-      console.log('[VertexAI] Raw response:', textResponse);
-      
-      try {
-          const jsonMatch = textResponse.match(/\{[\s\S]*\}/);
-          if (jsonMatch) {
-              const parsed = JSON.parse(jsonMatch[0]);
-              const extractedInfo = {
-                  keywords: parsed.keywords || [],
-                  practiceAreas: parsed.practiceAreas || [],
-                  locations: parsed.locations || [],
-                  isGeneralSearch: parsed.isGeneralSearch || false
-              };
-              console.log('[VertexAI] Extracted info:', extractedInfo);
-              return extractedInfo;
-          }
-      } catch (parseError) {
-          console.error('Error parsing Gemini response:', parseError);
-      }
+  const result = await model.generateContent(prompt);
+  const response = result.response;
+  let textResponse = response.text();
 
-      // Fallback to basic extraction
+  try {
+    textResponse = textResponse.replace(/```json\s*|\s*```/g, '');
+    const parsedResponse = JSON.parse(textResponse);
+
+    // Match practice areas using normalized forms
+    const matchedPracticeAreas = parsedResponse.practiceAreas?.terms?.map(area => {
+      const normalized = normalizeForMatching(area);
+      const match = practiceAreaMappings[normalized];
+      return match;
+    }).filter(Boolean) || [];
+
+
+    return {
+      practiceAreas: {
+        terms: matchedPracticeAreas,
+        operator: parsedResponse.practiceAreas?.operator || 'AND'
+      },
+      locations: {
+        terms: parsedResponse.locations?.terms || [],
+        operator: parsedResponse.locations?.operator || 'AND'
+      },
+      keywords: Array.isArray(parsedResponse.keywords) ? parsedResponse.keywords : [],
+      isGeneralSearch: matchedPracticeAreas.length === 0 && 
+                      (!parsedResponse.locations?.terms?.length)
+    };
+  // eslint-disable-next-line no-unused-vars
+  } catch (parseError) {
+    
+    // Apply same matching logic in fallback
+    const words = searchTerm.toLowerCase().split(/\s+/);
+    const potentialPracticeArea = words.join(' ');
+    const normalized = normalizeForMatching(potentialPracticeArea);
+    const matchedPracticeArea = practiceAreaMappings[normalized];
+
+    if (matchedPracticeArea) {
       return {
-          keywords: [searchTerm],
-          practiceAreas: [],
-          locations: [],
-          isGeneralSearch: true
+        practiceAreas: {
+          terms: [matchedPracticeArea],
+          operator: 'AND'
+        },
+        locations: { terms: [], operator: 'AND' },
+        keywords: words.filter(w => !['law', 'lawyer', 'attorney', 'legal'].includes(w)),
+        isGeneralSearch: false
       };
-  } catch (error) {
-      console.error('[VertexAI] Error:', error);
-      throw error; // Let the error propagate
+    }
+    
+    return {
+      practiceAreas: { terms: [], operator: 'AND' },
+      locations: { terms: [], operator: 'AND' },
+      keywords: words,
+      isGeneralSearch: true
+    };
   }
 }
 
@@ -133,8 +191,8 @@ export async function generateAttorneyKeywords(firstName, lastName, city, state,
         keywords: parsedResponse.keywords ? parsedResponse.keywords.map(keyword => keyword.toLowerCase()) : [],
         practiceAreas: parsedResponse.practiceAreas ? parsedResponse.practiceAreas.map(area => toTitleCase(area)) : []
       };
+    // eslint-disable-next-line no-unused-vars
     } catch (jsonError) {
-      console.warn("Failed to parse response as JSON:", jsonError.message);
 
       // If JSON parsing fails, extract relevant information from the text
       const keywords = textResponse.toLowerCase().split(/\s+/)
