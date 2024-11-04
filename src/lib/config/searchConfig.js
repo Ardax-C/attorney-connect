@@ -1,6 +1,4 @@
-// Import the mapping data
-import practiceAreaMappings from '$lib/data/practiceAreaMappings.json';
-import stateMapping from '$lib/data/stateMapping.json';
+import { practiceAreaMappings, states } from './mappingData';
 
 export const SEARCH_CONFIG = {
   resultsPerPage: 10,
@@ -19,13 +17,13 @@ export const SEARCH_CONFIG = {
 };
 
 // Transform practice area mappings into a simpler format
-export const PRACTICE_AREAS = Object.entries(practiceAreaMappings.data).map(([key, value]) => ({
+export const PRACTICE_AREAS = Object.entries(practiceAreaMappings).map(([key, value]) => ({
   id: key,
   name: value.originalName
 }));
 
-// Transform state mappings into a simpler format
-export const STATES = Object.entries(stateMapping.data).map(([state]) => ({
+// Transform states into the required format
+export const STATES = states.map(state => ({
   id: state.toLowerCase().replace(/\s+/g, '-'),
   name: state
 })); 
