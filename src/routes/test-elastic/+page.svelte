@@ -1,13 +1,13 @@
 <script>
     import { onMount } from 'svelte';
-    import { elasticSearchService } from '$lib/services/elasticSearch';
+    import { initializeElasticSearch } from '$lib/services/elasticSearch';
 
     let status = 'Checking...';
 
     onMount(async () => {
         try {
-            const isConnected = await elasticSearchService.initialize();
-            status = isConnected ? 'Connected' : 'Failed to connect';
+            await initializeElasticSearch();
+            status = 'Connected';
         } catch (error) {
             status = `Error: ${error.message}`;
         }

@@ -1,8 +1,11 @@
-module.exports = {
+/** @type {import('@sveltejs/kit').Config} */
+export default {
   build: {
-    env: {
-      VITE_ELASTICSEARCH_CLOUD_ID: process.env.VITE_ELASTICSEARCH_CLOUD_ID,
-      VITE_ELASTICSEARCH_API_KEY: process.env.VITE_ELASTICSEARCH_API_KEY
+    rollupOptions: {
+      external: ['@elastic/elasticsearch']
     }
+  },
+  ssr: {
+    noExternal: ['@elastic/elasticsearch']
   }
 }; 
