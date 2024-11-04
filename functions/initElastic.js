@@ -42,18 +42,29 @@ exports.initializeElasticsearchIndex = functions.https.onCall(async (data, conte
           mappings: {
             properties: {
               barNumber: { type: 'keyword' },
-              city: { type: 'keyword' },
+              city: { 
+                type: 'keyword',
+                fields: {
+                  suggest: { type: 'completion' }
+                }
+              },
               createdAt: { type: 'date' },
               email: { type: 'keyword' },
               firstName: { 
                 type: 'text',
                 analyzer: 'attorney_analyzer',
-                fields: { keyword: { type: 'keyword' } }
+                fields: { 
+                  keyword: { type: 'keyword' },
+                  suggest: { type: 'completion' }
+                }
               },
               lastName: { 
                 type: 'text',
                 analyzer: 'attorney_analyzer',
-                fields: { keyword: { type: 'keyword' } }
+                fields: { 
+                  keyword: { type: 'keyword' },
+                  suggest: { type: 'completion' }
+                }
               },
               keywords: {
                 properties: {
@@ -62,7 +73,12 @@ exports.initializeElasticsearchIndex = functions.https.onCall(async (data, conte
                 }
               },
               phone: { type: 'keyword' },
-              practiceAreas: { type: 'keyword' },
+              practiceAreas: { 
+                type: 'keyword',
+                fields: {
+                  suggest: { type: 'completion' }
+                }
+              },
               profilePictureUrl: { type: 'keyword' },
               role: { type: 'keyword' },
               searchTerms: {
@@ -71,7 +87,12 @@ exports.initializeElasticsearchIndex = functions.https.onCall(async (data, conte
                   practiceAreas: { type: 'keyword' }
                 }
               },
-              state: { type: 'keyword' },
+              state: { 
+                type: 'keyword',
+                fields: {
+                  suggest: { type: 'completion' }
+                }
+              },
               status: { type: 'keyword' },
               username: { type: 'keyword' },
               website: { type: 'keyword' }
@@ -81,70 +102,39 @@ exports.initializeElasticsearchIndex = functions.https.onCall(async (data, conte
       });
     }
 
-    // Get all documents from Firestore
+    // Sync existing data
     const attorneyProfiles = await admin.firestore()
       .collection('attorneyProfiles')
       .get();
 
-    // Get existing documents from Elasticsearch
-    const existingDocs = await client.search({
-      index: 'attorneys',
-      size: 10000, // Adjust based on your data size
-      body: {
-        query: { match_all: {} }
-      }
+    const operations = attorneyProfiles.docs.flatMap(doc => {
+      const data = doc.data();
+      return [
+        { index: { _index: 'attorneys', _id: doc.id } },
+        {
+          ...data,
+          createdAt: data.createdAt?.toDate?.()?.toISOString() || new Date().toISOString(),
+          keywords: data.keywords || [],
+          practiceAreas: data.practiceAreas || [],
+          searchTerms: data.searchTerms || []
+        }
+      ];
     });
 
-    // Create a Set of existing document IDs
-    const existingIds = new Set(
-      existingDocs.hits.hits.map(hit => hit._id)
-    );
-
-    // Prepare operations for documents that need to be added or updated
-    const operations = [];
-    
-    for (const doc of attorneyProfiles.docs) {
-      const data = doc.data();
-      const formattedDoc = {
-        ...data,
-        createdAt: data.createdAt?.toDate?.()?.toISOString() || new Date().toISOString(),
-        keywords: data.keywords || [],
-        practiceAreas: data.practiceAreas || [],
-        searchTerms: data.searchTerms || []
-      };
-
-      // If document doesn't exist in Elasticsearch, add it
-      if (!existingIds.has(doc.id)) {
-        operations.push(
-          { index: { _index: 'attorneys', _id: doc.id } },
-          formattedDoc
-        );
-      } else {
-        // If document exists, update it
-        operations.push(
-          { update: { _index: 'attorneys', _id: doc.id } },
-          { doc: formattedDoc }
-        );
-      }
-    }
-
-    let processedCount = 0;
     if (operations.length > 0) {
       const result = await client.bulk({ operations, refresh: true });
       if (result.errors) {
         console.error('Bulk indexing errors:', result.items);
       }
-      processedCount = operations.length / 2; // Divide by 2 because each operation is two items
     }
 
     return { 
       success: true, 
-      message: 'Elasticsearch sync completed',
-      documentsProcessed: processedCount,
-      totalDocuments: attorneyProfiles.size
+      message: 'Elasticsearch index initialized and data synced',
+      documentsProcessed: attorneyProfiles.size
     };
   } catch (error) {
-    console.error('Error syncing Elasticsearch:', error);
-    throw new functions.https.HttpsError('internal', 'Error syncing Elasticsearch index', error);
+    console.error('Error initializing Elasticsearch:', error);
+    throw new functions.https.HttpsError('internal', 'Error initializing Elasticsearch index', error);
   }
 }); 

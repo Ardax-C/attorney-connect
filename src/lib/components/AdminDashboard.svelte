@@ -3,7 +3,7 @@
     import { goto } from '$app/navigation';
     import { db, auth, functions } from '$lib/firebase';
     import { collection, query, getDocs, doc, updateDoc, deleteDoc, where } from 'firebase/firestore';
-    import { ChevronDown, ChevronUp, Trash2, Loader2 } from 'lucide-svelte';
+    import { ChevronDown, ChevronUp, Trash2, Loader2, RefreshCw } from 'lucide-svelte';
     import { httpsCallable } from 'firebase/functions';
     import Navbar from './Navbar.svelte';
     import Button from '$lib/components/ui/Button.svelte';
@@ -30,6 +30,7 @@
     let isSearchExpanded = false;
     let innerHeight;
     let isSidePanelOpen = !isMobile;
+    let isSyncing = false;
 
     const statusOptions = [
         { value: 'all', label: 'All Statuses' },
@@ -101,6 +102,7 @@
     async function fetchUniqueFields() {
         const statesQuery = query(collection(db, "states"));
         const statesSnapshot = await getDocs(statesQuery);
+        // Make sure each state is a separate string
         states = statesSnapshot.docs.map(doc => doc.data().state);
 
         const practiceAreasQuery = query(collection(db, "practiceAreas"));
@@ -128,10 +130,10 @@
             return {
                 id: doc.id,
                 ...data,
-                practiceAreas: data.practiceAreas || [] // Ensure practiceAreas always exists
+                practiceAreas: data.practiceAreas || []
             };
         });
-        filterUsers()
+        filterUsers();
     }
 
     async function updateUserStatus(userId, newStatus) {
@@ -177,9 +179,9 @@
     function filterUsers() {
         filteredUsers = users.filter(user => 
             (searchTerm === '' || 
-             user.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-             user.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-             user.email.toLowerCase().includes(searchTerm.toLowerCase()))
+             user.firstName.toLowerCase().includes(searchTerm) ||
+             user.lastName.toLowerCase().includes(searchTerm) ||
+             user.email.toLowerCase().includes(searchTerm))
         );
     }
 
@@ -189,7 +191,7 @@
 
     function handleSearchBarSearch(event) {
         if (event.detail) {
-            searchTerm = event.detail.searchTerm;
+            searchTerm = event.detail.searchTerm.toLowerCase();
             selectedStatus = event.detail.status;
             selectedRole = event.detail.role;
         }
@@ -209,15 +211,17 @@
         isSearchExpanded = true;
     }
 
-    async function initializeElasticsearch() {
+    async function syncToElasticsearch() {
         try {
+            isSyncing = true;
             const initIndex = httpsCallable(functions, 'initializeElasticsearchIndex');
             const result = await initIndex();
-            console.log('Sync result:', result.data);
             alert(`Elasticsearch sync completed:\n\nProcessed: ${result.data.documentsProcessed} documents\nTotal attorneys: ${result.data.totalDocuments}`);
         } catch (error) {
             console.error('Error syncing to Elasticsearch:', error);
-            alert('Error syncing to Elasticsearch: ' + error.message);
+            alert('Error syncing to Elasticsearch. Please try again.');
+        } finally {
+            isSyncing = false;
         }
     }
 </script>
@@ -234,6 +238,7 @@
                     <SearchBar
                         placeholder="Search by name or email"
                         bind:value={searchTerm}
+                        on:input={(e) => searchTerm = e.target.value.toLowerCase()}
                         on:search={handleSearchBarSearch}
                         showSearchButton={true}
                     />
@@ -245,10 +250,15 @@
                 </div>
 
                 <button 
-                    on:click={initializeElasticsearch}
+                    on:click={syncToElasticsearch}
+                    disabled={isSyncing}
                     class="bg-cyan-600 text-white px-4 py-2 rounded hover:bg-cyan-700"
                 >
-                    Sync Firestore to Elasticsearch
+                    <RefreshCw 
+                        size={16} 
+                        class="mr-2 {isSyncing ? 'animate-spin' : ''}"
+                    />
+                    {isSyncing ? 'Syncing...' : 'Sync Firestore to Elasticsearch'}
                 </button>
             </div>
         </div>
@@ -258,12 +268,15 @@
             <!-- Mobile Header -->
             {#if isMobile}
                 <MobileSearchComponent
-                    headerText="Admin Dashboard"
-                    filters={[
-                        { key: 'status', placeholder: 'All Statuses', options: statusOptions.filter(option => option.value !== 'all') },
-                        { key: 'role', placeholder: 'All Roles', options: roleOptions.filter(option => option.value !== 'all') }
-                    ]}
-                    on:search={handleSearchBarSearch}
+                    {states}
+                    {practiceAreas}
+                    selectedFilters={[selectedStatus, selectedRole, selectedState, selectedPracticeArea]}
+                    on:filterChange={(event) => {
+                        selectedStatus = event.detail.status;
+                        selectedRole = event.detail.role;
+                        searchTerm = event.detail.searchTerm;
+                        fetchUsers();
+                    }}
                 />
             {/if}
 

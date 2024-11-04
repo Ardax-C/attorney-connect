@@ -1,27 +1,58 @@
 <script>
     import { onMount } from 'svelte';
-    import { initializePracticeAreas } from '$lib/stores/practiceAreas';
+    import { page } from '$app/stores';
     import SearchBar from './SearchBar.svelte';
+    import AdvancedSearch from './AdvancedSearch.svelte';
     import AttorneyCard from './AttorneyCard.svelte';
     import LoadingSpinner from './LoadingSpinner.svelte';
-    import Pagination from './Pagination.svelte';
+    import MobileSearchComponent from './MobileSearchComponent.svelte';
+    import { browser } from '$app/environment';
 
-    // State management
+    let isMobile = browser ? window.innerWidth < 1024 : false;
+    let showMobileFilters = false;
+
     let searchTerm = '';
-    let currentPage = 1;
+    let selectedFilters = [];
     let loading = false;
     let error = null;
+    
     let searchResults = {
         attorneys: [],
         total: 0,
         totalPages: 0,
-        parsedQuery: null
+        facets: {
+            practiceAreas: [],
+            states: [],
+            cities: []
+        }
     };
 
-    async function performSearch() {
+    // Check if we're on the admin page
+    $: isAdminPage = $page.url.pathname === '/admin';
+
+    let currentPage = 1;
+    let totalPages = 0;
+
+    async function performSearch(page = 1) {
         try {
             loading = true;
-            error = null;
+            currentPage = page;
+
+            const categorizedFilters = {
+                practiceAreas: [],
+                states: [],
+                cities: []
+            };
+
+            selectedFilters.forEach(filter => {
+                if (searchResults.facets.practiceAreas.includes(filter)) {
+                    categorizedFilters.practiceAreas.push(filter);
+                } else if (searchResults.facets.states.includes(filter)) {
+                    categorizedFilters.states.push(filter);
+                } else if (searchResults.facets.cities.includes(filter)) {
+                    categorizedFilters.cities.push(filter);
+                }
+            });
 
             const response = await fetch('/api/search', {
                 method: 'POST',
@@ -29,109 +60,223 @@
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    searchTerm,
-                    currentPage
+                    query: searchTerm,
+                    filters: categorizedFilters,
+                    page: currentPage
                 })
             });
 
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.details || 'Search failed');
-            }
-
-            searchResults = await response.json();
-        } catch (err) {
-            console.error('Search error:', err);
-            error = err.message || 'An error occurred while searching';
+            if (!response.ok) throw new Error('Search failed');
+            
+            const data = await response.json();
+            searchResults = data;
+            totalPages = data.totalPages;
+        } catch (error) {
+            error = 'Failed to load search results';
         } finally {
             loading = false;
         }
     }
 
-    function handleSearchInput(event) {
-        searchTerm = event.detail;
-        if (!searchTerm.trim()) {
-            performSearch(); // Perform search when input is cleared
+    function handleFilterChange(event) {
+        selectedFilters = event.detail;
+        performSearch();
+    }
+
+    function handleResize() {
+        isMobile = window.innerWidth < 1024;
+        if (!isMobile) {
+            showMobileFilters = false;
         }
     }
 
-    function handleSearchSubmit() {
-        currentPage = 1;
+    function handleMobileSearch(event) {
+        const searchParams = event.detail;
+        searchTerm = searchParams.searchTerm;
         performSearch();
     }
 
-    function handlePageChange(newPage) {
-        currentPage = newPage;
-        performSearch();
+    function handlePrevPage() {
+        if (currentPage > 1) {
+            performSearch(currentPage - 1);
+        }
     }
 
-    onMount(async () => {
-        await initializePracticeAreas();
-        performSearch(); // Initial search with empty term
+    function handleNextPage() {
+        if (currentPage < totalPages) {
+            performSearch(currentPage + 1);
+        }
+    }
+
+    function getPageNumbers(currentPage, totalPages) {
+        const pages = [];
+        
+        if (totalPages <= 3) {
+            // Show all pages if total is 4 or less
+            for (let i = 1; i <= totalPages; i++) {
+                pages.push(i);
+            }
+        } else {
+            // Always show first page
+            pages.push(1);
+            
+            if (currentPage > 3) {
+                pages.push('...');
+            }
+            
+            // Show pages around current page
+            for (let i = Math.max(2, currentPage - 1); i <= Math.min(currentPage + 1, totalPages - 1); i++) {
+                pages.push(i);
+            }
+            
+            if (currentPage < totalPages - 2) {
+                pages.push('...');
+            }
+            
+            // Always show last page
+            pages.push(totalPages);
+        }
+        
+        return pages;
+    }
+
+    function handlePageClick(page) {
+        if (typeof page === 'number' && page !== currentPage) {
+            performSearch(page);
+        }
+    }
+
+    onMount(() => {
+        performSearch();
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
     });
 </script>
 
-<div class="min-h-screen bg-[#1a2632] bg-dark-lattice bg-fixed bg-center bg-cover py-20">
+<div class="min-h-screen bg-[#1a2632] bg-dark-lattice bg-fixed bg-center bg-cover py-8 lg:py-20">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <!-- Search Header -->
-        <h1 class="text-5xl font-bold text-[#00e6e6] mb-12 tracking-tight">
+        <h1 class="text-3xl lg:text-5xl font-bold text-[#00e6e6] mb-6 lg:mb-12 tracking-tight">
             Search Attorneys
         </h1>
-        
-        <!-- Search Form -->
-        <div class="max-w-4xl mx-auto mb-12">
-            <SearchBar
-                value={searchTerm}
-                on:input={handleSearchInput}
-                on:search={handleSearchSubmit}
+
+        <div class="mb-4 lg:mb-8">
+            <SearchBar 
+                bind:value={searchTerm}
+                on:input={() => performSearch()}
+                on:search={() => performSearch()}
+                placeholder="Search by name, practice area, or location..."
             />
         </div>
 
-        <!-- Results Section -->
-        {#if error}
-            <div class="text-red-500 text-center my-8 bg-red-500/10 py-4 rounded-lg">
-                {error}
+        <!-- Mobile Filter Button -->
+        {#if isMobile}
+            <div class="mb-4">
+                <button
+                    class="w-full bg-[#243442] p-4 rounded-lg text-[#00e6e6] flex justify-between items-center"
+                    on:click={() => showMobileFilters = !showMobileFilters}
+                >
+                    <span>Filters</span>
+                    <span>{selectedFilters.length} selected</span>
+                </button>
             </div>
-        {:else if loading}
-            <div class="flex justify-center my-16">
-                <LoadingSpinner />
-            </div>
-        {:else}
-            <!-- Results -->
-            {#if searchResults.attorneys.length > 0}
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                    {#each searchResults.attorneys as attorney (attorney.id)}
-                        <div class="transform hover:-translate-y-1 transition-all duration-300">
-                            <AttorneyCard {attorney} />
-                        </div>
-                    {/each}
+        {/if}
+
+        <!-- After the search input and before the grid layout -->
+        {#if searchResults.attorneys.length > 0}
+            <div class="w-full flex justify-center mb-8 border-b border-cyan-500/20 pb-4">
+                <div class="w-[400px] flex justify-between items-center">
+                    <button
+                        class="px-2 py-1 rounded bg-[#243442] text-[#00e6e6] disabled:opacity-50
+                               hover:bg-[#2d4456] transition-colors text-xs"
+                        on:click={handlePrevPage}
+                        disabled={currentPage === 1}
+                    >
+                        Previous
+                    </button>
+                    
+                    <div class="flex items-center gap-1">
+                        {#each getPageNumbers(currentPage, totalPages) as page}
+                            {#if page === '...'}
+                                <span class="text-[#00e6e6] text-xs px-1">...</span>
+                            {:else}
+                                <button
+                                    class="min-w-[24px] px-1.5 py-1 rounded text-xs transition-colors
+                                           {currentPage === page ? 
+                                             'bg-[#00e6e6] text-[#1a2632]' : 
+                                             'bg-[#243442] text-[#00e6e6] hover:bg-[#2d4456]'}"
+                                    on:click={() => handlePageClick(page)}
+                                >
+                                    {page}
+                                </button>
+                            {/if}
+                        {/each}
+                    </div>
+                    
+                    <button
+                        class="px-2 py-1 rounded bg-[#243442] text-[#00e6e6] disabled:opacity-50
+                               hover:bg-[#2d4456] transition-colors text-xs"
+                        on:click={handleNextPage}
+                        disabled={currentPage === totalPages}
+                    >
+                        Next
+                    </button>
                 </div>
-                
-                <!-- Pagination -->
-                {#if searchResults.totalPages > 1}
-                    <div class="mt-12">
-                        <Pagination
-                            currentPage={currentPage}
-                            totalPages={searchResults.totalPages}
-                            on:pageChange={({ detail }) => handlePageChange(detail)}
+            </div>
+        {/if}
+
+        <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
+            <!-- Filters -->
+            <div class="lg:col-span-1">
+                {#if !isMobile || (isMobile && showMobileFilters)}
+                    <div class="lg:block {isMobile ? 'fixed inset-0 bg-[#1a2632] z-50 overflow-auto p-4' : ''}">
+                        {#if isMobile}
+                            <div class="flex justify-between items-center mb-4">
+                                <h2 class="text-xl font-semibold text-[#00e6e6]">Filters</h2>
+                                <button 
+                                    class="text-[#00e6e6]"
+                                    on:click={() => showMobileFilters = false}
+                                >
+                                    Close
+                                </button>
+                            </div>
+                        {/if}
+                        <AdvancedSearch
+                            facets={searchResults.facets}
+                            {selectedFilters}
+                            on:filterChange={handleFilterChange}
                         />
                     </div>
                 {/if}
-            {:else}
-                <div class="text-center text-white/60 my-16 backdrop-blur-sm bg-black/20 py-12 rounded-lg border border-[#00e6e6]/10">
-                    No attorneys found matching your search criteria
-                </div>
-            {/if}
-        {/if}
+            </div>
+
+            <!-- Results Section with Pagination -->
+            <div class="lg:col-span-3">
+                <!-- Results Grid -->
+                {#if error}
+                    <div class="text-red-500">{error}</div>
+                {:else if loading}
+                    <LoadingSpinner />
+                {:else}
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-8">
+                        {#each searchResults.attorneys as attorney (attorney.id)}
+                            <AttorneyCard {attorney} />
+                        {/each}
+                    </div>
+                {/if}
+            </div>
+        </div>
     </div>
+
+    {#if isMobile && isAdminPage}
+        <MobileSearchComponent
+            facets={searchResults.facets}
+            on:search={handleMobileSearch}
+        />
+    {/if}
 </div>
 
 <style>
     .bg-dark-lattice {
         background-image: url('../images/dark_lattice.png');
-    }
-
-    :global(.input::placeholder) {
-        opacity: 0.5;
     }
 </style>

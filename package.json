@@ -47,7 +47,10 @@
         "firebase": "^10.13.2",
         "firebase-functions": "^6.0.1",
         "fuse.js": "^7.0.0",
+        "lodash": "^4.17.21",
+        "lodash-es": "^4.17.21",
         "lucide-svelte": "^0.445.0",
+        "svelte-fa": "^4.0.3",
         "svelte-preprocess": "^6.0.2"
     },
     "engines": {

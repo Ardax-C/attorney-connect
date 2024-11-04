@@ -1,119 +1,94 @@
 <script>
-  export let attorney = {
-    id: '',
-    name: 'Unknown Attorney',
-    location: 'Location Unknown',
-    practiceAreas: [],
-    profilePicture: '',
-    website: '',
-  };
+  import { faUser, faGlobe } from '@fortawesome/free-solid-svg-icons';
+  import Fa from 'svelte-fa';
 
-  // Ensure practiceAreas is always an array and filter out any undefined/null values
-  $: areas = Array.isArray(attorney.practiceAreas) 
-    ? attorney.practiceAreas.filter(area => area) 
-    : [];
+  export let attorney;
 
-  // Ensure name and location have fallback values
-  $: displayName = attorney.name || 'Unknown Attorney';
-  $: displayLocation = attorney.location || 'Location Unknown';
-
-  // Helper function to get valid profile picture URL
   function getProfilePictureUrl(profilePicture) {
-    if (!profilePicture) return '';
+    if (!profilePicture) return null;
     if (typeof profilePicture === 'string') return profilePicture;
     if (profilePicture.url) return profilePicture.url;
-    return '';
+    return null;
   }
 
-  $: profilePictureUrl = getProfilePictureUrl(attorney.profilePicture);
+  let profilePictureUrl = getProfilePictureUrl(attorney.profilePicture);
 </script>
 
-<div class="relative overflow-hidden rounded-lg bg-black/20 hover:shadow-2xl transition-all duration-300 backdrop-blur-md border border-[#00e6e6]/10 h-[280px]">
-  <div class="p-6 flex flex-col h-full">
-    <!-- Top Section with Photo and Basic Info -->
-    <div class="flex items-start gap-6 flex-shrink-0">
-      <!-- Profile Picture -->
-      <div class="shrink-0">
-        <div class="w-20 h-20 rounded-lg ring-2 ring-[#00e6e6]/20 shadow-lg overflow-hidden">
-          {#if profilePictureUrl}
-            <img 
-              src={profilePictureUrl} 
-              alt=""
-              class="w-full h-full object-cover"
-              on:error={() => profilePictureUrl = ''}
-            />
-          {:else}
-            <div class="w-full h-full bg-gradient-to-br from-[#00e6e6]/80 to-[#00e6e6] flex items-center justify-center">
-              <svg 
-                class="w-10 h-10 text-black/80" 
-                fill="currentColor" 
-                viewBox="0 0 20 20"
-              >
-                <path 
-                  fill-rule="evenodd" 
-                  d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" 
-                  clip-rule="evenodd"
+<div class="card-wrapper h-[225px]">
+  <a href="/attorney/{attorney.id}" class="block h-full">
+    <div class="h-full rounded-lg overflow-hidden border border-cyan-500/20 hover:border-cyan-500/40 transition-colors glass-card">
+      <div class="p-4 h-full flex flex-col">
+        <div class="flex items-center space-x-3">
+          <div class="h-16 w-16 rounded-full overflow-hidden border-2 border-cyan-500/20">
+            <div class="h-full w-full bg-cyan-500/20 flex items-center justify-center">
+              {#if profilePictureUrl}
+                <img 
+                  src={profilePictureUrl} 
+                  alt=""
+                  class="h-full w-full object-cover"
+                  on:error={() => profilePictureUrl = null}
                 />
-              </svg>
+              {:else}
+                <Fa icon={faUser} class="text-cyan-500 text-2xl" />
+              {/if}
+            </div>
+          </div>
+          
+          <div class="flex-1 min-w-0">
+            <h3 class="text-lg font-semibold text-cyan-400 truncate">
+              {attorney.name}
+            </h3>
+            <p class="text-gray-400 mt-1 text-sm truncate">
+              {attorney.location}
+            </p>
+          </div>
+        </div>
+
+        <div class="flex-1">
+          {#if attorney.practiceAreas?.length}
+            <div class="mt-3 flex flex-wrap gap-1.5">
+              {#each attorney.practiceAreas as area}
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-cyan-500/10 text-cyan-400">
+                  {area}
+                </span>
+              {/each}
             </div>
           {/if}
         </div>
-      </div>
 
-      <!-- Name and Location -->
-      <div class="flex-grow min-w-0">
-        <h2 class="text-xl font-semibold tracking-tight text-white/90 truncate">
-          {displayName}
-        </h2>
-        <div class="flex items-center text-sm text-white/70 mt-1">
-          <i class="fas fa-location-dot mr-2"></i>
-          <span class="truncate">{displayLocation}</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- Practice Areas -->
-    {#if areas.length > 0}
-      <div class="mt-6 flex-grow overflow-hidden">
-        <div class="text-sm font-medium text-white/60 mb-2">Practice Areas</div>
-        <div class="flex flex-wrap gap-2 overflow-hidden max-h-[80px]">
-          {#each areas.slice(0, 3) as area}
-            <span class="px-3 py-1 rounded-full text-xs border border-[#00e6e6]/30 text-[#00e6e6] bg-[#00e6e6]/5 truncate max-w-full">
-              {area}
-            </span>
-          {/each}
-          {#if areas.length > 3}
-            <span class="px-3 py-1 rounded-full text-xs bg-white/5 text-white/60">
-              +{areas.length - 3} more
-            </span>
-          {/if}
-        </div>
-      </div>
-    {/if}
-
-    <!-- Actions -->
-    <div class="flex justify-between items-center mt-auto pt-6 flex-shrink-0">
-      <div class="flex gap-3">
         {#if attorney.website}
-          <a 
-            href={attorney.website} 
-            target="_blank" 
-            rel="noopener noreferrer" 
-            class="p-2 rounded-full hover:bg-[#00e6e6]/10 text-white/70 hover:text-[#00e6e6] transition-colors"
-            title="Website"
-          >
-            <i class="fas fa-globe"></i>
-          </a>
+          <div class="mt-3">
+            <a 
+              href={attorney.website} 
+              target="_blank" 
+              rel="noopener noreferrer" 
+              class="text-cyan-400 hover:text-cyan-300"
+              title="Visit website"
+            >
+              <Fa icon={faGlobe} />
+            </a>
+          </div>
         {/if}
       </div>
-      
-      <a 
-        href="/attorney/{attorney.id}" 
-        class="px-6 py-2 bg-[#00e6e6] hover:bg-[#00e6e6]/90 text-black font-medium rounded-full text-sm transition-colors shadow-lg hover:shadow-[#00e6e6]/20"
-      >
-        View Profile
-        <i class="fas fa-arrow-right ml-2"></i>
-      </a>
     </div>
-  </div>
-</div> 
+  </a>
+</div>
+
+<style>
+  .card-wrapper {
+    min-height: 225px;
+    max-height: 225px;
+  }
+
+  .glass-card {
+    background: rgba(17, 25, 40, 0.75);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  }
+
+  .glass-card:hover {
+    background: rgba(17, 25, 40, 0.85);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.45);
+  }
+</style> 
