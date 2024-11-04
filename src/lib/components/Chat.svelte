@@ -11,6 +11,7 @@
     import VideoChat from './VideoChat.svelte';
     import CourtBriefs from './CourtBriefs.svelte';
     import { addChatSubscription, removeChatSubscription } from '$lib/stores/auth';
+    import GifPicker from './GifPicker.svelte';
 
     export let chatId;
 
@@ -48,6 +49,8 @@
 
     let isRecipientOnline = false;
     let isRecipientIdle = false;
+
+    let showGifPicker = false;
 
     $: typingMessage = Array.from(typingUsers)
         .filter(id => id !== user?.uid)
@@ -463,6 +466,31 @@
             isRecipientOnline = data?.online || false;
             isRecipientIdle = data?.idle || false;
         });
+    }
+
+    async function handleGifSelect(gif) {
+        try {
+            const messageRef = collection(db, `chats/${chatId}/messages`);
+            await addDoc(messageRef, {
+                type: 'gif',
+                content: gif.url,
+                preview: gif.preview,
+                width: gif.width,
+                height: gif.height,
+                senderId: user.uid,
+                timestamp: serverTimestamp()
+            });
+
+            // Update last message in chat
+            const chatRef = doc(db, 'chats', chatId);
+            await updateDoc(chatRef, {
+                lastMessage: '📱 GIF',
+                lastMessageTimestamp: serverTimestamp(),
+                [`unreadCount.${otherParticipantId}`]: increment(1)
+            });
+        } catch (error) {
+            console.error('Error sending GIF:', error);
+        }
     }
 </script>
 
