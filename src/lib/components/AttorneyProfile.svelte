@@ -216,7 +216,7 @@
 
     const sectionMapping = {
         'Law Firm Experience': 'lawFirmExperience',
-        'Professional Credentials': 'professionalCredentials',
+        'Professional Credentials': 'credentials',
         'Education': 'education',
         'Biography': 'biography'
     };
