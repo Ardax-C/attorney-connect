@@ -36,7 +36,6 @@
         "@elastic/elasticsearch": "^8.15.1",
         "@fortawesome/fontawesome-svg-core": "^6.6.0",
         "@fortawesome/free-solid-svg-icons": "^6.6.0",
-        "@fortawesome/svelte-fontawesome": "^0.2.2",
         "@google-cloud/aiplatform": "^3.29.0",
         "@sveltejs/adapter-vercel": "^5.4.4",
         "@tailwindcss/line-clamp": "^0.4.4",

@@ -13,7 +13,16 @@
     import { onDestroy } from 'svelte';
     import { cleanupPresence } from '$lib/services/presenceService';
     import { initializePresence } from '$lib/services/presenceService';
+    import { library, config } from '@fortawesome/fontawesome-svg-core';
+    import { faUser } from '@fortawesome/free-solid-svg-icons';
+    import '@fortawesome/fontawesome-svg-core/styles.css';
+
+    // Prevent Font Awesome from dynamically adding its CSS
+    config.autoAddCss = false;
     
+    // Add the icons you want to use
+    library.add(faUser);
+
     let user = null;
     let userRole = null;
 

@@ -1,4 +1,11 @@
 <script>
+    import Fa from 'svelte-fa';
+    import { faUser } from '@fortawesome/free-solid-svg-icons';
+    import { library } from '@fortawesome/fontawesome-svg-core';
+    
+    // Initialize the library
+    library.add(faUser);
+    
     import { onMount } from 'svelte';
     import { page } from '$app/stores';
     import { goto } from '$app/navigation';
@@ -41,7 +48,12 @@
         try {
             const attorneyDoc = await getDoc(doc(db, 'attorneyProfiles', id));
             if (attorneyDoc.exists()) {
-                attorney = { id: attorneyDoc.id, ...attorneyDoc.data() };
+                const data = attorneyDoc.data();
+                attorney = { 
+                    id: attorneyDoc.id, 
+                    ...data,
+                    profilePictureUrl: getProfilePictureUrl(data.profilePictureUrl) || '/images/default-avatar.png'
+                };
                 await loadRelatedAttorneys(attorney);
             } else {
                 error = 'Attorney not found';
@@ -60,7 +72,6 @@
                 return;
             }
 
-            // Query Firestore directly from the client
             const attorneysRef = collection(db, 'attorneyProfiles');
             const q = query(
                 attorneysRef,
@@ -80,7 +91,7 @@
                         lastName: data.lastName,
                         state: data.state,
                         practiceAreas: data.practiceAreas || [],
-                        profilePictureUrl: data.profilePictureUrl,
+                        profilePictureUrl: data.profilePictureUrl || '',
                         matchScore: (data.practiceAreas || [])
                             .filter(area => currentAttorney.practiceAreas.includes(area))
                             .length
@@ -92,7 +103,6 @@
                 )
                 .sort((a, b) => b.matchScore - a.matchScore)
                 .slice(0, 5);
-
 
         } catch (error) {
             console.error("Error fetching related attorneys:", error);
@@ -196,34 +206,54 @@
         graduationYear: string;
         honors: string;
     }} Education */
+
+    function getProfilePictureUrl(profilePicture) {
+        if (!profilePicture) return null;
+        if (typeof profilePicture === 'string') return profilePicture;
+        if (profilePicture.url) return profilePicture.url;
+        return null;
+    }
+
+    const sectionMapping = {
+        'Law Firm Experience': 'lawFirmExperience',
+        'Professional Credentials': 'professionalCredentials',
+        'Education': 'education',
+        'Biography': 'biography'
+    };
 </script>
 
-<main class="bg-no-repeat bg-center bg-cover min-h-screen" style="background-image: url({backgroundImage})">
+<main class="bg-zinc-950 bg-no-repeat bg-center bg-cover min-h-screen" style="background-image: url({backgroundImage})">
     <Navbar />
-    
     <div class="container mx-auto px-4 py-8 mt-16">
         {#if loading}
             <div class="flex justify-center items-center h-64">
-                <div class="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-cyan-400"></div>
+                <div class="w-8 h-8 border-4 border-cyan-400 border-t-transparent rounded-full animate-spin"></div>
             </div>
         {:else if error}
-            <div class="bg-red-500/20 text-red-400 p-4 rounded-lg text-center">
-                {error}
-            </div>
+            <div class="text-red-400 text-center p-4">{error}</div>
         {:else if attorney}
-            <!-- Main Profile Section -->
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                <!-- Left Column - Profile Info -->
-                <div class="lg:col-span-2">
-                    <div class="bg-zinc-800 bg-opacity-90 rounded-xl shadow-2xl overflow-hidden">
+            <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
+                <!-- Main Profile Content -->
+                <div class="lg:col-span-3">
+                    <div class="bg-zinc-900/95 rounded-2xl shadow-2xl overflow-hidden border border-zinc-800/50">
                         <!-- Header Banner -->
-                        <div class="relative h-48 bg-gradient-to-r from-cyan-600 to-cyan-800">
-                            <div class="absolute -bottom-16 left-8 flex items-end space-x-6">
-                                <img 
-                                    src={attorney.profilePictureUrl || '/default-profile.png'} 
-                                    alt="{attorney.firstName} {attorney.lastName}" 
-                                    class="w-32 h-32 rounded-xl object-cover border-4 border-zinc-800 shadow-lg"
-                                >
+                        <div class="relative bg-gradient-to-r from-zinc-800 to-zinc-900 p-8">
+                            <div class="flex items-start space-x-6">
+                                <!-- Main Profile Image -->
+                                <div class="w-32 h-32 rounded-xl overflow-hidden bg-zinc-800 flex items-center justify-center">
+                                    <div class="h-full w-full bg-cyan-500/20 flex items-center justify-center">
+                                        {#if attorney.profilePictureUrl}
+                                            <img 
+                                                src={attorney.profilePictureUrl}
+                                                alt="Profile"
+                                                class="h-full w-full object-cover"
+                                                on:error={() => attorney.profilePictureUrl = null}
+                                            />
+                                        {:else}
+                                            <Fa icon={faUser} class="text-cyan-500 text-5xl" />
+                                        {/if}
+                                    </div>
+                                </div>
                                 <div class="mb-4">
                                     <h1 class="text-3xl font-bold text-white mb-1">
                                         {attorney.firstName} {attorney.lastName}
@@ -236,9 +266,9 @@
                         </div>
 
                         <!-- Profile Content -->
-                        <div class="pt-20 px-8 pb-8">
+                        <div class="pt-8 px-8 pb-8 space-y-8">
                             <!-- Practice Areas -->
-                            <div class="mb-8">
+                            <div class="bg-zinc-800/30 p-6 rounded-xl border border-zinc-700/20">
                                 <h2 class="text-xl font-semibold text-custom-color-tertiary mb-4">Practice Areas</h2>
                                 <div class="flex flex-wrap gap-2">
                                     {#each attorney.practiceAreas as area}
@@ -273,134 +303,121 @@
                                 </div>
                             </div>
 
-                            <!-- Biography Section -->
-                            <div class="mb-8">
-                                <h2 class="text-xl font-semibold text-custom-color-tertiary mb-4">Biography</h2>
-                                <p class="text-emerald-400/70 italic leading-relaxed">
-                                    {attorney.biography || 'Attorney has not added a biography yet.'}
-                                </p>
-                            </div>
-
-                            <!-- Law Firm Experience Section -->
-                            {#if attorney.lawFirmExperience && attorney.lawFirmExperience.length > 0}
-                                <div class="mb-8">
-                                    <h2 class="text-xl font-semibold text-custom-color-tertiary mb-4">Law Firm Experience</h2>
-                                    <div class="space-y-4">
-                                        {#each attorney.lawFirmExperience as experience}
-                                            <div class="bg-zinc-700/30 p-4 rounded-lg">
-                                                <h3 class="text-lg font-medium text-white">{experience.firmName}</h3>
-                                                <p class="text-cyan-400">{experience.role}</p>
-                                                <p class="text-gray-400 text-sm">
-                                                    {experience.startDate} - {experience.endDate}
-                                                </p>
-                                                {#if experience.description}
-                                                    <p class="text-gray-300 mt-2">{experience.description}</p>
-                                                {/if}
+                            <!-- Update the sections loop to properly display all content -->
+                            {#each ['Biography', 'Law Firm Experience', 'Professional Credentials', 'Education'] as section}
+                                {#if attorney[sectionMapping[section]] && attorney[sectionMapping[section]].length > 0}
+                                    <div class="bg-zinc-800/30 p-6 rounded-xl border border-zinc-700/20">
+                                        <h2 class="text-xl font-semibold text-custom-color-tertiary mb-4">{section}</h2>
+                                        {#if section === 'Biography'}
+                                            <p class="text-emerald-400/70 italic leading-relaxed">
+                                                {attorney.biography}
+                                            </p>
+                                        {:else if section === 'Law Firm Experience'}
+                                            <div class="space-y-4">
+                                                {#each attorney.lawFirmExperience as experience}
+                                                    <div class="bg-zinc-700/30 p-4 rounded-lg">
+                                                        <h3 class="text-white font-medium">{experience.firmName}</h3>
+                                                        <p class="text-emerald-400">{experience.role}</p>
+                                                        <p class="text-emerald-400/70 text-sm">
+                                                            {experience.startDate} - {experience.endDate || 'Present'}
+                                                        </p>
+                                                        {#if experience.description}
+                                                            <p class="text-emerald-400/70 mt-2">{experience.description}</p>
+                                                        {/if}
+                                                    </div>
+                                                {/each}
                                             </div>
-                                        {/each}
-                                    </div>
-                                </div>
-                            {:else}
-                                <div class="mb-8">
-                                    <h2 class="text-xl font-semibold text-custom-color-tertiary mb-4">Law Firm Experience</h2>
-                                    <p class="text-emerald-400/70 italic">Attorney has not updated their experience yet.</p>
-                                </div>
-                            {/if}
-
-                            <!-- Credentials Section -->
-                            {#if attorney.credentials && attorney.credentials.length > 0}
-                                <div class="mb-8">
-                                    <h2 class="text-xl font-semibold text-custom-color-tertiary mb-4">Professional Credentials</h2>
-                                    <div class="space-y-4">
-                                        {#each attorney.credentials as credential}
-                                            <div class="bg-zinc-700/30 p-4 rounded-lg">
-                                                <h3 class="text-lg font-medium text-white">{credential.title}</h3>
-                                                <p class="text-cyan-400">{credential.issuer}</p>
-                                                <p class="text-gray-400 text-sm">
-                                                    Received: {new Date(credential.dateReceived).toLocaleDateString()}
-                                                </p>
-                                                {#if credential.description}
-                                                    <p class="text-gray-300 mt-2">{credential.description}</p>
-                                                {/if}
+                                        {:else if section === 'Professional Credentials'}
+                                            <div class="space-y-4">
+                                                {#each attorney.professionalCredentials as credential}
+                                                    <div class="bg-zinc-700/30 p-4 rounded-lg">
+                                                        <h3 class="text-white font-medium">{credential.title}</h3>
+                                                        <p class="text-emerald-400">{credential.issuer}</p>
+                                                        <p class="text-emerald-400/70 text-sm">
+                                                            Received: {credential.dateReceived}
+                                                        </p>
+                                                        {#if credential.description}
+                                                            <p class="text-emerald-400/70 mt-2">{credential.description}</p>
+                                                        {/if}
+                                                    </div>
+                                                {/each}
                                             </div>
-                                        {/each}
-                                    </div>
-                                </div>
-                            {:else}
-                                <div class="mb-8">
-                                    <h2 class="text-xl font-semibold text-custom-color-tertiary mb-4">Professional Credentials</h2>
-                                    <p class="text-emerald-400/70 italic">Attorney has not added any credentials yet.</p>
-                                </div>
-                            {/if}
-
-                            <!-- Education Section -->
-                            {#if attorney.education && attorney.education.length > 0}
-                                <div class="mb-8">
-                                    <h2 class="text-xl font-semibold text-custom-color-tertiary mb-4">Education</h2>
-                                    <div class="space-y-4">
-                                        {#each attorney.education as education}
-                                            <div class="bg-zinc-700/30 p-4 rounded-lg">
-                                                <h3 class="text-lg font-medium text-white">{education.institution}</h3>
-                                                <p class="text-cyan-400">{education.degree}</p>
-                                                <p class="text-gray-400">Class of {education.graduationYear}</p>
-                                                {#if education.honors}
-                                                    <p class="text-gray-300 mt-2 italic">{education.honors}</p>
-                                                {/if}
+                                        {:else if section === 'Education'}
+                                            <div class="space-y-4">
+                                                {#each attorney.education as edu}
+                                                    <div class="bg-zinc-700/30 p-4 rounded-lg">
+                                                        <h3 class="text-white font-medium">{edu.institution}</h3>
+                                                        <p class="text-emerald-400">{edu.degree}</p>
+                                                        <p class="text-emerald-400/70 text-sm">
+                                                            Graduated: {edu.graduationYear}
+                                                        </p>
+                                                        {#if edu.honors}
+                                                            <p class="text-emerald-400/70 mt-2">{edu.honors}</p>
+                                                        {/if}
+                                                    </div>
+                                                {/each}
                                             </div>
-                                        {/each}
+                                        {/if}
                                     </div>
-                                </div>
-                            {:else}
-                                <div class="mb-8">
-                                    <h2 class="text-xl font-semibold text-custom-color-tertiary mb-4">Education</h2>
-                                    <p class="text-emerald-400/70 italic">Attorney has not added their education history yet.</p>
-                                </div>
-                            {/if}
+                                {:else}
+                                    <div class="bg-zinc-800/30 p-6 rounded-xl border border-zinc-700/20">
+                                        <h2 class="text-xl font-semibold text-custom-color-tertiary mb-4">{section}</h2>
+                                        <p class="text-emerald-400/70 italic">
+                                            Attorney has not added {section.toLowerCase()} yet.
+                                        </p>
+                                    </div>
+                                {/if}
+                            {/each}
                         </div>
                     </div>
                 </div>
 
-                <!-- Right Column - Related Attorneys -->
+                <!-- Related Attorneys Column -->
                 <div class="lg:col-span-1">
-                    <div class="bg-zinc-800 bg-opacity-90 rounded-xl shadow-2xl p-6">
+                    <div class="bg-zinc-900/95 p-6 rounded-xl border border-zinc-800/50 sticky top-24">
                         <h2 class="text-xl font-semibold text-custom-color-tertiary mb-6">Related Attorneys</h2>
                         
                         {#if relatedAttorneys.length > 0}
                             <div class="space-y-4">
                                 {#each relatedAttorneys as relatedAttorney}
-                                    <div 
-                                        class="group bg-zinc-700/50 rounded-lg p-4 cursor-pointer hover:bg-zinc-700 transition-all duration-300 transform hover:-translate-y-1"
-                                        on:click={() => navigateToAttorney(relatedAttorney.id)}
-                                        on:keydown={(e) => e.key === 'Enter' && navigateToAttorney(relatedAttorney.id)}
-                                        tabindex="0"
-                                        role="button"
+                                    <a 
+                                        href="/attorney/{relatedAttorney.id}"
+                                        class="block bg-zinc-800/50 p-4 rounded-lg hover:bg-zinc-700/50 transition-colors"
                                     >
                                         <div class="flex items-center space-x-4">
-                                            <img 
-                                                src={relatedAttorney.profilePictureUrl || '/default-profile.png'} 
-                                                alt="{relatedAttorney.firstName} {relatedAttorney.lastName}" 
-                                                class="w-16 h-16 rounded-lg object-cover"
-                                            >
-                                            <div class="flex-1">
-                                                <h3 class="text-cyan-400 font-semibold group-hover:text-cyan-300 transition-colors">
+                                            <div class="w-12 h-12 rounded-lg overflow-hidden bg-zinc-800 flex-shrink-0">
+                                                <div class="h-full w-full bg-cyan-500/20 flex items-center justify-center">
+                                                    <div class="h-full w-full bg-cyan-500/20 flex items-center justify-center">
+                                                        {#if relatedAttorney.profilePictureUrl}
+                                                            <img 
+                                                                src={relatedAttorney.profilePictureUrl}
+                                                                alt="Profile"
+                                                                class="h-full w-full object-cover"
+                                                                on:error={() => relatedAttorney.profilePictureUrl = null}
+                                                            />
+                                                        {:else}
+                                                            <Fa icon={faUser} class="text-cyan-500 text-2xl" />
+                                                        {/if}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <h3 class="text-white font-medium">
                                                     {relatedAttorney.firstName} {relatedAttorney.lastName}
                                                 </h3>
-                                                <p class="text-emerald-400/70 text-sm">{relatedAttorney.state}</p>
-                                                <div class="flex flex-wrap gap-2 mt-2">
+                                                <p class="text-emerald-400/70 text-sm">
+                                                    {relatedAttorney.state}
+                                                </p>
+                                                <div class="flex flex-wrap gap-1 mt-1">
                                                     {#each relatedAttorney.practiceAreas.slice(0, 2) as area}
-                                                        <span class="bg-cyan-500/10 text-cyan-400 px-2 py-0.5 rounded text-xs">
+                                                        <span class="bg-cyan-500/20 text-cyan-400 px-2 py-0.5 rounded text-xs">
                                                             {area}
                                                         </span>
                                                     {/each}
-                                                    {#if relatedAttorney.practiceAreas.length > 2}
-                                                        <span class="text-cyan-400/50 text-xs">
-                                                            +{relatedAttorney.practiceAreas.length - 2} more
-                                                        </span>
-                                                    {/if}
                                                 </div>
                                             </div>
                                         </div>
-                                    </div>
+                                    </a>
                                 {/each}
                             </div>
                         {:else}
@@ -417,6 +434,6 @@
 
 <style>
     :global(body) {
-        overflow-y: auto;
+        overflow-y: auto !important;
     }
 </style>

@@ -1,22 +1,28 @@
 <script>
+    import { faUser } from '@fortawesome/free-solid-svg-icons';
+    import Fa from 'svelte-fa';
+    
     /** @type {import('$lib/types').Attorney} */
     export let attorney;
-    let imgError = false;
-
-    function handleImageError() {
-        imgError = true;
-    }
 </script>
 
 <div class="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow">
     <div class="flex items-start justify-between">
         <div class="flex items-center gap-4">
-            <img 
-                src={imgError ? '/images/default-avatar.png' : (attorney.profilePictureUrl || '/images/default-avatar.png')}
-                alt={`${attorney.firstName} ${attorney.lastName}`}
-                class="w-16 h-16 rounded-lg object-cover"
-                on:error={handleImageError}
-            />
+            <div class="w-16 h-16 rounded-lg overflow-hidden bg-zinc-800 flex items-center justify-center">
+                <div class="h-full w-full bg-cyan-500/20 flex items-center justify-center">
+                    {#if attorney.profilePictureUrl}
+                        <img 
+                            src={attorney.profilePictureUrl}
+                            alt="Profile"
+                            class="w-full h-full object-cover"
+                            on:error={() => attorney.profilePictureUrl = null}
+                        />
+                    {:else}
+                        <Fa icon={faUser} class="text-cyan-500 text-2xl" />
+                    {/if}
+                </div>
+            </div>
             <div>
                 <h3 class="text-xl font-semibold text-gray-900">{attorney.name}</h3>
                 <p class="text-gray-600 mt-1">{attorney.state}</p>

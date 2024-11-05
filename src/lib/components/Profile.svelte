@@ -7,7 +7,7 @@
     import { doc, getDoc, updateDoc, setDoc, arrayUnion } from 'firebase/firestore';
     import backgroundImage from '../images/dark_lattice.png';
     import { faPencilAlt, faCheck, faTimes, faArrowLeft } from '@fortawesome/free-solid-svg-icons';
-    import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
+    import Fa from 'svelte-fa';
     import { collection, query, where, orderBy, onSnapshot } from 'firebase/firestore';
     import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
@@ -315,8 +315,13 @@
         }
     }
 
+    let deletingIndices = new Set();
+
     async function deleteFromSection(section, index) {
+        if (deletingIndices.has(`${section}-${index}`)) return;
+        
         try {
+            deletingIndices.add(`${section}-${index}`);
             const sectionData = userDetails[section].filter((_, i) => i !== index);
             
             await updateDoc(doc(db, 'attorneyProfiles', user.uid), {
@@ -329,6 +334,8 @@
             };
         } catch (error) {
             errorMessage = error.message;
+        } finally {
+            deletingIndices.delete(`${section}-${index}`);
         }
     }
 
@@ -390,7 +397,7 @@
                             {#if uploading}
                                 <div class="w-4 h-4 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin"></div>
                             {:else}
-                                <FontAwesomeIcon icon={faPencilAlt} class="text-cyan-400 text-sm" />
+                                <Fa icon={faPencilAlt} class="text-cyan-400 text-sm" />
                             {/if}
                         </button>
                     </div>
@@ -432,14 +439,14 @@
                                         <div class="opacity-0 group-hover:opacity-100 transition-opacity">
                                             {#if editField === field}
                                                 <button on:click={() => saveEdit(field)} class="text-green-500 mx-1">
-                                                    <FontAwesomeIcon icon={faCheck} />
+                                                    <Fa icon={faCheck} />
                                                 </button>
                                                 <button on:click={cancelEdit} class="text-red-500 mx-1">
-                                                    <FontAwesomeIcon icon={faTimes} />
+                                                    <Fa icon={faTimes} />
                                                 </button>
                                             {:else}
                                                 <button on:click={() => startEdit(field)} class="text-gray-400 hover:text-emerald-400">
-                                                    <FontAwesomeIcon icon={faPencilAlt} />
+                                                    <Fa icon={faPencilAlt} />
                                                 </button>
                                             {/if}
                                         </div>
@@ -472,14 +479,14 @@
                                     <div class="opacity-0 group-hover:opacity-100 transition-opacity">
                                         {#if editField === field}
                                             <button on:click={() => saveEdit(field)} class="text-green-500 mx-1">
-                                                <FontAwesomeIcon icon={faCheck} />
+                                                <Fa icon={faCheck} />
                                             </button>
                                             <button on:click={cancelEdit} class="text-red-500 mx-1">
-                                                <FontAwesomeIcon icon={faTimes} />
+                                                <Fa icon={faTimes} />
                                             </button>
                                         {:else}
                                             <button on:click={() => startEdit(field)} class="text-gray-400 hover:text-emerald-400">
-                                                <FontAwesomeIcon icon={faPencilAlt} />
+                                                <Fa icon={faPencilAlt} />
                                             </button>
                                         {/if}
                                     </div>
@@ -498,7 +505,7 @@
                             on:click={() => startEdit('practiceAreas')} 
                             class="text-gray-400 hover:text-emerald-400 transition-colors"
                         >
-                            <FontAwesomeIcon icon={faPencilAlt} />
+                            <Fa icon={faPencilAlt} />
                         </button>
                     {/if}
                 </div>
@@ -515,14 +522,14 @@
                                 on:click={() => saveEdit('practiceAreas')} 
                                 class="bg-green-500/20 text-green-400 px-4 py-2 rounded-lg hover:bg-green-500/30 transition-colors"
                             >
-                                <FontAwesomeIcon icon={faCheck} class="mr-2" />
+                                <Fa icon={faCheck} class="mr-2" />
                                 Save
                             </button>
                             <button 
                                 on:click={cancelEdit} 
                                 class="bg-red-500/20 text-red-400 px-4 py-2 rounded-lg hover:bg-red-500/30 transition-colors"
                             >
-                                <FontAwesomeIcon icon={faTimes} class="mr-2" />
+                                <Fa icon={faTimes} class="mr-2" />
                                 Cancel
                             </button>
                         </div>
@@ -550,7 +557,7 @@
                             on:click={() => startEdit('biography')} 
                             class="text-gray-400 hover:text-cyan-400 transition-colors"
                         >
-                            <FontAwesomeIcon icon={faPencilAlt} />
+                            <Fa icon={faPencilAlt} />
                         </button>
                     {/if}
                 </div>
@@ -567,14 +574,14 @@
                                 on:click={() => saveEdit('biography')} 
                                 class="bg-cyan-500/20 text-cyan-400 px-4 py-2 rounded-lg hover:bg-cyan-500/30 transition-colors"
                             >
-                                <FontAwesomeIcon icon={faCheck} class="mr-2" />
+                                <Fa icon={faCheck} class="mr-2" />
                                 Save
                             </button>
                             <button 
                                 on:click={cancelEdit} 
                                 class="bg-red-500/20 text-red-400 px-4 py-2 rounded-lg hover:bg-red-500/30 transition-colors"
                             >
-                                <FontAwesomeIcon icon={faTimes} class="mr-2" />
+                                <Fa icon={faTimes} class="mr-2" />
                                 Cancel
                             </button>
                         </div>
@@ -645,7 +652,7 @@
                                 }}
                                 class="bg-cyan-500/20 text-cyan-400 px-4 py-2 rounded-lg hover:bg-cyan-500/30 transition-colors"
                             >
-                                <FontAwesomeIcon icon={faCheck} class="mr-2" />
+                                <Fa icon={faCheck} class="mr-2" />
                                 Save
                             </button>
                             <button 
@@ -655,7 +662,7 @@
                                 }}
                                 class="bg-red-500/20 text-red-400 px-4 py-2 rounded-lg hover:bg-red-500/30 transition-colors"
                             >
-                                <FontAwesomeIcon icon={faTimes} class="mr-2" />
+                                <Fa icon={faTimes} class="mr-2" />
                                 Cancel
                             </button>
                         </div>
@@ -685,13 +692,18 @@
                                         }}
                                         class="text-gray-400 hover:text-cyan-400 mx-1"
                                     >
-                                        <FontAwesomeIcon icon={faPencilAlt} />
+                                        <Fa icon={faPencilAlt} />
                                     </button>
                                     <button 
                                         on:click={() => deleteFromSection('lawFirmExperience', index)}
                                         class="text-gray-400 hover:text-red-400 mx-1"
+                                        disabled={deletingIndices.has(`lawFirmExperience-${index}`)}
                                     >
-                                        <FontAwesomeIcon icon={faTimes} />
+                                        {#if deletingIndices.has(`lawFirmExperience-${index}`)}
+                                            <div class="w-4 h-4 border-2 border-red-400 border-t-transparent rounded-full animate-spin"></div>
+                                        {:else}
+                                            <Fa icon={faTimes} />
+                                        {/if}
                                     </button>
                                 </div>
                             </div>
@@ -753,6 +765,7 @@
                                 }}
                                 class="bg-cyan-500/20 text-cyan-400 px-4 py-2 rounded-lg hover:bg-cyan-500/30 transition-colors"
                             >
+                                <Fa icon={faCheck} class="mr-2" />
                                 Save
                             </button>
                             <button 
@@ -762,6 +775,7 @@
                                 }}
                                 class="bg-red-500/20 text-red-400 px-4 py-2 rounded-lg hover:bg-red-500/30 transition-colors"
                             >
+                                <Fa icon={faTimes} class="mr-2" />
                                 Cancel
                             </button>
                         </div>
@@ -786,13 +800,18 @@
                                         }}
                                         class="text-gray-400 hover:text-cyan-400 mx-1"
                                     >
-                                        <FontAwesomeIcon icon={faPencilAlt} />
+                                        <Fa icon={faPencilAlt} />
                                     </button>
                                     <button 
                                         on:click={() => deleteFromSection('credentials', index)}
                                         class="text-gray-400 hover:text-red-400 mx-1"
+                                        disabled={deletingIndices.has(`credentials-${index}`)}
                                     >
-                                        <FontAwesomeIcon icon={faTimes} />
+                                        {#if deletingIndices.has(`credentials-${index}`)}
+                                            <div class="w-4 h-4 border-2 border-red-400 border-t-transparent rounded-full animate-spin"></div>
+                                        {:else}
+                                            <Fa icon={faTimes} />
+                                        {/if}
                                     </button>
                                 </div>
                             </div>
@@ -856,6 +875,7 @@
                                 }}
                                 class="bg-cyan-500/20 text-cyan-400 px-4 py-2 rounded-lg hover:bg-cyan-500/30 transition-colors"
                             >
+                                <Fa icon={faCheck} class="mr-2" />
                                 Save
                             </button>
                             <button 
@@ -865,6 +885,7 @@
                                 }}
                                 class="bg-red-500/20 text-red-400 px-4 py-2 rounded-lg hover:bg-red-500/30 transition-colors"
                             >
+                                <Fa icon={faTimes} class="mr-2" />
                                 Cancel
                             </button>
                         </div>
@@ -891,13 +912,18 @@
                                         }}
                                         class="text-gray-400 hover:text-cyan-400 mx-1"
                                     >
-                                        <FontAwesomeIcon icon={faPencilAlt} />
+                                        <Fa icon={faPencilAlt} />
                                     </button>
                                     <button 
                                         on:click={() => deleteFromSection('education', index)}
                                         class="text-gray-400 hover:text-red-400 mx-1"
+                                        disabled={deletingIndices.has(`education-${index}`)}
                                     >
-                                        <FontAwesomeIcon icon={faTimes} />
+                                        {#if deletingIndices.has(`education-${index}`)}
+                                            <div class="w-4 h-4 border-2 border-red-400 border-t-transparent rounded-full animate-spin"></div>
+                                        {:else}
+                                            <Fa icon={faTimes} />
+                                        {/if}
                                     </button>
                                 </div>
                             </div>
@@ -1150,7 +1176,7 @@
                         on:click={() => showDetailsModal = false}
                         class="text-zinc-400 hover:text-white transition-colors p-2"
                     >
-                        <FontAwesomeIcon icon={faTimes} />
+                        <Fa icon={faTimes} />
                     </button>
                 </div>
 
