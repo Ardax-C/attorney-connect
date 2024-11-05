@@ -297,7 +297,7 @@
                                             on:click={startChat}
                                             class="flex items-center justify-center space-x-2 bg-custom-color-tertiary text-blue-950 p-3 rounded-lg hover:bg-blue-900 hover:text-custom-color-tertiary transition-all transform active:scale-95"
                                         >
-                                            <span class="font-semibold">Message {user.firstName}</span>
+                                            <span class="font-semibold">Message {attorney.firstName}</span>
                                         </button>
                                     {/if}
                                 </div>
