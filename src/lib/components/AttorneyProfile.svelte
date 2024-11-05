@@ -3,7 +3,7 @@
     import { page } from '$app/stores';
     import { goto } from '$app/navigation';
     import { db } from '$lib/firebase';
-    import { doc, getDoc, collection, query, where, limit, getDocs, addDoc } from 'firebase/firestore';
+    import { doc, getDoc, collection, query, where, limit as limitQuery, getDocs, addDoc } from 'firebase/firestore';
     import { Link } from 'lucide-svelte';
     import { requireAuth } from '$lib/auth.js';
     import { sendNewChatEmail } from '$lib/emailService';
@@ -31,7 +31,6 @@
                 await loadAttorneyProfile(attorneyId);
             }
         } catch (error) {
-            console.error("Authentication error:", error);
             error = "Authentication failed. Please log in and try again.";
         }
     });
@@ -48,7 +47,6 @@
                 error = 'Attorney not found';
             }
         } catch (err) {
-            console.error("Error loading attorney profile:", err);
             error = 'Error loading attorney profile';
         } finally {
             loading = false;
@@ -57,19 +55,48 @@
 
     async function loadRelatedAttorneys(currentAttorney) {
         try {
+            if (!currentAttorney.state || !currentAttorney.practiceAreas) {
+                relatedAttorneys = [];
+                return;
+            }
+
+            // Query Firestore directly from the client
+            const attorneysRef = collection(db, 'attorneyProfiles');
             const q = query(
-                collection(db, 'attorneyProfiles'),
+                attorneysRef,
                 where('state', '==', currentAttorney.state),
-                where('practiceAreas', 'array-contains-any', currentAttorney.practiceAreas),
-                limit(5)
+                limitQuery(20)
             );
 
-            const querySnapshot = await getDocs(q);
-            relatedAttorneys = querySnapshot.docs
-                .map(doc => ({ id: doc.id, ...doc.data() }))
-                .filter(attorney => attorney.id !== currentAttorney.id);
+            const snapshot = await getDocs(q);
+            
+            // Process results in memory
+            relatedAttorneys = snapshot.docs
+                .map(doc => {
+                    const data = doc.data();
+                    return {
+                        id: doc.id,
+                        firstName: data.firstName,
+                        lastName: data.lastName,
+                        state: data.state,
+                        practiceAreas: data.practiceAreas || [],
+                        profilePictureUrl: data.profilePictureUrl,
+                        matchScore: (data.practiceAreas || [])
+                            .filter(area => currentAttorney.practiceAreas.includes(area))
+                            .length
+                    };
+                })
+                .filter(attorney => 
+                    attorney.id !== currentAttorney.id && 
+                    attorney.matchScore > 0
+                )
+                .sort((a, b) => b.matchScore - a.matchScore)
+                .slice(0, 5);
+
+
         } catch (error) {
             console.error("Error fetching related attorneys:", error);
+            relatedAttorneys = [];
         }
     }
 
@@ -354,16 +381,23 @@
                                                 alt="{relatedAttorney.firstName} {relatedAttorney.lastName}" 
                                                 class="w-16 h-16 rounded-lg object-cover"
                                             >
-                                            <div>
+                                            <div class="flex-1">
                                                 <h3 class="text-cyan-400 font-semibold group-hover:text-cyan-300 transition-colors">
                                                     {relatedAttorney.firstName} {relatedAttorney.lastName}
                                                 </h3>
                                                 <p class="text-emerald-400/70 text-sm">{relatedAttorney.state}</p>
-                                                {#if relatedAttorney.practiceAreas?.[0]}
-                                                    <p class="text-emerald-400/70 text-sm mt-1">
-                                                        {relatedAttorney.practiceAreas[0]}
-                                                    </p>
-                                                {/if}
+                                                <div class="flex flex-wrap gap-2 mt-2">
+                                                    {#each relatedAttorney.practiceAreas.slice(0, 2) as area}
+                                                        <span class="bg-cyan-500/10 text-cyan-400 px-2 py-0.5 rounded text-xs">
+                                                            {area}
+                                                        </span>
+                                                    {/each}
+                                                    {#if relatedAttorney.practiceAreas.length > 2}
+                                                        <span class="text-cyan-400/50 text-xs">
+                                                            +{relatedAttorney.practiceAreas.length - 2} more
+                                                        </span>
+                                                    {/if}
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
