@@ -13,7 +13,6 @@
     import { addChatSubscription, removeChatSubscription } from '$lib/stores/auth';
     import GifPicker from './GifPicker.svelte';
     import { fade } from 'svelte/transition';
-    import { SuperGif } from '$lib/utils/libgif';
     import { GifController } from '$lib/utils/GifController';
 
     export let chatId;
