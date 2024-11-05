@@ -1,20 +1,8 @@
-import { initializeApp } from "firebase/app";
 import { getVertexAI, getGenerativeModel } from "firebase/vertexai-preview";
 import { collection, getDocs } from 'firebase/firestore';
-import { db } from '$lib/firebase';
+import { app, db } from '$lib/firebase';
 
-const firebaseConfig = {
-  apiKey: import.meta.env.VITE_PUBLIC_FIREBASE_API_KEY,
-  authDomain: import.meta.env.VITE_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: import.meta.env.VITE_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: import.meta.env.VITE_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: import.meta.env.VITE_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: import.meta.env.VITE_PUBLIC_FIREBASE_APP_ID,
-  measurementId: import.meta.env.VITE_PUBLIC_FIREBASE_MEASUREMENT_ID
-};
-
-const firebaseApp = initializeApp(firebaseConfig);
-const vertexAI = getVertexAI(firebaseApp);
+const vertexAI = getVertexAI(app);
 const model = getGenerativeModel(vertexAI, { model: "gemini-1.5-flash" });
 
 async function getPracticeAreas() {
@@ -212,39 +200,25 @@ export async function generateAttorneyKeywords(firstName, lastName, city, state,
   }
 }
 
-export async function analyzeLegalIssue(legalIssueText) {
-  const prompt = `
-    Analyze the following legal issue description and identify the most relevant practice areas:
-    "${legalIssueText}"
+export async function analyzeLegalIssue(legalIssue) {
+    try {
+        const response = await fetch('/api/analyze-legal-issue', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ legalIssue })
+        });
 
-    Return the result as a JSON object with the following format:
-    {
-      "practiceAreas": [list of identified practice areas],
-      "confidence": number between 0 and 1 indicating confidence in the analysis
+        if (!response.ok) {
+            throw new Error('Failed to analyze legal issue');
+        }
+
+        return await response.json();
+    } catch (error) {
+        console.error('Error in analyzeLegalIssue:', error);
+        return { practiceAreas: [] };
     }
-
-    Guidelines:
-    - Match practice areas to standard legal practice categories
-    - Return between 1-3 most relevant practice areas
-    - Use title case for practice areas
-    - If unsure, include more general practice areas
-  `;
-
-  try {
-    const result = await model.generateContent(prompt);
-    const response = result.response;
-    const textResponse = response.text();
-
-    const jsonMatch = textResponse.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      return JSON.parse(jsonMatch[0]);
-    } else {
-      throw new Error("No valid JSON found in the response");
-    }
-  } catch (error) {
-    console.error('Error analyzing legal issue:', error);
-    return { practiceAreas: [], confidence: 0 };
-  }
 }
 
 // Helper function to convert strings to Title Case

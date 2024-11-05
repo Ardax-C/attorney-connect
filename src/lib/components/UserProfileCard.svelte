@@ -1,13 +1,26 @@
 <script>
     /** @type {import('$lib/types').Attorney} */
     export let attorney;
+    let imgError = false;
+
+    function handleImageError() {
+        imgError = true;
+    }
 </script>
 
 <div class="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow">
     <div class="flex items-start justify-between">
-        <div>
-            <h3 class="text-xl font-semibold text-gray-900">{attorney.name}</h3>
-            <p class="text-gray-600 mt-1">{attorney.state}</p>
+        <div class="flex items-center gap-4">
+            <img 
+                src={imgError ? '/images/default-avatar.png' : (attorney.profilePictureUrl || '/images/default-avatar.png')}
+                alt={`${attorney.firstName} ${attorney.lastName}`}
+                class="w-16 h-16 rounded-lg object-cover"
+                on:error={handleImageError}
+            />
+            <div>
+                <h3 class="text-xl font-semibold text-gray-900">{attorney.name}</h3>
+                <p class="text-gray-600 mt-1">{attorney.state}</p>
+            </div>
         </div>
     </div>
 
@@ -23,9 +36,9 @@
         </div>
     {/if}
 
-    {#if attorney.bio}
+    {#if attorney.biography}
         <p class="mt-4 text-gray-700 line-clamp-3">
-            {attorney.bio}
+            {attorney.biography}
         </p>
     {/if}
 

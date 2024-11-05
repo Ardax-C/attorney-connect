@@ -72,9 +72,14 @@
             if (!response.ok) throw new Error('Search failed');
             
             const data = await response.json();
+            data.attorneys = data.attorneys.map(attorney => ({
+                ...attorney,
+                profilePictureUrl: attorney.profilePictureUrl || '/images/default-avatar.png'
+            }));
             searchResults = data;
             totalPages = data.totalPages;
-        } catch (error) {
+        } catch (err) {
+            console.error('Search error:', err);
             error = 'Failed to load search results';
         } finally {
             loading = false;
@@ -280,19 +285,67 @@
                 {/if}
             </div>
 
-            <!-- Results Section with Pagination -->
+            <!-- Results Section -->
             <div class="lg:col-span-3">
-                <!-- Results Grid -->
                 {#if error}
-                    <div class="text-red-500">{error}</div>
+                    <div class="text-red-500 text-center p-4">{error}</div>
                 {:else if loading}
-                    <LoadingSpinner />
+                    <div class="flex justify-center">
+                        <LoadingSpinner />
+                    </div>
+                {:else if searchResults.attorneys.length === 0}
+                    <div class="text-[#00e6e6] text-center p-4">
+                        No attorneys found matching your search criteria.
+                    </div>
                 {:else}
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-8">
                         {#each searchResults.attorneys as attorney (attorney.id)}
                             <AttorneyCard {attorney} />
                         {/each}
                     </div>
+
+                    <!-- Pagination -->
+                    {#if searchResults.totalPages > 1}
+                        <div class="mt-8 flex justify-center">
+                            <div class="w-[400px] flex justify-between items-center">
+                                <button
+                                    class="px-2 py-1 rounded bg-[#243442] text-[#00e6e6] disabled:opacity-50
+                                           hover:bg-[#2d4456] transition-colors text-xs"
+                                    on:click={handlePrevPage}
+                                    disabled={currentPage === 1}
+                                >
+                                    Previous
+                                </button>
+                                
+                                <div class="flex items-center gap-1">
+                                    {#each getPageNumbers(currentPage, totalPages) as page}
+                                        {#if page === '...'}
+                                            <span class="text-[#00e6e6] text-xs px-1">...</span>
+                                        {:else}
+                                            <button
+                                                class="min-w-[24px] px-1.5 py-1 rounded text-xs transition-colors
+                                                       {currentPage === page ? 
+                                                         'bg-[#00e6e6] text-[#1a2632]' : 
+                                                         'bg-[#243442] text-[#00e6e6] hover:bg-[#2d4456]'}"
+                                                on:click={() => handlePageClick(page)}
+                                            >
+                                                {page}
+                                            </button>
+                                        {/if}
+                                    {/each}
+                                </div>
+                                
+                                <button
+                                    class="px-2 py-1 rounded bg-[#243442] text-[#00e6e6] disabled:opacity-50
+                                           hover:bg-[#2d4456] transition-colors text-xs"
+                                    on:click={handleNextPage}
+                                    disabled={currentPage === totalPages}
+                                >
+                                    Next
+                                </button>
+                            </div>
+                        </div>
+                    {/if}
                 {/if}
             </div>
         </div>

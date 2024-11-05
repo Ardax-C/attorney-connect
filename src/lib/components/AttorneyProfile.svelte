@@ -146,6 +146,29 @@
         
         return existingChat ? existingChat.id : null;
     }
+
+    // Add type definitions using JSDoc
+    /** @typedef {{
+        firmName: string;
+        role: string;
+        startDate: string;
+        endDate: string;
+        description: string;
+    }} LawFirmExperience */
+
+    /** @typedef {{
+        title: string;
+        issuer: string;
+        dateReceived: string;
+        description: string;
+    }} Credential */
+
+    /** @typedef {{
+        institution: string;
+        degree: string;
+        graduationYear: string;
+        honors: string;
+    }} Education */
 </script>
 
 <main class="bg-no-repeat bg-center bg-cover min-h-screen" style="background-image: url({backgroundImage})">
@@ -197,29 +220,18 @@
                                         </span>
                                     {/each}
                                 </div>
-                            </div>
-
-                            <!-- About Section -->
-                            <div class="mb-8">
-                                <h2 class="text-xl font-semibold text-custom-color-tertiary mb-4">About</h2>
-                                <p class="text-emerald-400 leading-relaxed">
-                                    {attorney.about || 'No information provided.'}
-                                </p>
-                            </div>
-
-                            <!-- Contact Information -->
-                            <div class="bg-zinc-700/50 rounded-xl p-6">
-                                <h2 class="text-xl font-semibold text-custom-color-tertiary mb-4">Contact Information</h2>
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                
+                                <!-- Website and Message Button -->
+                                <div class="mt-6 flex items-center gap-4">
                                     {#if attorney.website}
                                         <a 
                                             href={attorney.website}
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            class="flex items-center space-x-2 bg-zinc-600/50 p-3 rounded-lg hover:bg-zinc-600 transition-colors"
+                                            class="flex items-center space-x-2 bg-zinc-700/80 p-3 rounded-lg hover:bg-zinc-600 transition-colors"
                                         >
                                             <Link size={20} class="text-emerald-400" />
-                                            <span class="text-emerald-400 truncate">{attorney.website}</span>
+                                            <span class="text-emerald-400 truncate">Visit Website</span>
                                         </a>
                                     {/if}
                                     
@@ -233,6 +245,90 @@
                                     {/if}
                                 </div>
                             </div>
+
+                            <!-- Biography Section -->
+                            <div class="mb-8">
+                                <h2 class="text-xl font-semibold text-custom-color-tertiary mb-4">Biography</h2>
+                                <p class="text-emerald-400/70 italic leading-relaxed">
+                                    {attorney.biography || 'Attorney has not added a biography yet.'}
+                                </p>
+                            </div>
+
+                            <!-- Law Firm Experience Section -->
+                            {#if attorney.lawFirmExperience && attorney.lawFirmExperience.length > 0}
+                                <div class="mb-8">
+                                    <h2 class="text-xl font-semibold text-custom-color-tertiary mb-4">Law Firm Experience</h2>
+                                    <div class="space-y-4">
+                                        {#each attorney.lawFirmExperience as experience}
+                                            <div class="bg-zinc-700/30 p-4 rounded-lg">
+                                                <h3 class="text-lg font-medium text-white">{experience.firmName}</h3>
+                                                <p class="text-cyan-400">{experience.role}</p>
+                                                <p class="text-gray-400 text-sm">
+                                                    {experience.startDate} - {experience.endDate}
+                                                </p>
+                                                {#if experience.description}
+                                                    <p class="text-gray-300 mt-2">{experience.description}</p>
+                                                {/if}
+                                            </div>
+                                        {/each}
+                                    </div>
+                                </div>
+                            {:else}
+                                <div class="mb-8">
+                                    <h2 class="text-xl font-semibold text-custom-color-tertiary mb-4">Law Firm Experience</h2>
+                                    <p class="text-emerald-400/70 italic">Attorney has not updated their experience yet.</p>
+                                </div>
+                            {/if}
+
+                            <!-- Credentials Section -->
+                            {#if attorney.credentials && attorney.credentials.length > 0}
+                                <div class="mb-8">
+                                    <h2 class="text-xl font-semibold text-custom-color-tertiary mb-4">Professional Credentials</h2>
+                                    <div class="space-y-4">
+                                        {#each attorney.credentials as credential}
+                                            <div class="bg-zinc-700/30 p-4 rounded-lg">
+                                                <h3 class="text-lg font-medium text-white">{credential.title}</h3>
+                                                <p class="text-cyan-400">{credential.issuer}</p>
+                                                <p class="text-gray-400 text-sm">
+                                                    Received: {new Date(credential.dateReceived).toLocaleDateString()}
+                                                </p>
+                                                {#if credential.description}
+                                                    <p class="text-gray-300 mt-2">{credential.description}</p>
+                                                {/if}
+                                            </div>
+                                        {/each}
+                                    </div>
+                                </div>
+                            {:else}
+                                <div class="mb-8">
+                                    <h2 class="text-xl font-semibold text-custom-color-tertiary mb-4">Professional Credentials</h2>
+                                    <p class="text-emerald-400/70 italic">Attorney has not added any credentials yet.</p>
+                                </div>
+                            {/if}
+
+                            <!-- Education Section -->
+                            {#if attorney.education && attorney.education.length > 0}
+                                <div class="mb-8">
+                                    <h2 class="text-xl font-semibold text-custom-color-tertiary mb-4">Education</h2>
+                                    <div class="space-y-4">
+                                        {#each attorney.education as education}
+                                            <div class="bg-zinc-700/30 p-4 rounded-lg">
+                                                <h3 class="text-lg font-medium text-white">{education.institution}</h3>
+                                                <p class="text-cyan-400">{education.degree}</p>
+                                                <p class="text-gray-400">Class of {education.graduationYear}</p>
+                                                {#if education.honors}
+                                                    <p class="text-gray-300 mt-2 italic">{education.honors}</p>
+                                                {/if}
+                                            </div>
+                                        {/each}
+                                    </div>
+                                </div>
+                            {:else}
+                                <div class="mb-8">
+                                    <h2 class="text-xl font-semibold text-custom-color-tertiary mb-4">Education</h2>
+                                    <p class="text-emerald-400/70 italic">Attorney has not added their education history yet.</p>
+                                </div>
+                            {/if}
                         </div>
                     </div>
                 </div>

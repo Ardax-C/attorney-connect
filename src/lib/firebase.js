@@ -3,6 +3,7 @@ import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { getDatabase } from 'firebase/database';
 import { getFunctions } from 'firebase/functions';
+import { getStorage } from 'firebase/storage';
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_PUBLIC_FIREBASE_API_KEY,
@@ -20,5 +21,6 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 const rtdb = getDatabase(app);
 const functions = getFunctions(app);
+const storage = getStorage(app);
 
-export { app, auth, db, rtdb, functions };
+export { app, auth, db, rtdb, functions, storage };
