@@ -8,33 +8,40 @@
     let searchTerm = '';
     let gifs = [];
     let loading = false;
+    let error = null;
     let debounceTimer;
     
-    const GIPHY_API_KEY = import.meta.env.VITE_GIPHY_API_KEY;
-    const GIPHY_ENDPOINT = 'https://api.giphy.com/v1/gifs';
-
     async function searchGifs() {
-        if (!searchTerm.trim()) {
-            const trendingUrl = `${GIPHY_ENDPOINT}/trending?api_key=${GIPHY_API_KEY}&limit=20&rating=pg-13`;
-            const response = await fetch(trendingUrl);
+        try {
+            loading = true;
+            error = null;
+            
+            const endpoint = '/api/giphy';
+            const params = new URLSearchParams({
+                trending: !searchTerm.trim(),
+                query: searchTerm.trim()
+            });
+
+            const response = await fetch(`${endpoint}?${params}`);
+            
+            if (!response.ok) {
+                throw new Error('Failed to fetch GIFs');
+            }
+            
             const data = await response.json();
             gifs = data.data;
-            return;
+        } catch (err) {
+            console.error('Error fetching GIFs:', err);
+            error = 'Failed to load GIFs. Please try again.';
+            gifs = [];
+        } finally {
+            loading = false;
         }
-
-        const searchUrl = `${GIPHY_ENDPOINT}/search?api_key=${GIPHY_API_KEY}&q=${encodeURIComponent(searchTerm)}&limit=20&rating=pg-13`;
-        const response = await fetch(searchUrl);
-        const data = await response.json();
-        gifs = data.data;
     }
 
     function handleSearch() {
         clearTimeout(debounceTimer);
-        debounceTimer = setTimeout(async () => {
-            loading = true;
-            await searchGifs();
-            loading = false;
-        }, 500);
+        debounceTimer = setTimeout(searchGifs, 500);
     }
 
     function handleSelect(gif) {
@@ -42,7 +49,8 @@
             url: gif.images.original.url,
             width: gif.images.original.width,
             height: gif.images.original.height,
-            preview: gif.images.fixed_height_small.url
+            preview: gif.images.fixed_height_small.url,
+            type: 'gif'
         });
         onClose();
     }
