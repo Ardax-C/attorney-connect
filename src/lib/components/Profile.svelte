@@ -1241,6 +1241,7 @@
         border-radius: 0.5rem;
         padding: 0.5rem 1rem;
         transition: all 200ms;
+        color: #67cfcf;
     }
 
     :global(input:focus), :global(textarea:focus) {
