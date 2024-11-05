@@ -417,7 +417,7 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <!-- Contact Information -->
                     <div class="bg-zinc-800/30 p-6 rounded-xl border border-zinc-700/20 backdrop-blur-sm">
-                        <h2 class="text-xl font-semibold text-white mb-4">Contact Information</h2>
+                        <h2 class="text-xl font-semibold text-cyan-400 mb-4">Contact Information</h2>
                         <div class="space-y-4">
                             {#each ['email', 'phone', 'website'] as field}
                                 {#if userDetails?.[field]}
@@ -458,7 +458,7 @@
 
                     <!-- Location Information -->
                     <div class="bg-zinc-800/30 p-6 rounded-xl border border-zinc-700/20 backdrop-blur-sm">
-                        <h2 class="text-xl font-semibold text-white mb-4">Location</h2>
+                        <h2 class="text-xl font-semibold text-cyan-400 mb-4">Location</h2>
                         <div class="space-y-4">
                             {#each ['city', 'state'] as field}
                                 <div class="flex items-center justify-between group">
@@ -499,7 +499,7 @@
 
             <div class="bg-zinc-800/30 p-6 rounded-xl border border-zinc-700/20 backdrop-blur-sm mx-8 mb-8">
                 <div class="flex items-center justify-between mb-4">
-                    <h2 class="text-xl font-semibold text-white">Practice Areas</h2>
+                    <h2 class="text-xl font-semibold text-cyan-400">Practice Areas</h2>
                     {#if editField !== 'practiceAreas'}
                         <button 
                             on:click={() => startEdit('practiceAreas')} 
@@ -551,7 +551,7 @@
             <!-- Biography Section -->
             <div class="bg-zinc-800/30 p-6 rounded-xl border border-zinc-700/20 backdrop-blur-sm mx-8 mb-8">
                 <div class="flex items-center justify-between mb-4">
-                    <h2 class="text-xl font-semibold text-white">Biography</h2>
+                    <h2 class="text-xl font-semibold text-cyan-400">Biography</h2>
                     {#if editField !== 'biography'}
                         <button 
                             on:click={() => startEdit('biography')} 
@@ -596,7 +596,7 @@
             <!-- Law Firm Experience Section -->
             <div class="bg-zinc-800/30 p-6 rounded-xl border border-zinc-700/20 backdrop-blur-sm mx-8 mb-8">
                 <div class="flex items-center justify-between mb-4">
-                    <h2 class="text-xl font-semibold text-white">Prior Law Firm Experience</h2>
+                    <h2 class="text-xl font-semibold text-cyan-400">Prior Law Firm Experience</h2>
                     <button 
                         on:click={() => {
                             editingExperience = -1;
@@ -715,7 +715,7 @@
             <!-- Credentials Section -->
             <div class="bg-zinc-800/30 p-6 rounded-xl border border-zinc-700/20 backdrop-blur-sm mx-8 mb-8">
                 <div class="flex items-center justify-between mb-4">
-                    <h2 class="text-xl font-semibold text-white">Professional Credentials</h2>
+                    <h2 class="text-xl font-semibold text-cyan-400">Professional Credentials</h2>
                     <button 
                         on:click={() => {
                             editingCredential = -1;
@@ -823,7 +823,7 @@
             <!-- Education Section -->
             <div class="bg-zinc-800/30 p-6 rounded-xl border border-zinc-700/20 backdrop-blur-sm mx-8 mb-8">
                 <div class="flex items-center justify-between mb-4">
-                    <h2 class="text-xl font-semibold text-white">Education</h2>
+                    <h2 class="text-xl font-semibold text-cyan-400">Education</h2>
                     <button 
                         on:click={() => {
                             editingEducation = -1;
@@ -936,7 +936,7 @@
         <!-- Legal Requests Section -->
         <div class="mt-8 bg-zinc-900/95 rounded-2xl shadow-2xl p-8 border border-zinc-800/50">
             <div class="flex justify-between items-center mb-6">
-                <h2 class="text-2xl font-bold text-custom-color-tertiary">Legal Requests</h2>
+                <h2 class="text-2xl font-bold text-cyan-400">Legal Requests</h2>
                 <button
                     on:click={() => showArchived = !showArchived}
                     class="text-emerald-400 hover:text-emerald-300 transition-colors text-sm"
