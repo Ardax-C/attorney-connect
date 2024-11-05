@@ -31,7 +31,6 @@
             const data = await response.json();
             gifs = data.data;
         } catch (err) {
-            console.error('Error fetching GIFs:', err);
             error = 'Failed to load GIFs. Please try again.';
             gifs = [];
         } finally {

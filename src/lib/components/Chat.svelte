@@ -256,7 +256,7 @@
             user = await requireAuth();
             await loadChat();
         } catch (error) {
-            // ... existing error handling ...
+            // ... ignore errors ...
         }
     });
 
@@ -506,7 +506,7 @@
         }
     }
 
-    const SCROLL_THRESHOLD = 100; // pixels from bottom to consider "near bottom"
+    const SCROLL_THRESHOLD = 100; 
 
     
     function handleScroll() {
@@ -526,7 +526,6 @@
         });
     }
 
-    // Modify your existing afterUpdate
     afterUpdate(() => {
         if (!chatContainer) return;
         
@@ -537,7 +536,6 @@
         }
     });
 
-    // Add onMount to initialize scroll position
     onMount(() => {
         if (chatContainer) {
             scrollToLatest();
@@ -551,7 +549,6 @@
         let controller;
         
         const initGif = () => {
-            console.log('Initializing GIF:', node.src);
             controller = new GifController();
             controller.init(node);
         };
@@ -610,9 +607,9 @@
                     {toggleBriefs}
                 />
                 <div class="fixed inset-x-0 top-[64px] bottom-0 flex bg-gray-950/50 backdrop-blur-sm">
-                    <!-- Chat Container - Updated with dynamic width -->
+                    <!-- Chat Container -->
                     <div class="flex-1 flex flex-col bg-gray-900/90 {showBriefs ? 'w-[50%]' : 'w-full'} transition-all duration-300">
-                        <!-- Chat Header - Updated with briefs toggle -->
+                        <!-- Chat Header  -->
                         <div class="h-16 bg-gray-900/95 border-b border-gray-800/50 flex items-center justify-between px-3 md:px-6">
                             <div class="flex items-center gap-3">
                                 <div class="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center text-white font-medium">
@@ -870,7 +867,6 @@
         padding-top: 64px;
     }
 
-    /* Add to your existing styles */
     .custom-scrollbar {
         scrollbar-width: thin;
         scrollbar-color: rgba(156, 163, 175, 0.5) transparent;
