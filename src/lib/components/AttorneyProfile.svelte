@@ -329,7 +329,7 @@
                                             </div>
                                         {:else if section === 'Professional Credentials'}
                                             <div class="space-y-4">
-                                                {#each attorney.professionalCredentials as credential}
+                                                {#each attorney.credentials || [] as credential}
                                                     <div class="bg-zinc-700/30 p-4 rounded-lg">
                                                         <h3 class="text-white font-medium">{credential.title}</h3>
                                                         <p class="text-emerald-400">{credential.issuer}</p>
